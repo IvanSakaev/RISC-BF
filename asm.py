@@ -335,22 +335,22 @@ if __name__ == "__main__":
 
     instructions = [
         Jump("begin"),
-        SetI(n1, ord("!")),
-        Output(n1),
+          SetI(n1, ord("!")),
+          Output(n1),
         LabelDefine("begin"),
-        SetI(rep, 9),
-        SetI(n1, 0),
-        SetI(n2, 1),
+          SetI(rep, 9),
+          SetI(n1, 0),
+          SetI(n2, 1),
         LabelDefine("loop"),
-        SetI(sum, 0),
-        MovAdd(sum, n1),
-        CopyAdd(sum, n2),
-        SetI(n1, 0),
-        MovAdd(n1, n2),
-        MovAdd(n2, sum),
-        SubI(rep, 1),
+          SetI(sum, 0),
+          MovAdd(sum, n1),
+          CopyAdd(sum, n2),
+          SetI(n1, 0),
+          MovAdd(n1, n2),
+          MovAdd(n2, sum),
+          SubI(rep, 1),
         JumpConditional(rep, "loop"),
-        Output(n1)
+          Output(n1)
     ]
 
     prog = Program(instructions)
