@@ -124,6 +124,18 @@ class Raw(Instruction):
 MNEMONICS["raw"] = Raw
 
 @dataclass
+class Load(Instruction):
+    dst: Register
+    addr: RegisterOrImmediate
+MNEMONICS["lda"] = Load
+
+@dataclass
+class Store(Instruction):
+    addr: RegisterOrImmediate
+    src: Register
+MNEMONICS["sta"] = Store
+
+@dataclass
 class Output(Instruction):
     reg: RegisterOrImmediate
 MNEMONICS["out"] = Output
@@ -262,6 +274,10 @@ class Program:
         scrap = Register(-1)
         scrap2 = Register(-2)
         next = Register(-3)
+        addr1 = Register(9)
+        addr2 = Register(10)
+        addr3 = Register(11)
+        addr4 = Register(12)
 
         if isinstance(inst, Jump):
             return (
@@ -401,6 +417,58 @@ class Program:
               )))
               + scrap.back()
             )
+
+        elif isinstance(inst, Load):
+            if inst.addr.is_immediate():
+                src = Register(13+inst.addr)
+                return (
+                   f"lda {inst.dst} {inst.addr}\n    "
+                  + inst.dst.to()
+                  + "[-]"
+                  + move(src, inst.dst, scrap, root=inst.dst)
+                  + move(scrap, src, root=inst.dst)
+                  + inst.dst.back()
+                )
+            else:
+                return (
+                   f"lda {inst.dst} {inst.addr}\n    "
+                  + move(inst.addr, addr1, addr2, scrap)
+                  + move(scrap, inst.addr)
+                  + inst.dst.to()
+                  + "[-]"
+                  + addr1.to_rel(inst.dst)
+                  + "[>>[>+<-]<[>+<-]<[>+<-] >>>>[<<<<+>>>>-]<<< -]"
+                  + ">>>>[<<+<<+>>>> -]<<<<[>>>>+<<<< -]>"
+                  + "[<<[>>>>+<<<<-] >>[<+>-]>[<+>-]<< -]<"
+                  + move(addr3, inst.dst, root=addr1)
+                  + addr1.back()
+                )
+
+        elif isinstance(inst, Store):
+            if inst.addr.is_immediate():
+                dst = Register(13+inst.addr)
+                return (
+                   f"sta {inst.addr} {inst.src}\n    "
+                  + move(inst.src, scrap, scrap2)
+                  + move(scrap2, inst.src)
+                  + dst.to()
+                  + "[-]"
+                  + move(scrap, dst, root=dst)
+                  + dst.back()
+                )
+            else:
+                return (
+                   f"sta {inst.addr} {inst.src}\n    "
+                  + move(inst.addr, addr1, addr2, scrap)
+                  + move(scrap, inst.addr)
+                  + move(inst.src, addr3, scrap)
+                  + move(scrap, inst.src)
+                  + addr1.to()
+                  + "[>>[>+<-]<[>+<-]<[>+<-] >>>>[<<<<+>>>>-]<<< -]"
+                  + ">>[>>+<< -]<"
+                  + "[<<[>>>>+<<<<-] >>[<+>-]< -]<"
+                  + addr1.back()
+                )
 
         return type(inst).__name__
 
