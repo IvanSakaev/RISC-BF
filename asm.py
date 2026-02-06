@@ -256,12 +256,12 @@ class Program:
 
     def program_prologue(self):
         return (
-        "+>+["
-        "[-]<[>+<-]>"
+        "+["
+        "[>+<-]>"
         )
 
     def program_epilogue(self):
-        return "]"
+        return "]" * (len(self.blocks) - 1) + "<" + "]"
 
     def block_prologue(self, block_id):
         name = self.blocks[block_id].name
@@ -272,14 +272,14 @@ class Program:
         return (
         f"\n{name_line}"
         # next  'block_id   0       0
-        "->[-]+>[-]+<<"
+        "->+>+<<"
         # next  'block_id   1       1
         "[>->-<]>[>-]<[->\n"
         # next   block_id   0      '0
         )
 
     def block_epilogue(self):
-        return "\nend <]<"
+        return "\nend <]<["
 
     def assemble_instruction(self, inst, cur_block_id, comments=False):
         if comments:
@@ -293,7 +293,7 @@ class Program:
         addr1 = Register(9)
         addr2 = Register(10)
         addr3 = Register(11)
-        addr4 = Register(12)
+        Register(12)
 
         if isinstance(inst, Jump):
             return (
@@ -535,7 +535,7 @@ class Program:
         block = self.blocks[cur_block_id]
 
         if block is EXIT_BLOCK:
-            return "\n-"
+            return "\nexit block: -\n"
 
         return (self.block_prologue(cur_block_id)
               + '\n'.join(map(
