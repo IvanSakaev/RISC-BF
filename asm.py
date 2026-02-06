@@ -1,6 +1,9 @@
-from dataclasses import dataclass
+#! /bin/python
+
 import itertools
+from dataclasses import dataclass
 from urllib.parse import unquote
+
 
 class Instruction: ...
 
@@ -268,20 +271,15 @@ class Program:
 
         return (
         f"\n{name_line}"
-        # next  'block_id 0        0
-        "-[->+>+<<]>>"
-        # next   0        block_id'block_id
-        "[<<+>>-]"
-        # next   block_id block_id'0
-        "+<[>-<[-]]>"
-        # next   block_id 0       '(block_id==0)
-        "[[-]\n"
-        # next   the block begins
-        # 0        0       '0  
+        # next  'block_id   0       0
+        "->[-]+>[-]+<<"
+        # next  'block_id   1       1
+        "[>->-<]>[>-]<[->\n"
+        # next   block_id   0      '0
         )
 
     def block_epilogue(self):
-        return "\nend ]<<"
+        return "\nend <]<"
 
     def assemble_instruction(self, inst, cur_block_id, comments=False):
         if comments:
@@ -348,7 +346,7 @@ class Program:
                    + move(inst.src, inst.dst, root=inst.dst)
                    + inst.dst.back()
                 )
-        
+
         elif isinstance(inst, Copy):
             return (
                 rem(f"cpy {inst.dst} {inst.src}")
@@ -562,7 +560,8 @@ def parse(s):
     for line in s.split("\n"):
         if ";" in line:
             line = line[:line.find(";")]
-        if line.isspace() or not line: continue
+        if line.isspace() or not line:
+            continue
         line = line.strip(" ")
         if line.endswith(":"):
             insts.append(LabelDefine(line[:-1]))
@@ -625,7 +624,8 @@ def parse(s):
                 arg_tp = "label"
             elif isinstance(arg, str):
                 arg_tp = "string"
-            else: raise NotImplementedError()
+            else:
+                raise NotImplementedError()
 
             if arg_tp not in tps:
                 expected = " or ".join(tps)
@@ -649,3 +649,4 @@ if __name__ == "__main__":
 
     with open(sys.argv[2], "w") as f:
         f.write(out_contents)
+        f.write("\n")
