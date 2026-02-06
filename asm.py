@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import itertools
+from urllib.parse import unquote
 
 class Instruction: ...
 
@@ -55,28 +56,30 @@ regs = {
 class Immediate(int):
     def is_immediate(self): return True
 
+class Label(str): ...
+
 RegisterOrImmediate = Register | int
 
 @dataclass
 class LabelDefine(Instruction):
-    name: str
+    name: Label
 
 MNEMONICS = dict()
 
 @dataclass
 class Jump(Instruction):
-    target: str
+    target: Label
 MNEMONICS["jmp"] = Jump
 
 @dataclass
 class JumpConditional(Instruction):
     cond: Register
-    target: str
+    target: Label
 MNEMONICS["jnz"] = JumpConditional
 
 @dataclass
 class JumpRelative(Instruction):
-    offset: int
+    offset: Immediate
 MNEMONICS["jmr"] = JumpRelative
 
 @dataclass
@@ -124,6 +127,11 @@ MNEMONICS["raw"] = Raw
 class Output(Instruction):
     reg: RegisterOrImmediate
 MNEMONICS["out"] = Output
+
+@dataclass
+class Print(Instruction):
+    val: str
+MNEMONICS["prt"] = Print
 
 @dataclass
 class Block(Instruction):
@@ -383,6 +391,17 @@ class Program:
                   + inst.reg.back()
                 )
 
+        elif isinstance(inst, Print):
+            return (
+               f"prt {sanitize(inst.val)}\n    "
+              + scrap.to()
+              + (''.join(map(
+                lambda c: ("+"*ord(c))+".[-]",
+                inst.val
+              )))
+              + scrap.back()
+            )
+
         return type(inst).__name__
 
     def assemble_block(self, cur_block_id):
@@ -412,6 +431,8 @@ class Program:
 def parse(s):
     insts = []
     for line in s.split("\n"):
+        if ";" in line:
+            line = line[:line.find(";")]
         if line.isspace() or not line: continue
         line = line.strip(" ")
         if line.endswith(":"):
@@ -430,7 +451,10 @@ def parse(s):
                     args.append(regs[arg])
                     continue
                 if arg[0] == "<" and arg[-1] == ">":
-                    args.append(arg[1:-1])
+                    args.append(Label(arg[1:-1]))
+                    continue
+                if arg[0] == '"' and arg[-1] == '"':
+                    args.append(unquote(arg[1:-1]))
                     continue
 
                 if arg.startswith("0x"):
@@ -457,8 +481,10 @@ def parse(s):
                 tps = ["register", "immediate"]
             elif tp is int:
                 tps = ["immediate"]
-            elif tp is str:
+            elif tp is Label:
                 tps = ["label"]
+            elif tp is str:
+                tps = ["string"]
             else:
                 raise NotImplementedError()
 
@@ -466,8 +492,11 @@ def parse(s):
                 arg_tp = "register"
             elif isinstance(arg, Immediate):
                 arg_tp = "immediate"
-            elif isinstance(arg, str):
+            elif isinstance(arg, Label):
                 arg_tp = "label"
+            elif isinstance(arg, str):
+                arg_tp = "string"
+            else: raise NotImplementedError()
 
             if arg_tp not in tps:
                 expected = " or ".join(tps)
