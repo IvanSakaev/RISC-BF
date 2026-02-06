@@ -201,6 +201,13 @@ def move(src, *dsts, root=ROOT, negative=False):
     out += root.to_rel(src)
     return out
 
+def change(from_, to):
+    if from_ == to:
+        return ""
+    elif from_ > to:
+        return "-"*(from_-to)
+    return "+"*(to-from_)
+
 class Program:
     def __init__(self, instructions):
         self.blocks = split_program_into_blocks(instructions)
@@ -208,18 +215,14 @@ class Program:
     def find_block(self, name):
         for ind in range(len(self.blocks)):
             if self.blocks[ind].name == name:
-                return ind
+                return ind+1
         raise ValueError(f"Block not found: {name}")
 
-    def resolve_jump(self, target, cur_block_id):
-        new_block_id = self.find_block(target)
-        out = (new_block_id - cur_block_id) % len(self.blocks)
-        if out == 0:
-            out = len(self.blocks)
-        return out
-
     def program_prologue(self):
-        return "+["
+        return (
+        "+>+["
+        "[-]<[>+<-]>"
+        )
 
     def program_epilogue(self):
         return "]"
@@ -232,15 +235,15 @@ class Program:
 
         return (
         f"\n{name_line}"
-        #'block_id 0        0
+        # next  'block_id 0        0
         "-[->+>+<<]>>"
-        # 0        block_id'block_id
+        # next   0        block_id'block_id
         "[<<+>>-]"
-        # block_id block_id'0
+        # next   block_id block_id'0
         "+<[>-<[-]]>"
-        # block_id 0       '(block_id==0)
+        # next   block_id 0       '(block_id==0)
         "[[-]\n"
-        # the block begins
+        # next   the block begins
         # 0        0       '0  
         )
 
@@ -249,18 +252,15 @@ class Program:
 
     def assemble_instruction(self, inst, cur_block_id):
         scrap = Register(-1)
-        jmp = Register(-2)
-        scrap2 = jmp
+        scrap2 = Register(-2)
+        next = Register(-3)
 
         if isinstance(inst, Jump):
             return (
                f"jmp {sanitize(inst.target)}\n    "
-              + jmp.to()
-              + "+"*self.resolve_jump(
-                    inst.target,
-                    cur_block_id
-                )
-              + jmp.back()
+              + next.to()
+              + change(0, self.find_block(inst.target))
+              + next.back()
             )
 
         elif isinstance(inst, JumpConditional):
@@ -268,16 +268,13 @@ class Program:
                f"jnz {inst.cond} {sanitize(inst.target)}\n    "
               + move(inst.cond, scrap, scrap2)
               + move(scrap2, inst.cond)
-              + jmp.to()
-              + "+" # set the default value
-              + scrap.to_rel(jmp)
+              + next.to()
+              + ("+"*(cur_block_id+2)) # set the default value
+              + scrap.to_rel(next)
               + "[" # condition is true
-              +   jmp.to_rel(scrap)
-              +   ("+"*(self.resolve_jump(
-                      inst.target,
-                      cur_block_id
-                  )-1))
-              +   scrap.to_rel(jmp)
+              +   next.to_rel(scrap)
+              +   change(cur_block_id, self.find_block(inst.target)-2)
+              +   scrap.to_rel(next)
               +   "[-]"
               + "]"
               + scrap.back()
@@ -286,9 +283,9 @@ class Program:
         elif isinstance(inst, JumpRelative):
             return (
                f"jmr {inst.offset}\n    "
-              + jmp.to()
-              + "+"*inst.offset
-              + jmp.back()
+              + next.to()
+              + "+"*(cur_block_id+inst.offset+1)
+              + next.back()
             )
 
         elif isinstance(inst, Move):
@@ -370,12 +367,21 @@ class Program:
             return inst.code
 
         elif isinstance(inst, Output):
-            return (
-               f"out {inst.reg}\n    "
-              + inst.reg.to()
-              + "."
-              + inst.reg.back()
-            )
+            if inst.reg.is_immediate():
+                return (
+                   f"out {inst.reg}\n    "
+                  + scrap.to()
+                  + change(0, inst.reg)
+                  + ".[-]"
+                  + scrap.back()
+                )
+            else:
+                return (
+                   f"out {inst.reg}\n    "
+                  + inst.reg.to()
+                  + "."
+                  + inst.reg.back()
+                )
 
         return type(inst).__name__
 
