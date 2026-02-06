@@ -1,4 +1,4 @@
-mov R8 0xff
+mov SP 0xff
 mov R1 0x41
 
 sta 5 R1

@@ -38,6 +38,8 @@ class Register:
             return "J"
         elif self.num == -1:
             return "S"
+        elif self.num == 8:
+            return "SP"
         return f"R{self.num}"
 
 ROOT = Register(0)
@@ -50,7 +52,7 @@ regs = {
     "R5": Register(5),
     "R6": Register(6),
     "R7": Register(7),
-    "R8": Register(8)
+    "SP": Register(8)
 }
 
 class Immediate(int):
@@ -146,6 +148,15 @@ class Print(Instruction):
 MNEMONICS["prt"] = Print
 
 @dataclass
+class Call(Instruction):
+    target: Label
+MNEMONICS["call"] = Call
+
+@dataclass
+class Return(Instruction): ...
+MNEMONICS["ret"] = Return
+
+@dataclass
 class Block(Instruction):
     name: str | None
     insts: list[Instruction]
@@ -160,7 +171,9 @@ def is_block_boundary(inst):
         LabelDefine,
         JumpRelative,
         JumpConditional,
-        Jump
+        Jump,
+        Call,
+        Return
     ))
 
 def split_program_into_blocks(instructions):
@@ -270,7 +283,12 @@ class Program:
     def block_epilogue(self):
         return "\nend ]<<"
 
-    def assemble_instruction(self, inst, cur_block_id):
+    def assemble_instruction(self, inst, cur_block_id, comments=False):
+        if comments:
+            rem = lambda x: x + "\n    "
+        else:
+            rem = lambda x: ""
+
         scrap = Register(-1)
         scrap2 = Register(-2)
         next = Register(-3)
@@ -281,7 +299,7 @@ class Program:
 
         if isinstance(inst, Jump):
             return (
-               f"jmp {sanitize(inst.target)}\n    "
+                rem(f"jmp {sanitize(inst.target)}")
               + next.to()
               + change(0, self.find_block(inst.target))
               + next.back()
@@ -289,7 +307,7 @@ class Program:
 
         elif isinstance(inst, JumpConditional):
             return (
-               f"jnz {inst.cond} {sanitize(inst.target)}\n    "
+                rem(f"jnz {inst.cond} {sanitize(inst.target)}")
               + move(inst.cond, scrap, scrap2)
               + move(scrap2, inst.cond)
               + next.to()
@@ -306,14 +324,14 @@ class Program:
 
         elif isinstance(inst, JumpRelative):
             return (
-               f"jmr {inst.offset}\n    "
+                rem(f"jmr {inst.offset}")
               + next.to()
               + "+"*(cur_block_id+inst.offset+1)
               + next.back()
             )
 
         elif isinstance(inst, Move):
-            header = f"mov {inst.dst} {inst.src}\n    "
+            header = rem(f"mov {inst.dst} {inst.src}")
             if inst.src.is_immediate():
                 return (
                     header
@@ -333,7 +351,7 @@ class Program:
         
         elif isinstance(inst, Copy):
             return (
-               f"cpy {inst.dst} {inst.src}\n    "
+                rem(f"cpy {inst.dst} {inst.src}")
               + inst.dst.to()
               + "[-]"
               + move(inst.src, scrap, inst.dst, root=inst.dst)
@@ -342,7 +360,7 @@ class Program:
             )
 
         elif isinstance(inst, MovAdd):
-            header = f"addm {inst.dst} {inst.src}\n    "
+            header = rem(f"addm {inst.dst} {inst.src}")
 
             if inst.src.is_immediate():
                 return (
@@ -353,19 +371,19 @@ class Program:
                 )
             else:
                 return (
-                   header
-                 + move(inst.src, inst.dst)
+                    header
+                  + move(inst.src, inst.dst)
                 )
 
         elif isinstance(inst, Add):
             return (
-               f"add {inst.dst} {inst.src}\n    "
-             + move(inst.src, inst.dst, scrap)
-             + move(scrap, inst.src)
+                rem(f"add {inst.dst} {inst.src}")
+              + move(inst.src, inst.dst, scrap)
+              + move(scrap, inst.src)
             )
 
         elif isinstance(inst, MovSub):
-            header = f"subm {inst.dst} {inst.src}\n    "
+            header = rem(f"subm {inst.dst} {inst.src}")
 
             if inst.src.is_immediate():
                 return (
@@ -376,24 +394,26 @@ class Program:
                 )
             else:
                 return (
-                   header
-                 + move(inst.src, inst.dst, negative=True)
+                    header
+                  + move(inst.src, inst.dst, negative=True)
                 )
 
         elif isinstance(inst, Sub):
             return (
-               f"sub {inst.dst} {inst.src}\n    "
-             + move(inst.src, inst.dst, scrap, negative=[1,0])
-             + move(scrap, inst.src)
+                rem(f"sub {inst.dst} {inst.src}")
+              + move(inst.src, inst.dst, scrap, negative=[1,0])
+              + move(scrap, inst.src)
             )
 
         elif isinstance(inst, Raw):
             return inst.code
 
         elif isinstance(inst, Output):
+            label = rem(f"out {inst.reg}")
+
             if inst.reg.is_immediate():
                 return (
-                   f"out {inst.reg}\n    "
+                    label
                   + scrap.to()
                   + change(0, inst.reg)
                   + ".[-]"
@@ -401,7 +421,7 @@ class Program:
                 )
             else:
                 return (
-                   f"out {inst.reg}\n    "
+                    label
                   + inst.reg.to()
                   + "."
                   + inst.reg.back()
@@ -409,7 +429,7 @@ class Program:
 
         elif isinstance(inst, Print):
             return (
-               f"prt {sanitize(inst.val)}\n    "
+                rem(f"prt {sanitize(inst.val)}")
               + scrap.to()
               + (''.join(map(
                 lambda c: ("+"*ord(c))+".[-]",
@@ -419,10 +439,12 @@ class Program:
             )
 
         elif isinstance(inst, Load):
+            label = rem(f"lda {inst.dst} {inst.addr}")
+
             if inst.addr.is_immediate():
                 src = Register(13+inst.addr)
                 return (
-                   f"lda {inst.dst} {inst.addr}\n    "
+                    label
                   + inst.dst.to()
                   + "[-]"
                   + move(src, inst.dst, scrap, root=inst.dst)
@@ -431,7 +453,7 @@ class Program:
                 )
             else:
                 return (
-                   f"lda {inst.dst} {inst.addr}\n    "
+                    label
                   + move(inst.addr, addr1, addr2, scrap)
                   + move(scrap, inst.addr)
                   + inst.dst.to()
@@ -445,10 +467,12 @@ class Program:
                 )
 
         elif isinstance(inst, Store):
+            label = rem(f"sta {inst.addr} {inst.src}")
+
             if inst.addr.is_immediate():
                 dst = Register(13+inst.addr)
                 return (
-                   f"sta {inst.addr} {inst.src}\n    "
+                    label
                   + move(inst.src, scrap, scrap2)
                   + move(scrap2, inst.src)
                   + dst.to()
@@ -458,17 +482,54 @@ class Program:
                 )
             else:
                 return (
-                   f"sta {inst.addr} {inst.src}\n    "
+                    label
                   + move(inst.addr, addr1, addr2, scrap)
                   + move(scrap, inst.addr)
-                  + move(inst.src, addr3, scrap)
-                  + move(scrap, inst.src)
+                  + (
+                      addr3.to()
+                    + "[-]" + ("+"*inst.src)
+                    + addr3.back()
+                      if inst.src.is_immediate() else
+                      move(inst.src, addr3, scrap)
+                    + move(scrap, inst.src)
+                    )
                   + addr1.to()
                   + "[>>[>+<-]<[>+<-]<[>+<-] >>>>[<<<<+>>>>-]<<< -]"
                   + ">>>>[-]<<[>>+<< -]<"
                   + "[<<[>>>>+<<<<-] >>[<+>-]< -]<"
                   + addr1.back()
                 )
+
+        elif isinstance(inst, Call):
+            return (
+                rem(f"call {sanitize(inst.target)}")
+              + self.assemble_instruction(
+                    Store(
+                        regs["SP"],
+                        Immediate(cur_block_id+2)
+                    ),
+                cur_block_id)
+              + regs["SP"].to()
+              + "+"
+              + regs["SP"].back()
+              + self.assemble_instruction(
+                    Jump(inst.target),
+                cur_block_id)
+            )
+
+        elif isinstance(inst, Return):
+            return (
+                rem("ret")
+              + regs["SP"].to()
+              + "-"
+              + regs["SP"].back()
+              + self.assemble_instruction(
+                    Load(
+                        next,
+                        regs["SP"]
+                    ),
+                cur_block_id)
+            )
 
         return type(inst).__name__
 
@@ -482,7 +543,7 @@ class Program:
               + '\n'.join(map(
                   lambda i:
                       "  " + self.assemble_instruction(
-                          i, cur_block_id
+                          i, cur_block_id, comments=True
                       ),
                   block.insts
                 ))
