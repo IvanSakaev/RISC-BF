@@ -170,11 +170,6 @@ class KiloBlock(Instruction):
     myid: int
     blocks: list[Block]
 
-class _ExitBlock:
-    def __init__(self):
-        self.myid = None
-        self.name = "exit"
-EXIT_BLOCK = _ExitBlock()
 
 def is_block_boundary(inst):
     return isinstance(inst, (
@@ -216,8 +211,6 @@ def split_program_into_blocks(instructions):
         block_name,
         cur_block
     ))
-
-    blocks.append(EXIT_BLOCK)
 
     return blocks
 
@@ -274,6 +267,8 @@ class Program:
         self.kiloblocks = split_blocks_into_kiloblocks(blocks)
 
     def find_block(self, name):
+        if name == "exit":
+            return 0, 0
         for kiloblock in self.kiloblocks:
             for block in kiloblock.blocks:
                 if block.name == name:
@@ -299,7 +294,7 @@ class Program:
         )
 
     def program_epilogue(self):
-        return "<[-]<<]"
+        return "\n-" + "]" * len(self.kiloblocks) + "<<<]"
     
     def kiloblock_prologue(self, kiloblock: KiloBlock):
         name = f"kiloblock_{kiloblock.myid}"
@@ -315,8 +310,8 @@ class Program:
         # next1     next2   0          'block_id1   0       0
         )
 
-    def kiloblock_epilogue(self):
-        return "\nend_kiloblock [-]>]<"
+    def kiloblock_epilogue(self, kiloblock: KiloBlock):
+        return "\nend_kiloblock -" + "]" * len(kiloblock.blocks) + " >]<["
 
     def block_prologue(self, block: Block):
         name = block.name
@@ -334,7 +329,7 @@ class Program:
         )
 
     def block_epilogue(self):
-        return "\nend <]<"
+        return "\nend <]<["
 
     def assemble_instruction(self, inst: Instruction, cur_block: Block, comments=False):
         if comments:
@@ -630,9 +625,6 @@ class Program:
         return type(inst).__name__
 
     def assemble_block(self, block: Block):
-        if block is EXIT_BLOCK:
-            return ""
-
         return (
             self.block_prologue(block) +
             '\n'.join([
@@ -651,7 +643,7 @@ class Program:
                 self.assemble_block(block)
                 for block in kiloblock.blocks
             ]) +
-            self.kiloblock_epilogue()
+            self.kiloblock_epilogue(kiloblock)
         )
 
     def assemble(self):
