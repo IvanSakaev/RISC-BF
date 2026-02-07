@@ -1,5 +1,4 @@
 #! /bin/python
-
 import itertools
 from dataclasses import dataclass
 from urllib.parse import unquote
@@ -161,11 +160,19 @@ MNEMONICS["ret"] = Return
 
 @dataclass
 class Block(Instruction):
+    myid: int
+    kiloblock: "KiloBlock"
     name: str | None
     insts: list[Instruction]
 
+@dataclass
+class KiloBlock(Instruction):
+    myid: int
+    blocks: list[Block]
+
 class _ExitBlock:
     def __init__(self):
+        self.myid = None
         self.name = "exit"
 EXIT_BLOCK = _ExitBlock()
 
@@ -191,6 +198,8 @@ def split_program_into_blocks(instructions):
                 cur_block.append(JumpRelative(1))
 
             blocks.append(Block(
+                None,
+                None,
                 block_name,
                 cur_block
             ))
@@ -202,6 +211,8 @@ def split_program_into_blocks(instructions):
 
     cur_block.append(JumpRelative(1))
     blocks.append(Block(
+        None,
+        None,
         block_name,
         cur_block
     ))
@@ -209,6 +220,19 @@ def split_program_into_blocks(instructions):
     blocks.append(EXIT_BLOCK)
 
     return blocks
+
+def split_blocks_into_kiloblocks(blocks: list[Block]):
+    kiloblocks = [KiloBlock(1, [])]
+    i = 0
+    for block in blocks:
+        i += 1
+        if i >= 256:
+            i = 1
+            kiloblocks.append(KiloBlock(len(kiloblocks) + 1, []))
+        block.myid = i
+        block.kiloblock = kiloblocks[-1]
+        kiloblocks[-1].blocks.append(block)
+    return kiloblocks
 
 def sanitize(name):
     name = name \
@@ -246,86 +270,138 @@ def change(from_, to):
 
 class Program:
     def __init__(self, instructions):
-        self.blocks = split_program_into_blocks(instructions)
+        blocks = split_program_into_blocks(instructions)
+        self.kiloblocks = split_blocks_into_kiloblocks(blocks)
 
     def find_block(self, name):
-        for ind in range(len(self.blocks)):
-            if self.blocks[ind].name == name:
-                return ind+1
+        for kiloblock in self.kiloblocks:
+            for block in kiloblock.blocks:
+                if block.name == name:
+                    i = kiloblock.myid
+                    j = block.myid
+                    print(i, j)
+                    return i, j
         raise ValueError(f"Block not found: {name}")
+    
+    def find_next_block(self, block: Block):
+        i = block.kiloblock.myid
+        j = block.myid
+        j += 1
+        if j >= 255:
+            j -= 255
+            i += 1
+            assert i < 255
+        print(i, j)
+        return i, j
 
     def program_prologue(self):
         return (
-        "+["
-        "[>+<-]>"
+        "+>+<["
+        "[>>+<<-]>[>>+<<-]>>"
         )
 
     def program_epilogue(self):
-        return "]" * (len(self.blocks) - 1) + "<" + "]"
+        return "<[-]<<]"
+    
+    def kiloblock_prologue(self, kiloblock: KiloBlock):
+        name = f"kiloblock_{kiloblock.myid}"
+        name_line = f"{sanitize(name)}:\n"
+        return (
+        f"\n{name_line}"
+        # next1     next2   block_id1  'block_id2   0       0
+        "->+>+<<"
+        # next1     next2   block_id1  'block_id2   1       1
+        "[>->-<]>[>-]<[-<"  # ifnot
+        # next1     next2   block_id1  '0           0       0
+        "<[>+<-]>\n"
+        # next1     next2   0          'block_id1   0       0
+        )
 
-    def block_prologue(self, block_id):
-        name = self.blocks[block_id].name
+    def kiloblock_epilogue(self):
+        return "\nend_kiloblock [-]>]<"
+
+    def block_prologue(self, block: Block):
+        name = block.name
         if name is None:
-            name = f"block_{block_id}"
+            name = f"block_{block.myid}"
         name_line = f"{sanitize(name)}:\n"
 
         return (
         f"\n{name_line}"
-        # next  'block_id   0       0
+        # next1     next2   0          'block_id1   0       0
         "->+>+<<"
-        # next  'block_id   1       1
+        # next1     next2   0          'block_id1   1       1
         "[>->-<]>[>-]<[->\n"
-        # next   block_id   0      '0
+        # next1     next2   0           block_id1   0      '0
         )
 
     def block_epilogue(self):
-        return "\nend <]<["
+        return "\nend <]<"
 
-    def assemble_instruction(self, inst, cur_block_id, comments=False):
+    def assemble_instruction(self, inst: Instruction, cur_block: Block, comments=False):
         if comments:
             rem = lambda x: x + "\n    "
         else:
             rem = lambda x: ""
 
-        scrap = Register(-1)
+        next2 = Register(-5)  # block number
+        next1 = Register(-4)  # kiloblock number
+
+        # Safe to modiefy in blocks, but after modiefying must equal zero
+        scrap1 = Register(-3)
         scrap2 = Register(-2)
-        next = Register(-3)
+        scrap3 = Register(-1)
+        scrap4 = Register(0)
+
+        # Use only for memory addressing
         addr1 = Register(9)
         addr2 = Register(10)
         addr3 = Register(11)
         Register(12)
 
         if isinstance(inst, Jump):
+            i, j = self.find_block(inst.target)
             return (
                 rem(f"jmp {sanitize(inst.target)}")
-              + next.to()
-              + change(0, self.find_block(inst.target))
-              + next.back()
+              + next1.to()
+              + change(0, i)
+              + next2.to_rel(next1)
+              + change(0, j)
+              + next2.back()
             )
 
         elif isinstance(inst, JumpConditional):
+            next_i, next_j = self.find_next_block(cur_block)
+            jump_i, jump_j = self.find_block(inst.target)
             return (
                 rem(f"jnz {inst.cond} {sanitize(inst.target)}")
-              + move(inst.cond, scrap, scrap2)
+              + move(inst.cond, scrap1, scrap2)
               + move(scrap2, inst.cond)
-              + next.to()
-              + ("+"*(cur_block_id+2)) # set the default value
-              + scrap.to_rel(next)
+              + next1.to()
+              + ("+" * next_i) # set the default value
+              + next2.to_rel(next1)
+              + ("+" * next_j) # set the default value
+              + scrap1.to_rel(next2)
               + "[" # condition is true
-              +   next.to_rel(scrap)
-              +   change(cur_block_id, self.find_block(inst.target)-2)
-              +   scrap.to_rel(next)
+              +   next1.to_rel(scrap1)
+              +   change(next_i, jump_i)
+              +   next2.to_rel(next1)
+              +   change(next_j, jump_j)
+              +   scrap1.to_rel(next2)
               +   "[-]"
               + "]"
-              + scrap.back()
+              + scrap1.back()
             )
 
         elif isinstance(inst, JumpRelative):
+            next_i, next_j = self.find_next_block(cur_block)
             return (
                 rem(f"jmr {inst.offset}")
-              + next.to()
-              + "+"*(cur_block_id+inst.offset+1)
-              + next.back()
+              + next1.to()
+              + "+" * next_i
+              + next2.to_rel(next1)
+              + "+" * next_j
+              + next2.back()
             )
 
         elif isinstance(inst, Move):
@@ -352,8 +428,8 @@ class Program:
                 rem(f"cpy {inst.dst} {inst.src}")
               + inst.dst.to()
               + "[-]"
-              + move(inst.src, scrap, inst.dst, root=inst.dst)
-              + move(scrap, inst.src, root=inst.dst)
+              + move(inst.src, scrap1, inst.dst, root=inst.dst)
+              + move(scrap1, inst.src, root=inst.dst)
               + inst.dst.back()
             )
 
@@ -376,8 +452,8 @@ class Program:
         elif isinstance(inst, Add):
             return (
                 rem(f"add {inst.dst} {inst.src}")
-              + move(inst.src, inst.dst, scrap)
-              + move(scrap, inst.src)
+              + move(inst.src, inst.dst, scrap1)
+              + move(scrap1, inst.src)
             )
 
         elif isinstance(inst, MovSub):
@@ -399,8 +475,8 @@ class Program:
         elif isinstance(inst, Sub):
             return (
                 rem(f"sub {inst.dst} {inst.src}")
-              + move(inst.src, inst.dst, scrap, negative=[1,0])
-              + move(scrap, inst.src)
+              + move(inst.src, inst.dst, scrap1, negative=[1,0])
+              + move(scrap1, inst.src)
             )
 
         elif isinstance(inst, Raw):
@@ -412,10 +488,10 @@ class Program:
             if inst.reg.is_immediate():
                 return (
                     label
-                  + scrap.to()
+                  + scrap1.to()
                   + change(0, inst.reg)
                   + ".[-]"
-                  + scrap.back()
+                  + scrap1.back()
                 )
             else:
                 return (
@@ -428,12 +504,12 @@ class Program:
         elif isinstance(inst, Print):
             return (
                 rem(f"prt {sanitize(inst.val)}")
-              + scrap.to()
+              + scrap1.to()
               + (''.join(map(
                 lambda c: ("+"*ord(c))+".[-]",
                 inst.val
               )))
-              + scrap.back()
+              + scrap1.back()
             )
 
         elif isinstance(inst, Load):
@@ -445,15 +521,15 @@ class Program:
                     label
                   + inst.dst.to()
                   + "[-]"
-                  + move(src, inst.dst, scrap, root=inst.dst)
-                  + move(scrap, src, root=inst.dst)
+                  + move(src, inst.dst, scrap1, root=inst.dst)
+                  + move(scrap1, src, root=inst.dst)
                   + inst.dst.back()
                 )
             else:
                 return (
                     label
-                  + move(inst.addr, addr1, addr2, scrap)
-                  + move(scrap, inst.addr)
+                  + move(inst.addr, addr1, addr2, scrap1)
+                  + move(scrap1, inst.addr)
                   + inst.dst.to()
                   + "[-]"
                   + addr1.to_rel(inst.dst)
@@ -471,25 +547,25 @@ class Program:
                 dst = Register(13+inst.addr)
                 return (
                     label
-                  + move(inst.src, scrap, scrap2)
+                  + move(inst.src, scrap1, scrap2)
                   + move(scrap2, inst.src)
                   + dst.to()
                   + "[-]"
-                  + move(scrap, dst, root=dst)
+                  + move(scrap1, dst, root=dst)
                   + dst.back()
                 )
             else:
                 return (
                     label
-                  + move(inst.addr, addr1, addr2, scrap)
-                  + move(scrap, inst.addr)
+                  + move(inst.addr, addr1, addr2, scrap1)
+                  + move(scrap1, inst.addr)
                   + (
                       addr3.to()
                     + "[-]" + ("+"*inst.src)
                     + addr3.back()
                       if inst.src.is_immediate() else
-                      move(inst.src, addr3, scrap)
-                    + move(scrap, inst.src)
+                      move(inst.src, addr3, scrap1)
+                    + move(scrap1, inst.src)
                     )
                   + addr1.to()
                   + "[>>[>+<-]<[>+<-]<[>+<-] >>>>[<<<<+>>>>-]<<< -]"
@@ -504,15 +580,16 @@ class Program:
               + self.assemble_instruction(
                     Store(
                         regs["SP"],
-                        Immediate(cur_block_id+2)
+                        Immediate(cur_block.myid+2)
                     ),
-                cur_block_id)
+                cur_block.myid)
               + regs["SP"].to()
               + "+"
               + regs["SP"].back()
               + self.assemble_instruction(
                     Jump(inst.target),
-                cur_block_id)
+                    cur_block.myid
+                )
             )
 
         elif isinstance(inst, Return):
@@ -523,37 +600,49 @@ class Program:
               + regs["SP"].back()
               + self.assemble_instruction(
                     Load(
-                        next,
+                        next,  # TODO
                         regs["SP"]
                     ),
-                cur_block_id)
+                    cur_block
+                )
             )
 
         return type(inst).__name__
 
-    def assemble_block(self, cur_block_id):
-        block = self.blocks[cur_block_id]
-
+    def assemble_block(self, block: Block):
         if block is EXIT_BLOCK:
-            return "\nexit block: -\n"
+            return ""
 
-        return (self.block_prologue(cur_block_id)
-              + '\n'.join(map(
-                  lambda i:
-                      "  " + self.assemble_instruction(
-                          i, cur_block_id, comments=True
-                      ),
-                  block.insts
-                ))
-              + self.block_epilogue())
+        return (
+            self.block_prologue(block) +
+            '\n'.join([
+                    "  " + self.assemble_instruction(
+                    inst, block, comments=True
+                )
+                for inst in block.insts
+            ]) +
+            self.block_epilogue()
+        )
+
+    def assemble_kiloblock(self, kiloblock: KiloBlock):
+        return (
+            self.kiloblock_prologue(kiloblock) +
+            '\n'.join([
+                self.assemble_block(block)
+                for block in kiloblock.blocks
+            ]) +
+            self.kiloblock_epilogue()
+        )
 
     def assemble(self):
-        return (self.program_prologue()
-              + ''.join(map(
-                  self.assemble_block,
-                  range(len(self.blocks))
-                ))
-              + self.program_epilogue())
+        return (
+            self.program_prologue() +
+            '\n'.join([
+                self.assemble_kiloblock(kiloblock)
+                for kiloblock in self.kiloblocks
+            ]) +
+            self.program_epilogue()
+        )
 
 def parse(s):
     insts = []
