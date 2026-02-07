@@ -279,7 +279,6 @@ class Program:
                 if block.name == name:
                     i = kiloblock.myid
                     j = block.myid
-                    print(i, j)
                     return i, j
         raise ValueError(f"Block not found: {name}")
     
@@ -291,7 +290,6 @@ class Program:
             j -= 255
             i += 1
             assert i < 255
-        print(i, j)
         return i, j
 
     def program_prologue(self):
@@ -534,7 +532,7 @@ class Program:
                   + "[-]"
                   + addr1.to_rel(inst.dst)
                   + "[>>[>+<-]<[>+<-]<[>+<-] >>>>[<<<<+>>>>-]<<< -]"
-                  + ">>>>[<<+<<+>>>> -]<<<<[>>>>+<<<< -]>"
+                  + ">>>>[<+<+>>-]<[>+<-]<<"
                   + "[<<[>>>>+<<<<-] >>[<+>-]>[<+>-]<< -]<"
                   + move(addr3, inst.dst, root=addr1)
                   + addr1.back()
@@ -575,20 +573,32 @@ class Program:
                 )
 
         elif isinstance(inst, Call):
+            next_i, next_j = self.find_next_block(cur_block)
             return (
                 rem(f"call {sanitize(inst.target)}")
               + self.assemble_instruction(
                     Store(
                         regs["SP"],
-                        Immediate(cur_block.myid+2)
+                        Immediate(next_i)
                     ),
-                cur_block.myid)
+                    cur_block
+                )
+              + regs["SP"].to()
+              + "+"
+              + regs["SP"].back()
+              + self.assemble_instruction(
+                    Store(
+                        regs["SP"],
+                        Immediate(next_j)
+                    ),
+                    cur_block
+                )
               + regs["SP"].to()
               + "+"
               + regs["SP"].back()
               + self.assemble_instruction(
                     Jump(inst.target),
-                    cur_block.myid
+                    cur_block
                 )
             )
 
@@ -600,7 +610,17 @@ class Program:
               + regs["SP"].back()
               + self.assemble_instruction(
                     Load(
-                        next,  # TODO
+                        next2,
+                        regs["SP"]
+                    ),
+                    cur_block
+                )
+              + regs["SP"].to()
+              + "-"
+              + regs["SP"].back()
+              + self.assemble_instruction(
+                    Load(
+                        next1,
                         regs["SP"]
                     ),
                     cur_block
