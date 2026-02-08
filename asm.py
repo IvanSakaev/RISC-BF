@@ -3,72 +3,27 @@ import itertools
 from dataclasses import dataclass
 from urllib.parse import unquote
 
+from registers import (
+    ROOT,
+    Immediate,
+    Instruction,
+    Register,
+    RegisterOrImmediate,
+    addressing,
+    next1,
+    next2,
+    regs,
+    scraps,
+)
 
-class Instruction: ...
-
-class Register:
-    def __init__(self, num):
-        self.num = num
-    def is_immediate(self): return False
-
-    def to(self):
-        if self.num > 0:
-            return ">"*self.num
-        else:
-            return "<"*(-self.num)
-
-    def to_rel(self, reg):
-        if self.num > reg.num:
-            return ">"*(self.num - reg.num)
-        else:
-            return "<"*(reg.num - self.num)
-
-    def back(self):
-        if self.num > 0:
-            return "<"*self.num
-        else:
-            return ">"*(-self.num)
-
-    def back_rel(self, reg):
-        if self.num > reg.num:
-            return "<"*(self.num - reg.num)
-        else:
-            return ">"*(reg.num - self.num)
-
-    def __repr__(self):
-        if self.num == -2:
-            return "J"
-        elif self.num == -1:
-            return "S"
-        elif self.num == 8:
-            return "SP"
-        return f"R{self.num}"
-
-ROOT = Register(0)
-
-regs = {
-    "R1": Register(1),
-    "R2": Register(2),
-    "R3": Register(3),
-    "R4": Register(4),
-    "R5": Register(5),
-    "R6": Register(6),
-    "R7": Register(7),
-    "SP": Register(8)
-}
-
-class Immediate(int):
-    def is_immediate(self): return True
 
 class Label(str): ...
-
-RegisterOrImmediate = Register | int
 
 @dataclass
 class LabelDefine(Instruction):
     name: Label
 
-MNEMONICS = dict()
+MNEMONICS: dict[str, type[Instruction]] = dict()
 
 @dataclass
 class Jump(Instruction):
@@ -136,7 +91,7 @@ MNEMONICS["lda"] = Load
 @dataclass
 class Store(Instruction):
     addr: RegisterOrImmediate
-    src: Register
+    src: RegisterOrImmediate
 MNEMONICS["sta"] = Store
 
 @dataclass
@@ -244,14 +199,14 @@ def move(src, *dsts, root=ROOT, negative=False):
     if not isinstance(negative, list):
         negative = itertools.repeat(negative)
 
-    out = src.to_rel(root)+"["
+    out = src.to(root)+"["
     cur_reg = src
     for dst, neg in zip(dsts, negative):
-        out += dst.to_rel(cur_reg)
+        out += dst.to(cur_reg)
         out += "-" if neg else "+"
         cur_reg = dst
-    out += src.to_rel(cur_reg)+"-]"
-    out += root.to_rel(src)
+    out += src.to(cur_reg)+"-]"
+    out += root.to(src)
     return out
 
 def change(from_, to):
@@ -337,28 +292,13 @@ class Program:
         else:
             rem = lambda x: ""
 
-        next2 = Register(-5)  # block number
-        next1 = Register(-4)  # kiloblock number
-
-        # Safe to modiefy in blocks, but after modiefying must equal zero
-        scrap1 = Register(-3)
-        scrap2 = Register(-2)
-        scrap3 = Register(-1)
-        scrap4 = Register(0)
-
-        # Use only for memory addressing
-        addr1 = Register(9)
-        addr2 = Register(10)
-        addr3 = Register(11)
-        Register(12)
-
         if isinstance(inst, Jump):
             i, j = self.find_block(inst.target)
             return (
                 rem(f"jmp {sanitize(inst.target)}")
               + next1.to()
               + change(0, i)
-              + next2.to_rel(next1)
+              + next2.to(next1)
               + change(0, j)
               + next2.back()
             )
@@ -368,22 +308,22 @@ class Program:
             jump_i, jump_j = self.find_block(inst.target)
             return (
                 rem(f"jnz {inst.cond} {sanitize(inst.target)}")
-              + move(inst.cond, scrap1, scrap2)
-              + move(scrap2, inst.cond)
+              + move(inst.cond, scraps[0], scraps[1])
+              + move(scraps[1], inst.cond)
               + next1.to()
               + ("+" * next_i) # set the default value
-              + next2.to_rel(next1)
+              + next2.to(next1)
               + ("+" * next_j) # set the default value
-              + scrap1.to_rel(next2)
+              + scraps[0].to(next2)
               + "[" # condition is true
-              +   next1.to_rel(scrap1)
+              +   next1.to(scraps[0])
               +   change(next_i, jump_i)
-              +   next2.to_rel(next1)
+              +   next2.to(next1)
               +   change(next_j, jump_j)
-              +   scrap1.to_rel(next2)
+              +   scraps[0].to(next2)
               +   "[-]"
               + "]"
-              + scrap1.back()
+              + scraps[0].back()
             )
 
         elif isinstance(inst, JumpRelative):
@@ -392,14 +332,14 @@ class Program:
                 rem(f"jmr {inst.offset}")
               + next1.to()
               + "+" * next_i
-              + next2.to_rel(next1)
+              + next2.to(next1)
               + "+" * next_j
               + next2.back()
             )
 
         elif isinstance(inst, Move):
             header = rem(f"mov {inst.dst} {inst.src}")
-            if inst.src.is_immediate():
+            if isinstance(inst.src, Immediate):
                 return (
                     header
                   + inst.dst.to()
@@ -421,15 +361,15 @@ class Program:
                 rem(f"cpy {inst.dst} {inst.src}")
               + inst.dst.to()
               + "[-]"
-              + move(inst.src, scrap1, inst.dst, root=inst.dst)
-              + move(scrap1, inst.src, root=inst.dst)
+              + move(inst.src, scraps[0], inst.dst, root=inst.dst)
+              + move(scraps[0], inst.src, root=inst.dst)
               + inst.dst.back()
             )
 
         elif isinstance(inst, MovAdd):
             header = rem(f"addm {inst.dst} {inst.src}")
 
-            if inst.src.is_immediate():
+            if isinstance(inst.src, Immediate):
                 return (
                     header
                   + inst.dst.to()
@@ -445,14 +385,14 @@ class Program:
         elif isinstance(inst, Add):
             return (
                 rem(f"add {inst.dst} {inst.src}")
-              + move(inst.src, inst.dst, scrap1)
-              + move(scrap1, inst.src)
+              + move(inst.src, inst.dst, scraps[0])
+              + move(scraps[0], inst.src)
             )
 
         elif isinstance(inst, MovSub):
             header = rem(f"subm {inst.dst} {inst.src}")
 
-            if inst.src.is_immediate():
+            if isinstance(inst.src, Immediate):
                 return (
                     header
                   + inst.dst.to()
@@ -468,8 +408,8 @@ class Program:
         elif isinstance(inst, Sub):
             return (
                 rem(f"sub {inst.dst} {inst.src}")
-              + move(inst.src, inst.dst, scrap1, negative=[1,0])
-              + move(scrap1, inst.src)
+              + move(inst.src, inst.dst, scraps[0], negative=[1,0])
+              + move(scraps[0], inst.src)
             )
 
         elif isinstance(inst, Raw):
@@ -478,13 +418,13 @@ class Program:
         elif isinstance(inst, Output):
             label = rem(f"out {inst.reg}")
 
-            if inst.reg.is_immediate():
+            if isinstance(inst.reg, Immediate):
                 return (
                     label
-                  + scrap1.to()
+                  + scraps[0].to()
                   + change(0, inst.reg)
                   + ".[-]"
-                  + scrap1.back()
+                  + scraps[0].back()
                 )
             else:
                 return (
@@ -497,74 +437,71 @@ class Program:
         elif isinstance(inst, Print):
             return (
                 rem(f"prt {sanitize(inst.val)}")
-              + scrap1.to()
+              + scraps[0].to()
               + (''.join(map(
                 lambda c: ("+"*ord(c))+".[-]",
                 inst.val
               )))
-              + scrap1.back()
+              + scraps[0].back()
             )
 
         elif isinstance(inst, Load):
             label = rem(f"lda {inst.dst} {inst.addr}")
 
-            if inst.addr.is_immediate():
+            if isinstance(inst.addr, Immediate):
                 src = Register(13+inst.addr)
                 return (
                     label
                   + inst.dst.to()
                   + "[-]"
-                  + move(src, inst.dst, scrap1, root=inst.dst)
-                  + move(scrap1, src, root=inst.dst)
+                  + move(src, inst.dst, scraps[0], root=inst.dst)
+                  + move(scraps[0], src, root=inst.dst)
                   + inst.dst.back()
                 )
             else:
                 return (
                     label
-                  + move(inst.addr, addr1, addr2, scrap1)
-                  + move(scrap1, inst.addr)
+                  + move(inst.addr, addressing[0], addressing[1], scraps[0])
+                  + move(scraps[0], inst.addr)
                   + inst.dst.to()
                   + "[-]"
-                  + addr1.to_rel(inst.dst)
+                  + addressing[0].to(inst.dst)
                   + "[>>[>+<-]<[>+<-]<[>+<-] >>>>[<<<<+>>>>-]<<< -]"
                   + ">>>>[<+<+>>-]<[>+<-]<<"
                   + "[<<[>>>>+<<<<-] >>[<+>-]>[<+>-]<< -]<"
-                  + move(addr3, inst.dst, root=addr1)
-                  + addr1.back()
+                  + move(addressing[2], inst.dst, root=addressing[0])
+                  + addressing[0].back()
                 )
 
         elif isinstance(inst, Store):
             label = rem(f"sta {inst.addr} {inst.src}")
 
-            if inst.addr.is_immediate():
+            if isinstance(inst.addr, Immediate):
                 dst = Register(13+inst.addr)
                 return (
                     label
-                  + move(inst.src, scrap1, scrap2)
-                  + move(scrap2, inst.src)
                   + dst.to()
                   + "[-]"
-                  + move(scrap1, dst, root=dst)
                   + dst.back()
+                  + move(inst.src, scraps[0], dst)
+                  + move(scraps[0], inst.src)
                 )
             else:
                 return (
                     label
-                  + move(inst.addr, addr1, addr2, scrap1)
-                  + move(scrap1, inst.addr)
+                  + move(inst.addr, addressing[0], addressing[1], scraps[0])
+                  + move(scraps[0], inst.addr)
                   + (
-                      addr3.to()
-                    + "[-]" + ("+"*inst.src)
-                    + addr3.back()
-                      if inst.src.is_immediate() else
-                      move(inst.src, addr3, scrap1)
-                    + move(scrap1, inst.src)
+                      addressing[2].to()
+                    + "+"*inst.src
+                    + addressing[2].back() if isinstance(inst.src, Immediate) else move(inst.src, addressing[2], scraps[0])
+                    + move(scraps[0], inst.src)
                     )
-                  + addr1.to()
+                  + addressing[0].to()
                   + "[>>[>+<-]<[>+<-]<[>+<-] >>>>[<<<<+>>>>-]<<< -]"
                   + ">>>>[-]<<[>>+<< -]<"
                   + "[<<[>>>>+<<<<-] >>[<+>-]< -]<"
-                  + addr1.back()
+                  + addressing[0].back()
                 )
 
         elif isinstance(inst, Call):
