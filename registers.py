@@ -28,7 +28,7 @@ class Register:
         self.to()
         concater.raw("[-]")
 
-    def move(self, *dsts: Register, multiplier: int | list = 1):
+    def move(self, *dsts: Register, multiplier: int | tuple | list = 1):
         if isinstance(multiplier, int):
             multiplier = [multiplier] * len(dsts)
         self.to()

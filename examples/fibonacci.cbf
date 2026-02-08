@@ -12,15 +12,15 @@ mov R2 0x0
 mov R3 0x1
 
 loop:
-    mov  R4 0
-    add  R4 R2
-    add  R4 R3
+    mov R4 0
+    add R4 R2
+    add R4 R3
 
-    mov  R2 R3
-    mov  R3 R4
+    mov R2 R3
+    mov R3 R4
 
-    subm R1 1
-    jnz  R1 <loop>
+    sub R1 1
+    jnz R1 <loop>
 
 out R2
 

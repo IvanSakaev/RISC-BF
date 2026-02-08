@@ -99,10 +99,7 @@ class Move(Instruction):
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"mov {self.dst} {self.src}", comments)
         self.dst.clear()
-        if isinstance(self.src, Immediate):
-            self.dst.change(0, self.src)
-        else:
-            self.src.move(self.dst)
+        self.src.move(self.dst)
 
 
 @dataclass
@@ -113,56 +110,36 @@ class Copy(Instruction):
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"cpy {self.dst} {self.src}", comments)
         self.dst.clear()
-        self.src.move(scraps[0], self.dst)
-        scraps[0].move(self.src)
-
-
-@dataclass
-class MovAdd(Instruction):
-    dst: Register
-    src: RegisterOrImmediate
-
-    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        concater.rem(f"addm {self.dst} {self.src}", comments)
-        if isinstance(self.src, Immediate):
-            self.dst.change(0, self.src)
-        else:
-            self.src.move(self.dst)
-
-
-@dataclass
-class Add(Instruction):
-    dst: Register
-    src: Register
-
-    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        concater.rem(f"add {self.dst} {self.src}", comments)
         self.src.move(self.dst, scraps[0])
         scraps[0].move(self.src)
 
 
 @dataclass
-class MovSub(Instruction):
+class Add(Instruction):
     dst: Register
     src: RegisterOrImmediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        concater.rem(f"subm {self.dst} {self.src}", comments)
+        concater.rem(f"add {self.dst} {self.src}", comments)
         if isinstance(self.src, Immediate):
-            self.dst.change(0, -self.src)
+            self.src.move(self.dst)
         else:
-            self.src.move(self.dst, multiplier=-1)
+            self.src.move(self.dst, scraps[0])
+            scraps[0].move(self.src)
 
 
 @dataclass
 class Sub(Instruction):
     dst: Register
-    src: Register
+    src: RegisterOrImmediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"sub {self.dst} {self.src}", comments)
-        self.src.move(self.dst, scraps[0], multiplier=[-1, 1])
-        scraps[0].move(self.src)
+        if isinstance(self.src, Immediate):
+            self.src.move(self.dst, multiplier=-1)
+        else:
+            self.src.move(self.dst, scraps[0], multiplier=(-1, 1))
+            scraps[0].move(self.src)
 
 
 @dataclass
@@ -211,8 +188,10 @@ class Store(Instruction):
         if isinstance(self.addr, Immediate):
             dst = Register(13 + self.addr)
             dst.clear()
-            self.src.move(scraps[0], dst)
-            if isinstance(self.src, Register):
+            if isinstance(self.src, Immediate):
+                self.src.move(dst)
+            else:
+                self.src.move(dst, scraps[0])
                 scraps[0].move(self.src)
         else:
             self.addr.move(addressing[0], addressing[1], scraps[0])
@@ -240,7 +219,7 @@ class Output(Instruction):
         concater.rem(f"out {self.reg}", comments)
 
         if isinstance(self.reg, Immediate):
-            scraps[0].change(0, self.reg)
+            self.reg.move(scraps[0])
             scraps[0].to()
             concater.raw(".")
             scraps[0].clear()
@@ -293,9 +272,7 @@ MNEMONICS["jnz"] = JumpConditional
 MNEMONICS["jmr"] = JumpRelative
 MNEMONICS["mov"] = Move
 MNEMONICS["cpy"] = Copy
-MNEMONICS["addm"] = MovAdd
 MNEMONICS["add"] = Add
-MNEMONICS["subm"] = MovSub
 MNEMONICS["sub"] = Sub
 MNEMONICS["raw"] = Raw
 MNEMONICS["lda"] = Load
