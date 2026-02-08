@@ -1,24 +1,18 @@
 #! /bin/python
-import itertools
 from urllib.parse import unquote
 
 import instructions
+import registers
 from instructions import (
     MNEMONICS,
-    Instruction,
     is_block_boundary,
 )
 from registers import (
-    ROOT,
     Immediate,
     Register,
     RegisterOrImmediate,
-    addressing,
     concater,
-    next1,
-    next2,
     regs,
-    scraps,
 )
 
 
@@ -115,7 +109,7 @@ class Program:
         name_line = f"{concater.sanitize(name)}:"
 
         return (
-        f"\n{name_line}\n->+>+<<[>->-<]>[>-]<[->\n"
+        f"\n{name_line}\n->+>+<<[>->-<]>[>-]<[->"
         )
 
     def block_epilogue(self):
@@ -124,7 +118,7 @@ class Program:
     def assemble_block(self, block: instructions.Block):
         concater.init_block()
         for inst in block.insts:
-            inst.evaluate(self, True)
+            inst.evaluate(self, block, True)
         return (
             self.block_prologue(block) +
             concater.get_block_code() +
@@ -199,6 +193,8 @@ def parse(s):
 
         for op_arg, arg in zip(op_args, args):
             tp = op_fields[op_arg].type
+            if isinstance(tp, str):
+                tp = getattr(instructions, tp, None) or getattr(registers, tp, None)
             if tp is Register:
                 tps = ["register"]
             elif tp is RegisterOrImmediate:

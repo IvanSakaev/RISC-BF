@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -18,112 +20,10 @@ if TYPE_CHECKING:
     from asm import Program
 
 
-class Label(str): ...
-
-
 class Instruction:
     program: Program
 
-    def evaluate(self, program: Program, comments: bool = False) -> None: ...
-
-
-@dataclass
-class LabelDefine(Instruction):
-    name: Label
-
-
-@dataclass
-class Jump(Instruction):
-    target: Label
-
-    def evaluate(self, program: Program, comments: bool = False):
-        concater.rem(f"jmp {self.target}", comments)
-        i, j = program.find_block(self.target)
-        next1.change(0, i)
-        next2.change(0, j)
-
-
-@dataclass
-class JumpConditional(Instruction):
-    cond: Register
-    target: Label
-
-
-@dataclass
-class JumpRelative(Instruction):
-    offset: Immediate
-
-
-@dataclass
-class Move(Instruction):
-    dst: Register
-    src: RegisterOrImmediate
-
-
-@dataclass
-class Copy(Instruction):
-    dst: Register
-    src: Register
-
-
-@dataclass
-class MovAdd(Instruction):
-    dst: Register
-    src: RegisterOrImmediate
-
-
-@dataclass
-class Add(Instruction):
-    dst: Register
-    src: Register
-
-
-@dataclass
-class MovSub(Instruction):
-    dst: Register
-    src: RegisterOrImmediate
-
-
-@dataclass
-class Sub(Instruction):
-    dst: Register
-    src: Register
-
-
-@dataclass
-class Raw(Instruction):
-    code: str
-
-
-@dataclass
-class Load(Instruction):
-    dst: Register
-    addr: RegisterOrImmediate
-
-
-@dataclass
-class Store(Instruction):
-    addr: RegisterOrImmediate
-    src: RegisterOrImmediate
-
-
-@dataclass
-class Output(Instruction):
-    reg: RegisterOrImmediate
-
-
-@dataclass
-class Print(Instruction):
-    val: str
-
-
-@dataclass
-class Call(Instruction):
-    target: Label
-
-
-@dataclass
-class Return(Instruction): ...
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False): ...
 
 
 @dataclass
@@ -138,6 +38,252 @@ class Block(Instruction):
 class KiloBlock(Instruction):
     myid: int
     blocks: list[Block]
+
+
+class Label(str): ...
+
+
+@dataclass
+class LabelDefine(Instruction):
+    name: Label
+
+
+@dataclass
+class Jump(Instruction):
+    target: Label
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"jmp {self.target}", comments)
+        i, j = program.find_block(self.target)
+        next1.change(0, i)
+        next2.change(0, j)
+
+
+@dataclass
+class JumpConditional(Instruction):
+    cond: Register
+    target: Label
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        next_i, next_j = program.find_next_block(cur_block)
+        jump_i, jump_j = program.find_block(self.target)
+        concater.rem(f"jnz {self.cond} {self.target}", comments)
+        self.cond.move(scraps[0], scraps[1])
+        scraps[1].move(self.cond)
+        next1.change(0, next_i)  # set the default value
+        next2.change(0, next_j)  # set the default value
+        scraps[0].to()
+        concater.raw("[")  # condition is true
+        next1.change(next_i, jump_i)
+        next2.change(next_j, jump_j)
+        scraps[0].to()
+        concater.raw("[-]]")
+
+
+@dataclass
+class JumpRelative(Instruction):
+    offset: Immediate
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        next_i, next_j = program.find_next_block(cur_block)
+        concater.rem(f"jmr {self.offset}", comments)
+        next1.change(0, next_i)
+        next2.change(0, next_j)
+
+
+@dataclass
+class Move(Instruction):
+    dst: Register
+    src: RegisterOrImmediate
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"mov {self.dst} {self.src}", comments)
+        self.dst.clear()
+        if isinstance(self.src, Immediate):
+            self.dst.change(0, self.src)
+        else:
+            self.src.move(self.dst)
+
+
+@dataclass
+class Copy(Instruction):
+    dst: Register
+    src: Register
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"cpy {self.dst} {self.src}", comments)
+        self.dst.clear()
+        self.src.move(scraps[0], self.dst)
+        scraps[0].move(self.src)
+
+
+@dataclass
+class MovAdd(Instruction):
+    dst: Register
+    src: RegisterOrImmediate
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"addm {self.dst} {self.src}", comments)
+        if isinstance(self.src, Immediate):
+            self.dst.change(0, self.src)
+        else:
+            self.src.move(self.dst)
+
+
+@dataclass
+class Add(Instruction):
+    dst: Register
+    src: Register
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"add {self.dst} {self.src}", comments)
+        self.src.move(self.dst, scraps[0])
+        scraps[0].move(self.src)
+
+
+@dataclass
+class MovSub(Instruction):
+    dst: Register
+    src: RegisterOrImmediate
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"subm {self.dst} {self.src}", comments)
+        if isinstance(self.src, Immediate):
+            self.dst.change(0, -self.src)
+        else:
+            self.src.move(self.dst, multiplier=-1)
+
+
+@dataclass
+class Sub(Instruction):
+    dst: Register
+    src: Register
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"sub {self.dst} {self.src}", comments)
+        self.src.move(self.dst, scraps[0], multiplier=[-1, 1])
+        scraps[0].move(self.src)
+
+
+@dataclass
+class Raw(Instruction):
+    code: str
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        ROOT.to()
+        concater.raw(self.code)
+
+
+@dataclass
+class Load(Instruction):
+    dst: Register
+    addr: RegisterOrImmediate
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"lda {self.dst} {self.addr}", comments)
+
+        if isinstance(self.addr, Immediate):
+            src = Register(13 + self.addr)
+            self.dst.clear()
+            src.move(self.dst, scraps[0])
+            scraps[0].move(src)
+        else:
+            self.addr.move(addressing[0], addressing[1], scraps[0])
+            scraps[0].move(self.addr)
+            self.dst.clear()
+            addressing[0].to()
+            concater.raw(
+                "[>>[>+<-]<[>+<-]<[>+<-] >>>>[<<<<+>>>>-]<<< -]"
+                ">>>>[<+<+>>-]<[>+<-]<<"
+                "[<<[>>>>+<<<<-] >>[<+>-]>[<+>-]<< -]<"
+            )
+            addressing[2].move(self.dst)
+
+
+@dataclass
+class Store(Instruction):
+    addr: RegisterOrImmediate
+    src: RegisterOrImmediate
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"sta {self.addr} {self.src}", comments)
+
+        if isinstance(self.addr, Immediate):
+            dst = Register(13 + self.addr)
+            dst.clear()
+            self.src.move(scraps[0], dst)
+            if isinstance(self.src, Register):
+                scraps[0].move(self.src)
+        else:
+            self.addr.move(addressing[0], addressing[1], scraps[0])
+            scraps[0].move(self.addr)
+            if isinstance(self.src, Register):
+                self.src.move(addressing[2], scraps[0])
+                scraps[0].move(self.src)
+            addressing[0].to()
+            concater.raw("[>>[>+<-]<[>+<-]<[>+<-] >>>>[<<<<+>>>>-]<<< -]")
+            if isinstance(self.src, Immediate):
+                concater.raw(">>>>")
+                concater.current_pos.clear()
+                concater.current_pos.change(0, self.src)
+                concater.raw("<<<")
+            else:
+                concater.raw(">>>>[-]<<[>>+<<-]<")
+            concater.raw("[<<[>>>>+<<<<-] >>[<+>-]< -]<")
+
+
+@dataclass
+class Output(Instruction):
+    reg: RegisterOrImmediate
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"out {self.reg}", comments)
+
+        if isinstance(self.reg, Immediate):
+            scraps[0].change(0, self.reg)
+            scraps[0].to()
+            concater.raw(".")
+            scraps[0].clear()
+        else:
+            self.reg.to()
+            concater.raw(".")
+
+
+@dataclass
+class Print(Instruction):
+    val: str
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"prt {self.val}", comments)
+        for value in self.val:
+            scraps[0].change(0, ord(value))
+            scraps[0].to()
+            concater.raw(".")
+            scraps[0].clear()
+
+
+@dataclass
+class Call(Instruction):
+    target: Label
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        next_i, next_j = program.find_next_block(cur_block)
+        concater.rem(f"call {self.target}", comments)
+        Store(regs["SP"], Immediate(next_i)).evaluate(program, cur_block)
+        regs["SP"].change(0, 1)
+        Store(regs["SP"], Immediate(next_j)).evaluate(program, cur_block)
+        regs["SP"].change(0, 1)
+        Jump(self.target).evaluate(program, cur_block)
+
+
+@dataclass
+class Return(Instruction):
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem("ret", comments)
+        regs["SP"].change(0, -1)
+        Load(next2, regs["SP"]).evaluate(program, cur_block)
+        regs["SP"].change(0, -1)
+        Load(next1, regs["SP"]).evaluate(program, cur_block)
 
 
 MNEMONICS: dict[str, type[Instruction]] = dict()
@@ -160,9 +306,9 @@ MNEMONICS["call"] = Call
 MNEMONICS["ret"] = Return
 
 
-def is_block_boundary(inst):
+def is_block_boundary(self):
     return isinstance(
-        inst,
+        self,
         (
             LabelDefine,
             JumpRelative,

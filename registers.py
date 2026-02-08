@@ -23,25 +23,21 @@ class Register:
             concater.raw("-" * (a - b))
         elif a < b:
             concater.raw("+" * (b - a))
+    
+    def clear(self):
+        self.to()
+        concater.raw("[-]")
 
     def move(self, *dsts: Register, multiplier: int | list = 1):
         if isinstance(multiplier, int):
             multiplier = [multiplier] * len(dsts)
         self.to()
-        self.raw("[")
+        concater.raw("[")
         for dst, mult in zip(dsts, multiplier):
             dst.change(0, mult)
-            self.change(0, -1)
+        self.change(0, -1)
         self.to()
-        self.raw("]")
-    
-    @classmethod
-    def raw(cls, text: str):
-        concater.raw(text)
-    
-    @classmethod
-    def rem(cls, text: str, comments: bool):
-        concater.rem(text, comments)
+        concater.raw("]")
 
     def __repr__(self):
         if self.addr == -2:
@@ -53,7 +49,13 @@ class Register:
         return f"R{self.addr}"
 
 
-class Immediate(int): ...
+class Immediate(int):
+    def move(self, *dsts: Register, multiplier: int | list = 1):
+        if isinstance(multiplier, int):
+            multiplier = [multiplier] * len(dsts)
+        for dst, mult in zip(dsts, multiplier):
+            dst.change(0, self * mult)
+
 
 
 RegisterOrImmediate = Register | Immediate

@@ -30,7 +30,7 @@ class _Concater:
 
     def rem(self, text: str, comments: bool):
         if comments:
-            self.current_program += "  " + self.sanitize(text) + "\n    "
+            self.current_program += "\n  " + self.sanitize(text) + "\n    "
 
     def init_block(self):
         self.current_pos = self.root
