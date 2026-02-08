@@ -1,31 +1,47 @@
 from __future__ import annotations
 
-
-class Instruction: ...
+from concater import _Concater
 
 
 class Register:
     def __init__(self, addr):
         self.addr = addr
 
-    def is_immediate(self):
-        return isinstance(self, Immediate)
+    def to(self):
+        if self.addr > concater.current_pos.addr:
+            concater.raw(">" * (self.addr - concater.current_pos.addr))
+        elif self.addr < concater.current_pos.addr:
+            concater.current_program += "<" * (concater.current_pos.addr - self.addr)
+        concater.current_pos = self
 
-    def to(self, reg: Register | None = None):
-        if reg is None:
-            reg = ROOT
-        if self.addr > reg.addr:
-            return ">" * (self.addr - reg.addr)
-        else:
-            return "<" * (reg.addr - self.addr)
+    def change(self, a: int, b: int):
+        """
+        Change this register value from "a" to "b"
+        """
+        self.to()
+        if a > b:
+            concater.raw("-" * (a - b))
+        elif a < b:
+            concater.raw("+" * (b - a))
 
-    def back(self, reg: Register | None = None):
-        if reg is None:
-            reg = ROOT
-        if self.addr > reg.addr:
-            return "<" * (self.addr - reg.addr)
-        else:
-            return ">" * (reg.addr - self.addr)
+    def move(self, *dsts: Register, multiplier: int | list = 1):
+        if isinstance(multiplier, int):
+            multiplier = [multiplier] * len(dsts)
+        self.to()
+        self.raw("[")
+        for dst, mult in zip(dsts, multiplier):
+            dst.change(0, mult)
+            self.change(0, -1)
+        self.to()
+        self.raw("]")
+    
+    @classmethod
+    def raw(cls, text: str):
+        concater.raw(text)
+    
+    @classmethod
+    def rem(cls, text: str, comments: bool):
+        concater.rem(text, comments)
 
     def __repr__(self):
         if self.addr == -2:
@@ -37,15 +53,14 @@ class Register:
         return f"R{self.addr}"
 
 
-class Immediate(int):
-    def is_immediate(self):
-        return isinstance(self, Immediate)
+class Immediate(int): ...
 
 
 RegisterOrImmediate = Register | Immediate
 
 
 ROOT = Register(0)
+concater = _Concater(ROOT)
 
 regs = {
     "R1": Register(1),

@@ -1,9 +1,30 @@
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from registers import Immediate, Instruction, Register, RegisterOrImmediate
+from registers import (
+    ROOT,
+    Immediate,
+    Register,
+    RegisterOrImmediate,
+    addressing,
+    concater,
+    next1,
+    next2,
+    regs,
+    scraps,
+)
+
+if TYPE_CHECKING:
+    from asm import Program
 
 
 class Label(str): ...
+
+
+class Instruction:
+    program: Program
+
+    def evaluate(self, program: Program, comments: bool = False) -> None: ...
 
 
 @dataclass
@@ -14,6 +35,12 @@ class LabelDefine(Instruction):
 @dataclass
 class Jump(Instruction):
     target: Label
+
+    def evaluate(self, program: Program, comments: bool = False):
+        concater.rem(f"jmp {self.target}", comments)
+        i, j = program.find_block(self.target)
+        next1.change(0, i)
+        next2.change(0, j)
 
 
 @dataclass

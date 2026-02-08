@@ -3,14 +3,18 @@ import itertools
 from urllib.parse import unquote
 
 import instructions
-from instructions import MNEMONICS, is_block_boundary
+from instructions import (
+    MNEMONICS,
+    Instruction,
+    is_block_boundary,
+)
 from registers import (
     ROOT,
     Immediate,
-    Instruction,
     Register,
     RegisterOrImmediate,
     addressing,
+    concater,
     next1,
     next2,
     regs,
@@ -64,40 +68,6 @@ def split_blocks_into_kiloblocks(blocks: list[instructions.Block]):
         kiloblocks[-1].blocks.append(block)
     return kiloblocks
 
-def sanitize(name):
-    name = name \
-        .replace("+", "_") \
-        .replace("-", "_") \
-        .replace("<", "_") \
-        .replace(">", "_") \
-        .replace("[", "_") \
-        .replace("]", "_") \
-        .replace(".", "_") \
-        .replace(",", "_") \
-        .replace("#", "_")
-    return name
-
-def move(src, *dsts, root=ROOT, negative=False):
-    if not isinstance(negative, list):
-        negative = itertools.repeat(negative)
-
-    out = src.to(root)+"["
-    cur_reg = src
-    for dst, neg in zip(dsts, negative):
-        out += dst.to(cur_reg)
-        out += "-" if neg else "+"
-        cur_reg = dst
-    out += src.to(cur_reg)+"-]"
-    out += root.to(src)
-    return out
-
-def change(from_, to):
-    if from_ == to:
-        return ""
-    elif from_ > to:
-        return "-"*(from_-to)
-    return "+"*(to-from_)
-
 class Program:
     def __init__(self, instrs):
         blocks = split_program_into_blocks(instrs)
@@ -125,27 +95,15 @@ class Program:
         return i, j
 
     def program_prologue(self):
-        return (
-        "+>+<["
-        "[>>+<<-]>[>>+<<-]>>"
-        )
+        return "+>+<[[>>+<<-]>[>>+<<-]>>"
 
     def program_epilogue(self):
         return "\n-" + "]" * len(self.kiloblocks) + "<<<]"
     
     def kiloblock_prologue(self, kiloblock: instructions.KiloBlock):
         name = f"kiloblock_{kiloblock.myid}"
-        name_line = f"{sanitize(name)}:\n"
-        return (
-        f"\n{name_line}"
-        # next1     next2   block_id1  'block_id2   0       0
-        "->+>+<<"
-        # next1     next2   block_id1  'block_id2   1       1
-        "[>->-<]>[>-]<[-<"  # ifnot
-        # next1     next2   block_id1  '0           0       0
-        "<[>+<-]>\n"
-        # next1     next2   0          'block_id1   0       0
-        )
+        name_line = f"{concater.sanitize(name)}:"
+        return f"\n{name_line}\n->+>+<<[>->-<]>[>-]<[-<<[>+<-]>\n"
 
     def kiloblock_epilogue(self, kiloblock: instructions.KiloBlock):
         return "\nend_kiloblock -" + "]" * len(kiloblock.blocks) + " >]<["
@@ -154,304 +112,22 @@ class Program:
         name = block.name
         if name is None:
             name = f"block_{block.myid}"
-        name_line = f"{sanitize(name)}:\n"
+        name_line = f"{concater.sanitize(name)}:"
 
         return (
-        f"\n{name_line}"
-        # next1     next2   0          'block_id1   0       0
-        "->+>+<<"
-        # next1     next2   0          'block_id1   1       1
-        "[>->-<]>[>-]<[->\n"
-        # next1     next2   0           block_id1   0      '0
+        f"\n{name_line}\n->+>+<<[>->-<]>[>-]<[->\n"
         )
 
     def block_epilogue(self):
-        return "\nend <]<["
-
-    def assemble_instruction(self, inst: Instruction, cur_block: instructions.Block, comments=False):
-        if comments:
-            rem = lambda x: x + "\n    "
-        else:
-            rem = lambda x: ""
-
-        if isinstance(inst, instructions.Jump):
-            i, j = self.find_block(inst.target)
-            return (
-                rem(f"jmp {sanitize(inst.target)}")
-              + next1.to()
-              + change(0, i)
-              + next2.to(next1)
-              + change(0, j)
-              + next2.back()
-            )
-
-        elif isinstance(inst, instructions.JumpConditional):
-            next_i, next_j = self.find_next_block(cur_block)
-            jump_i, jump_j = self.find_block(inst.target)
-            return (
-                rem(f"jnz {inst.cond} {sanitize(inst.target)}")
-              + move(inst.cond, scraps[0], scraps[1])
-              + move(scraps[1], inst.cond)
-              + next1.to()
-              + ("+" * next_i) # set the default value
-              + next2.to(next1)
-              + ("+" * next_j) # set the default value
-              + scraps[0].to(next2)
-              + "[" # condition is true
-              +   next1.to(scraps[0])
-              +   change(next_i, jump_i)
-              +   next2.to(next1)
-              +   change(next_j, jump_j)
-              +   scraps[0].to(next2)
-              +   "[-]"
-              + "]"
-              + scraps[0].back()
-            )
-
-        elif isinstance(inst, instructions.JumpRelative):
-            next_i, next_j = self.find_next_block(cur_block)
-            return (
-                rem(f"jmr {inst.offset}")
-              + next1.to()
-              + "+" * next_i
-              + next2.to(next1)
-              + "+" * next_j
-              + next2.back()
-            )
-
-        elif isinstance(inst, instructions.Move):
-            header = rem(f"mov {inst.dst} {inst.src}")
-            if isinstance(inst.src, Immediate):
-                return (
-                    header
-                  + inst.dst.to()
-                  + "[-]"
-                  + "+"*inst.src
-                  + inst.dst.back()
-                )
-            else:
-                return (
-                     header
-                   + inst.dst.to()
-                   + "[-]"
-                   + move(inst.src, inst.dst, root=inst.dst)
-                   + inst.dst.back()
-                )
-
-        elif isinstance(inst, instructions.Copy):
-            return (
-                rem(f"cpy {inst.dst} {inst.src}")
-              + inst.dst.to()
-              + "[-]"
-              + move(inst.src, scraps[0], inst.dst, root=inst.dst)
-              + move(scraps[0], inst.src, root=inst.dst)
-              + inst.dst.back()
-            )
-
-        elif isinstance(inst, instructions.MovAdd):
-            header = rem(f"addm {inst.dst} {inst.src}")
-
-            if isinstance(inst.src, Immediate):
-                return (
-                    header
-                  + inst.dst.to()
-                  + "+"*inst.src
-                  + inst.dst.back()
-                )
-            else:
-                return (
-                    header
-                  + move(inst.src, inst.dst)
-                )
-
-        elif isinstance(inst, instructions.Add):
-            return (
-                rem(f"add {inst.dst} {inst.src}")
-              + move(inst.src, inst.dst, scraps[0])
-              + move(scraps[0], inst.src)
-            )
-
-        elif isinstance(inst, instructions.MovSub):
-            header = rem(f"subm {inst.dst} {inst.src}")
-
-            if isinstance(inst.src, Immediate):
-                return (
-                    header
-                  + inst.dst.to()
-                  + "-"*inst.src
-                  + inst.dst.back()
-                )
-            else:
-                return (
-                    header
-                  + move(inst.src, inst.dst, negative=True)
-                )
-
-        elif isinstance(inst, instructions.Sub):
-            return (
-                rem(f"sub {inst.dst} {inst.src}")
-              + move(inst.src, inst.dst, scraps[0], negative=[1,0])
-              + move(scraps[0], inst.src)
-            )
-
-        elif isinstance(inst, instructions.Raw):
-            return inst.code
-
-        elif isinstance(inst, instructions.Output):
-            label = rem(f"out {inst.reg}")
-
-            if isinstance(inst.reg, Immediate):
-                return (
-                    label
-                  + scraps[0].to()
-                  + change(0, inst.reg)
-                  + ".[-]"
-                  + scraps[0].back()
-                )
-            else:
-                return (
-                    label
-                  + inst.reg.to()
-                  + "."
-                  + inst.reg.back()
-                )
-
-        elif isinstance(inst, instructions.Print):
-            return (
-                rem(f"prt {sanitize(inst.val)}")
-              + scraps[0].to()
-              + (''.join(map(
-                lambda c: ("+"*ord(c))+".[-]",
-                inst.val
-              )))
-              + scraps[0].back()
-            )
-
-        elif isinstance(inst, instructions.Load):
-            label = rem(f"lda {inst.dst} {inst.addr}")
-
-            if isinstance(inst.addr, Immediate):
-                src = Register(13+inst.addr)
-                return (
-                    label
-                  + inst.dst.to()
-                  + "[-]"
-                  + move(src, inst.dst, scraps[0], root=inst.dst)
-                  + move(scraps[0], src, root=inst.dst)
-                  + inst.dst.back()
-                )
-            else:
-                return (
-                    label
-                  + move(inst.addr, addressing[0], addressing[1], scraps[0])
-                  + move(scraps[0], inst.addr)
-                  + inst.dst.to()
-                  + "[-]"
-                  + addressing[0].to(inst.dst)
-                  + "[>>[>+<-]<[>+<-]<[>+<-] >>>>[<<<<+>>>>-]<<< -]"
-                  + ">>>>[<+<+>>-]<[>+<-]<<"
-                  + "[<<[>>>>+<<<<-] >>[<+>-]>[<+>-]<< -]<"
-                  + move(addressing[2], inst.dst, root=addressing[0])
-                  + addressing[0].back()
-                )
-
-        elif isinstance(inst, instructions.Store):
-            label = rem(f"sta {inst.addr} {inst.src}")
-
-            if isinstance(inst.addr, Immediate):
-                dst = Register(13+inst.addr)
-                return (
-                    label
-                  + dst.to()
-                  + "[-]"
-                  + dst.back()
-                  + move(inst.src, scraps[0], dst)
-                  + move(scraps[0], inst.src)
-                )
-            else:
-                return (
-                    label
-                  + move(inst.addr, addressing[0], addressing[1], scraps[0])
-                  + move(scraps[0], inst.addr)
-                  + (
-                      addressing[2].to()
-                    + "+"*inst.src
-                    + addressing[2].back() if isinstance(inst.src, Immediate) else move(inst.src, addressing[2], scraps[0])
-                    + move(scraps[0], inst.src)
-                    )
-                  + addressing[0].to()
-                  + "[>>[>+<-]<[>+<-]<[>+<-] >>>>[<<<<+>>>>-]<<< -]"
-                  + ">>>>[-]<<[>>+<< -]<"
-                  + "[<<[>>>>+<<<<-] >>[<+>-]< -]<"
-                  + addressing[0].back()
-                )
-
-        elif isinstance(inst, instructions.Call):
-            next_i, next_j = self.find_next_block(cur_block)
-            return (
-                rem(f"call {sanitize(inst.target)}")
-              + self.assemble_instruction(
-                    instructions.Store(
-                        regs["SP"],
-                        Immediate(next_i)
-                    ),
-                    cur_block
-                )
-              + regs["SP"].to()
-              + "+"
-              + regs["SP"].back()
-              + self.assemble_instruction(
-                    instructions.Store(
-                        regs["SP"],
-                        Immediate(next_j)
-                    ),
-                    cur_block
-                )
-              + regs["SP"].to()
-              + "+"
-              + regs["SP"].back()
-              + self.assemble_instruction(
-                    instructions.Jump(inst.target),
-                    cur_block
-                )
-            )
-
-        elif isinstance(inst, instructions.Return):
-            return (
-                rem("ret")
-              + regs["SP"].to()
-              + "-"
-              + regs["SP"].back()
-              + self.assemble_instruction(
-                    instructions.Load(
-                        next2,
-                        regs["SP"]
-                    ),
-                    cur_block
-                )
-              + regs["SP"].to()
-              + "-"
-              + regs["SP"].back()
-              + self.assemble_instruction(
-                    instructions.Load(
-                        next1,
-                        regs["SP"]
-                    ),
-                    cur_block
-                )
-            )
-
-        return type(inst).__name__
+        return "\n<]<["
 
     def assemble_block(self, block: instructions.Block):
+        concater.init_block()
+        for inst in block.insts:
+            inst.evaluate(self, True)
         return (
             self.block_prologue(block) +
-            '\n'.join([
-                    "  " + self.assemble_instruction(
-                    inst, block, comments=True
-                )
-                for inst in block.insts
-            ]) +
+            concater.get_block_code() +
             self.block_epilogue()
         )
 
