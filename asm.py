@@ -1,8 +1,9 @@
 #! /bin/python
 import itertools
-from dataclasses import dataclass
 from urllib.parse import unquote
 
+import instructions
+from instructions import MNEMONICS, is_block_boundary
 from registers import (
     ROOT,
     Immediate,
@@ -17,150 +18,31 @@ from registers import (
 )
 
 
-class Label(str): ...
-
-@dataclass
-class LabelDefine(Instruction):
-    name: Label
-
-MNEMONICS: dict[str, type[Instruction]] = dict()
-
-@dataclass
-class Jump(Instruction):
-    target: Label
-MNEMONICS["jmp"] = Jump
-
-@dataclass
-class JumpConditional(Instruction):
-    cond: Register
-    target: Label
-MNEMONICS["jnz"] = JumpConditional
-
-@dataclass
-class JumpRelative(Instruction):
-    offset: Immediate
-MNEMONICS["jmr"] = JumpRelative
-
-@dataclass
-class Move(Instruction):
-    dst: Register
-    src: RegisterOrImmediate
-MNEMONICS["mov"] = Move
-
-@dataclass
-class Copy(Instruction):
-    dst: Register
-    src: Register
-MNEMONICS["cpy"] = Copy
-
-@dataclass
-class MovAdd(Instruction):
-    dst: Register
-    src: RegisterOrImmediate
-MNEMONICS["addm"] = MovAdd
-
-@dataclass
-class Add(Instruction):
-    dst: Register
-    src: Register
-MNEMONICS["add"] = Add
-
-@dataclass
-class MovSub(Instruction):
-    dst: Register
-    src: RegisterOrImmediate
-MNEMONICS["subm"] = MovSub
-
-@dataclass
-class Sub(Instruction):
-    dst: Register
-    src: Register
-MNEMONICS["sub"] = Sub
-
-@dataclass
-class Raw(Instruction):
-    code: str
-MNEMONICS["raw"] = Raw
-
-@dataclass
-class Load(Instruction):
-    dst: Register
-    addr: RegisterOrImmediate
-MNEMONICS["lda"] = Load
-
-@dataclass
-class Store(Instruction):
-    addr: RegisterOrImmediate
-    src: RegisterOrImmediate
-MNEMONICS["sta"] = Store
-
-@dataclass
-class Output(Instruction):
-    reg: RegisterOrImmediate
-MNEMONICS["out"] = Output
-
-@dataclass
-class Print(Instruction):
-    val: str
-MNEMONICS["prt"] = Print
-
-@dataclass
-class Call(Instruction):
-    target: Label
-MNEMONICS["call"] = Call
-
-@dataclass
-class Return(Instruction): ...
-MNEMONICS["ret"] = Return
-
-@dataclass
-class Block(Instruction):
-    myid: int
-    kiloblock: "KiloBlock"
-    name: str | None
-    insts: list[Instruction]
-
-@dataclass
-class KiloBlock(Instruction):
-    myid: int
-    blocks: list[Block]
-
-
-def is_block_boundary(inst):
-    return isinstance(inst, (
-        LabelDefine,
-        JumpRelative,
-        JumpConditional,
-        Jump,
-        Call,
-        Return
-    ))
-
-def split_program_into_blocks(instructions):
+def split_program_into_blocks(instrs):
     blocks = []
     cur_block = []
     block_name = None
-    for i in instructions:
-        if not isinstance(i, LabelDefine):
+    for i in instrs:
+        if not isinstance(i, instructions.LabelDefine):
             cur_block.append(i)
         if is_block_boundary(i):
-            if isinstance(i, LabelDefine):
-                cur_block.append(JumpRelative(1))
+            if isinstance(i, instructions.LabelDefine):
+                cur_block.append(instructions.JumpRelative(1))
 
-            blocks.append(Block(
+            blocks.append(instructions.Block(
                 None,
                 None,
                 block_name,
                 cur_block
             ))
             cur_block = []
-            if isinstance(i, LabelDefine):
+            if isinstance(i, instructions.LabelDefine):
                 block_name = i.name
             else:
                 block_name = None
 
-    cur_block.append(JumpRelative(1))
-    blocks.append(Block(
+    cur_block.append(instructions.JumpRelative(1))
+    blocks.append(instructions.Block(
         None,
         None,
         block_name,
@@ -169,14 +51,14 @@ def split_program_into_blocks(instructions):
 
     return blocks
 
-def split_blocks_into_kiloblocks(blocks: list[Block]):
-    kiloblocks = [KiloBlock(1, [])]
+def split_blocks_into_kiloblocks(blocks: list[instructions.Block]):
+    kiloblocks = [instructions.KiloBlock(1, [])]
     i = 0
     for block in blocks:
         i += 1
         if i >= 256:
             i = 1
-            kiloblocks.append(KiloBlock(len(kiloblocks) + 1, []))
+            kiloblocks.append(instructions.KiloBlock(len(kiloblocks) + 1, []))
         block.myid = i
         block.kiloblock = kiloblocks[-1]
         kiloblocks[-1].blocks.append(block)
@@ -217,8 +99,8 @@ def change(from_, to):
     return "+"*(to-from_)
 
 class Program:
-    def __init__(self, instructions):
-        blocks = split_program_into_blocks(instructions)
+    def __init__(self, instrs):
+        blocks = split_program_into_blocks(instrs)
         self.kiloblocks = split_blocks_into_kiloblocks(blocks)
 
     def find_block(self, name):
@@ -232,7 +114,7 @@ class Program:
                     return i, j
         raise ValueError(f"Block not found: {name}")
     
-    def find_next_block(self, block: Block):
+    def find_next_block(self, block: instructions.Block):
         i = block.kiloblock.myid
         j = block.myid
         j += 1
@@ -251,7 +133,7 @@ class Program:
     def program_epilogue(self):
         return "\n-" + "]" * len(self.kiloblocks) + "<<<]"
     
-    def kiloblock_prologue(self, kiloblock: KiloBlock):
+    def kiloblock_prologue(self, kiloblock: instructions.KiloBlock):
         name = f"kiloblock_{kiloblock.myid}"
         name_line = f"{sanitize(name)}:\n"
         return (
@@ -265,10 +147,10 @@ class Program:
         # next1     next2   0          'block_id1   0       0
         )
 
-    def kiloblock_epilogue(self, kiloblock: KiloBlock):
+    def kiloblock_epilogue(self, kiloblock: instructions.KiloBlock):
         return "\nend_kiloblock -" + "]" * len(kiloblock.blocks) + " >]<["
 
-    def block_prologue(self, block: Block):
+    def block_prologue(self, block: instructions.Block):
         name = block.name
         if name is None:
             name = f"block_{block.myid}"
@@ -286,13 +168,13 @@ class Program:
     def block_epilogue(self):
         return "\nend <]<["
 
-    def assemble_instruction(self, inst: Instruction, cur_block: Block, comments=False):
+    def assemble_instruction(self, inst: Instruction, cur_block: instructions.Block, comments=False):
         if comments:
             rem = lambda x: x + "\n    "
         else:
             rem = lambda x: ""
 
-        if isinstance(inst, Jump):
+        if isinstance(inst, instructions.Jump):
             i, j = self.find_block(inst.target)
             return (
                 rem(f"jmp {sanitize(inst.target)}")
@@ -303,7 +185,7 @@ class Program:
               + next2.back()
             )
 
-        elif isinstance(inst, JumpConditional):
+        elif isinstance(inst, instructions.JumpConditional):
             next_i, next_j = self.find_next_block(cur_block)
             jump_i, jump_j = self.find_block(inst.target)
             return (
@@ -326,7 +208,7 @@ class Program:
               + scraps[0].back()
             )
 
-        elif isinstance(inst, JumpRelative):
+        elif isinstance(inst, instructions.JumpRelative):
             next_i, next_j = self.find_next_block(cur_block)
             return (
                 rem(f"jmr {inst.offset}")
@@ -337,7 +219,7 @@ class Program:
               + next2.back()
             )
 
-        elif isinstance(inst, Move):
+        elif isinstance(inst, instructions.Move):
             header = rem(f"mov {inst.dst} {inst.src}")
             if isinstance(inst.src, Immediate):
                 return (
@@ -356,7 +238,7 @@ class Program:
                    + inst.dst.back()
                 )
 
-        elif isinstance(inst, Copy):
+        elif isinstance(inst, instructions.Copy):
             return (
                 rem(f"cpy {inst.dst} {inst.src}")
               + inst.dst.to()
@@ -366,7 +248,7 @@ class Program:
               + inst.dst.back()
             )
 
-        elif isinstance(inst, MovAdd):
+        elif isinstance(inst, instructions.MovAdd):
             header = rem(f"addm {inst.dst} {inst.src}")
 
             if isinstance(inst.src, Immediate):
@@ -382,14 +264,14 @@ class Program:
                   + move(inst.src, inst.dst)
                 )
 
-        elif isinstance(inst, Add):
+        elif isinstance(inst, instructions.Add):
             return (
                 rem(f"add {inst.dst} {inst.src}")
               + move(inst.src, inst.dst, scraps[0])
               + move(scraps[0], inst.src)
             )
 
-        elif isinstance(inst, MovSub):
+        elif isinstance(inst, instructions.MovSub):
             header = rem(f"subm {inst.dst} {inst.src}")
 
             if isinstance(inst.src, Immediate):
@@ -405,17 +287,17 @@ class Program:
                   + move(inst.src, inst.dst, negative=True)
                 )
 
-        elif isinstance(inst, Sub):
+        elif isinstance(inst, instructions.Sub):
             return (
                 rem(f"sub {inst.dst} {inst.src}")
               + move(inst.src, inst.dst, scraps[0], negative=[1,0])
               + move(scraps[0], inst.src)
             )
 
-        elif isinstance(inst, Raw):
+        elif isinstance(inst, instructions.Raw):
             return inst.code
 
-        elif isinstance(inst, Output):
+        elif isinstance(inst, instructions.Output):
             label = rem(f"out {inst.reg}")
 
             if isinstance(inst.reg, Immediate):
@@ -434,7 +316,7 @@ class Program:
                   + inst.reg.back()
                 )
 
-        elif isinstance(inst, Print):
+        elif isinstance(inst, instructions.Print):
             return (
                 rem(f"prt {sanitize(inst.val)}")
               + scraps[0].to()
@@ -445,7 +327,7 @@ class Program:
               + scraps[0].back()
             )
 
-        elif isinstance(inst, Load):
+        elif isinstance(inst, instructions.Load):
             label = rem(f"lda {inst.dst} {inst.addr}")
 
             if isinstance(inst.addr, Immediate):
@@ -473,7 +355,7 @@ class Program:
                   + addressing[0].back()
                 )
 
-        elif isinstance(inst, Store):
+        elif isinstance(inst, instructions.Store):
             label = rem(f"sta {inst.addr} {inst.src}")
 
             if isinstance(inst.addr, Immediate):
@@ -504,12 +386,12 @@ class Program:
                   + addressing[0].back()
                 )
 
-        elif isinstance(inst, Call):
+        elif isinstance(inst, instructions.Call):
             next_i, next_j = self.find_next_block(cur_block)
             return (
                 rem(f"call {sanitize(inst.target)}")
               + self.assemble_instruction(
-                    Store(
+                    instructions.Store(
                         regs["SP"],
                         Immediate(next_i)
                     ),
@@ -519,7 +401,7 @@ class Program:
               + "+"
               + regs["SP"].back()
               + self.assemble_instruction(
-                    Store(
+                    instructions.Store(
                         regs["SP"],
                         Immediate(next_j)
                     ),
@@ -529,19 +411,19 @@ class Program:
               + "+"
               + regs["SP"].back()
               + self.assemble_instruction(
-                    Jump(inst.target),
+                    instructions.Jump(inst.target),
                     cur_block
                 )
             )
 
-        elif isinstance(inst, Return):
+        elif isinstance(inst, instructions.Return):
             return (
                 rem("ret")
               + regs["SP"].to()
               + "-"
               + regs["SP"].back()
               + self.assemble_instruction(
-                    Load(
+                    instructions.Load(
                         next2,
                         regs["SP"]
                     ),
@@ -551,7 +433,7 @@ class Program:
               + "-"
               + regs["SP"].back()
               + self.assemble_instruction(
-                    Load(
+                    instructions.Load(
                         next1,
                         regs["SP"]
                     ),
@@ -561,7 +443,7 @@ class Program:
 
         return type(inst).__name__
 
-    def assemble_block(self, block: Block):
+    def assemble_block(self, block: instructions.Block):
         return (
             self.block_prologue(block) +
             '\n'.join([
@@ -573,7 +455,7 @@ class Program:
             self.block_epilogue()
         )
 
-    def assemble_kiloblock(self, kiloblock: KiloBlock):
+    def assemble_kiloblock(self, kiloblock: instructions.KiloBlock):
         return (
             self.kiloblock_prologue(kiloblock) +
             '\n'.join([
@@ -602,7 +484,7 @@ def parse(s):
             continue
         line = line.strip(" ")
         if line.endswith(":"):
-            insts.append(LabelDefine(line[:-1]))
+            insts.append(instructions.LabelDefine(line[:-1]))
             continue
         if " " not in line:
             mnemonic = line
@@ -617,7 +499,7 @@ def parse(s):
                     args.append(regs[arg])
                     continue
                 if arg[0] == "<" and arg[-1] == ">":
-                    args.append(Label(arg[1:-1]))
+                    args.append(instructions.Label(arg[1:-1]))
                     continue
                 if arg[0] == '"' and arg[-1] == '"':
                     args.append(unquote(arg[1:-1]))
@@ -647,7 +529,7 @@ def parse(s):
                 tps = ["register", "immediate"]
             elif tp is int:
                 tps = ["immediate"]
-            elif tp is Label:
+            elif tp is instructions.Label:
                 tps = ["label"]
             elif tp is str:
                 tps = ["string"]
@@ -658,7 +540,7 @@ def parse(s):
                 arg_tp = "register"
             elif isinstance(arg, Immediate):
                 arg_tp = "immediate"
-            elif isinstance(arg, Label):
+            elif isinstance(arg, instructions.Label):
                 arg_tp = "label"
             elif isinstance(arg, str):
                 arg_tp = "string"
@@ -681,8 +563,8 @@ if __name__ == "__main__":
     with open(sys.argv[1]) as f:
         in_contents = f.read()
 
-    instructions = parse(in_contents)
-    prog = Program(instructions)
+    instrs = parse(in_contents)
+    prog = Program(instrs)
     out_contents = prog.assemble()
 
     with open(sys.argv[2], "w") as f:
