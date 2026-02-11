@@ -23,7 +23,7 @@ class Register:
             concater.raw("-" * (a - b))
         elif a < b:
             concater.raw("+" * (b - a))
-    
+
     def clear(self):
         self.to()
         concater.raw("[-]")
@@ -57,12 +57,25 @@ class Immediate(int):
             dst.change(0, self * mult)
 
 
-
 RegisterOrImmediate = Register | Immediate
 
 
-ROOT = Register(0)
+ROOT = Register(-1)  # Every block starts and ends here
 concater = _Concater(ROOT)
+
+next2 = Register(-5)  # next block number
+next1 = Register(-4)  # next kiloblock number
+
+current2 = Register(-3)  # current block number
+current1 = Register(-2)  # current kiloblock number
+
+# Safe to modiefy in blocks, equal zero in blocks, after modiefying must stay zero
+scraps = [
+    Register(-3),  # current block number
+    Register(-2),  # current kiloblock number
+    Register(-1),  # ROOT, it is used in ifnot checks
+    Register(0),  # it is used in ifnot checks
+]
 
 regs = {
     "R1": Register(1),
@@ -75,24 +88,10 @@ regs = {
     "SP": Register(8),
 }
 
-next2 = Register(-5)  # next block number
-next1 = Register(-4)  # next kiloblock number
-
-current2 = Register(-3)  # current block number
-current1 = Register(-2)  # current kiloblock number
-
-# Safe to modiefy in blocks, but after modiefying must equal zero
-scraps = [
-    Register(-3),
-    Register(-2),
-    Register(-1),
-    Register(0),
-]
-
 # Use only for memory addressing
 addressing = [
-    Register(9),
-    Register(10),
-    Register(11),
-    Register(12),
+    Register(9),  # address we need to go
+    Register(10),  # address we need to return (must equal previous register at start)
+    Register(11),  # value to write/read
+    Register(12),  # always equal zero
 ]

@@ -92,12 +92,12 @@ class Program:
         return "+>+<[[>>+<<-]>[>>+<<-]>>"
 
     def program_epilogue(self):
-        return "\n-" + "]" * len(self.kiloblocks) + "<<<]"
+        return "\n-]" * len(self.kiloblocks) + "<<<]"
     
     def kiloblock_prologue(self, kiloblock: instructions.KiloBlock):
         name = f"kiloblock_{kiloblock.myid}"
         name_line = f"{concater.sanitize(name)}:"
-        return f"\n{name_line}\n->+>+<<[>->-<]>[>-]<[-<<[>+<-]>\n"
+        return f"\n{name_line}\n->+<[>-]>[>]<[-<<[>+<-]>\n"
 
     def kiloblock_epilogue(self, kiloblock: instructions.KiloBlock):
         return "\nend_kiloblock -" + "]" * len(kiloblock.blocks) + " >]<["
@@ -108,12 +108,10 @@ class Program:
             name = f"block_{block.myid}"
         name_line = f"{concater.sanitize(name)}:"
 
-        return (
-        f"\n{name_line}\n->+>+<<[>->-<]>[>-]<[->"
-        )
+        return f"\n{name_line}\n->+<[>-]>[>]<[-"
 
     def block_epilogue(self):
-        return "\n<]<["
+        return "\n]<["
 
     def assemble_block(self, block: instructions.Block):
         concater.init_block()
