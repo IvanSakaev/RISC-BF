@@ -1,16 +1,17 @@
 #! /bin/python
+from __future__ import annotations
+
+import types
+from typing import Union, get_args, get_origin, get_type_hints
 from urllib.parse import unquote
 
 import instructions
-import registers
 from instructions import (
     MNEMONICS,
     is_block_boundary,
 )
 from registers import (
     Immediate,
-    Register,
-    RegisterOrImmediate,
     concater,
     regs,
 )
@@ -27,12 +28,7 @@ def split_program_into_blocks(instrs):
             if isinstance(i, instructions.LabelDefine):
                 cur_block.append(instructions.JumpRelative(1))
 
-            blocks.append(instructions.Block(
-                None,
-                None,
-                block_name,
-                cur_block
-            ))
+            blocks.append(instructions.Block(None, None, block_name, cur_block))
             cur_block = []
             if isinstance(i, instructions.LabelDefine):
                 block_name = i.name
@@ -40,14 +36,10 @@ def split_program_into_blocks(instrs):
                 block_name = None
 
     cur_block.append(instructions.JumpRelative(1))
-    blocks.append(instructions.Block(
-        None,
-        None,
-        block_name,
-        cur_block
-    ))
+    blocks.append(instructions.Block(None, None, block_name, cur_block))
 
     return blocks
+
 
 def split_blocks_into_kiloblocks(blocks: list[instructions.Block]):
     kiloblocks = [instructions.KiloBlock(1, [])]
@@ -61,6 +53,7 @@ def split_blocks_into_kiloblocks(blocks: list[instructions.Block]):
         block.kiloblock = kiloblocks[-1]
         kiloblocks[-1].blocks.append(block)
     return kiloblocks
+
 
 class Program:
     def __init__(self, instrs):
@@ -77,7 +70,7 @@ class Program:
                     j = block.myid
                     return i, j
         raise ValueError(f"Block not found: {name}")
-    
+
     def find_next_block(self, block: instructions.Block):
         i = block.kiloblock.myid
         j = block.myid
@@ -93,7 +86,7 @@ class Program:
 
     def program_epilogue(self):
         return "\n-]" * len(self.kiloblocks) + "<<<]"
-    
+
     def kiloblock_prologue(self, kiloblock: instructions.KiloBlock):
         name = f"kiloblock_{kiloblock.myid}"
         name_line = f"{concater.sanitize(name)}:"
@@ -118,114 +111,93 @@ class Program:
         for inst in block.insts:
             inst.evaluate(self, block, True)
         return (
-            self.block_prologue(block) +
-            concater.get_block_code() +
-            self.block_epilogue()
+            self.block_prologue(block)
+            + concater.get_block_code()
+            + self.block_epilogue()
         )
 
     def assemble_kiloblock(self, kiloblock: instructions.KiloBlock):
         return (
-            self.kiloblock_prologue(kiloblock) +
-            '\n'.join([
-                self.assemble_block(block)
-                for block in kiloblock.blocks
-            ]) +
-            self.kiloblock_epilogue(kiloblock)
+            self.kiloblock_prologue(kiloblock)
+            + "\n".join([self.assemble_block(block) for block in kiloblock.blocks])
+            + self.kiloblock_epilogue(kiloblock)
         )
 
     def assemble(self):
         return (
-            self.program_prologue() +
-            '\n'.join([
-                self.assemble_kiloblock(kiloblock)
-                for kiloblock in self.kiloblocks
-            ]) +
-            self.program_epilogue()
+            self.program_prologue()
+            + "\n".join(
+                [self.assemble_kiloblock(kiloblock) for kiloblock in self.kiloblocks]
+            )
+            + self.program_epilogue()
         )
 
-def parse(s):
-    insts = []
+
+def parse(s: str):
+    insts: list[instructions.Instruction | instructions.LabelDefine] = []
     for line in s.split("\n"):
         if ";" in line:
-            line = line[:line.find(";")]
+            line = line[: line.find(";")]
         if line.isspace() or not line:
             continue
         line = line.strip(" ")
+        line = line.strip("\t")
+        line = line.strip("\n")
         if line.endswith(":"):
             insts.append(instructions.LabelDefine(line[:-1]))
             continue
+        args: list = []
         if " " not in line:
             mnemonic = line
-            args = []
         else:
-            mnemonic = line[:line.find(" ")]
-            args_str = line[line.find(" "):].strip(" ")
-            args = []
+            mnemonic = line[: line.find(" ")]
+            args_str = line[line.find(" ") :].strip(" ")
             for arg_s in args_str.split(" "):
-                arg = arg_s.strip()
-                if arg in regs:
-                    args.append(regs[arg])
-                    continue
-                if arg[0] == "<" and arg[-1] == ">":
-                    args.append(instructions.Label(arg[1:-1]))
-                    continue
-                if arg[0] == '"' and arg[-1] == '"':
-                    args.append(unquote(arg[1:-1]))
-                    continue
-
-                if arg.startswith("0x"):
-                    imm = int(arg[2:], 16)
-                elif arg.startswith("0o"):
-                    imm = int(arg[2:], 8)
-                elif arg.startswith("0b"):
-                    imm = int(arg[2:], 2)
+                arg_s = arg_s.strip()
+                print(arg_s)
+                if arg_s in regs:
+                    args.append(regs[arg_s])
+                elif arg_s[0] == "<" and arg_s[-1] == ">":
+                    args.append(instructions.Label(arg_s[1:-1]))
+                elif arg_s[0] == '"' and arg_s[-1] == '"':
+                    args.append(unquote(arg_s[1:-1]))
                 else:
-                    imm = int(arg)
-                args.append(Immediate(imm))
+                    if arg_s.startswith("0x"):
+                        imm = int(arg_s[2:], 16)
+                    elif arg_s.startswith("0o"):
+                        imm = int(arg_s[2:], 8)
+                    elif arg_s.startswith("0b"):
+                        imm = int(arg_s[2:], 2)
+                    else:
+                        imm = int(arg_s)
+                    args.append(Immediate(imm))
 
         op = MNEMONICS[mnemonic]
-        op_args = op.__match_args__
-        op_fields = op.__dataclass_fields__
+        op_args = get_type_hints(op).values()
         if len(args) != len(op_args):
-            raise ValueError(f"Wrong number of arguments for {mnemonic}, expected {len(op_args)}, got {len(args)}")
+            raise ValueError(
+                f"Wrong number of arguments for {mnemonic}, expected {len(op_args)} arguments, got {len(args)}"
+            )
 
-        for op_arg, arg in zip(op_args, args):
-            tp = op_fields[op_arg].type
-            if isinstance(tp, str):
-                tp = getattr(instructions, tp, None) or getattr(registers, tp, None)
-            if tp is Register:
-                tps = ["register"]
-            elif tp is RegisterOrImmediate:
-                tps = ["register", "immediate"]
-            elif tp is int:
-                tps = ["immediate"]
-            elif tp is instructions.Label:
-                tps = ["label"]
-            elif tp is str:
-                tps = ["string"]
+        for arg, op_arg in zip(args, op_args):
+            if get_origin(op_arg) in (Union, types.UnionType):
+                op_arg = get_args(op_arg)
             else:
-                raise NotImplementedError()
+                op_arg = [op_arg]
 
-            if isinstance(arg, Register):
-                arg_tp = "register"
-            elif isinstance(arg, Immediate):
-                arg_tp = "immediate"
-            elif isinstance(arg, instructions.Label):
-                arg_tp = "label"
-            elif isinstance(arg, str):
-                arg_tp = "string"
-            else:
-                raise NotImplementedError()
-
-            if arg_tp not in tps:
-                expected = " or ".join(tps)
-                raise ValueError(f"Wrong type for argument {op_arg} or {mnemonic}, expected: {expected}, got {arg_tp}")
+            if type(arg) not in op_arg:
+                expected = " or ".join(map(str, op_arg))
+                raise ValueError(
+                    f"Wrong type for argument '{arg}' of '{mnemonic}', expected: {expected}, got {type(arg)}"
+                )
 
         insts.append(op(*args))
     return insts
 
+
 if __name__ == "__main__":
     import sys
+
     if len(sys.argv) != 3:
         print("usage: asm in.cbf out.b", file=sys.stderr)
         exit(1)

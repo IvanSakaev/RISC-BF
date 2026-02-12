@@ -21,8 +21,6 @@ if TYPE_CHECKING:
 
 
 class Instruction:
-    program: Program
-
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False): ...
 
 
@@ -45,7 +43,7 @@ class Label(str): ...
 
 @dataclass
 class LabelDefine(Instruction):
-    name: Label
+    name: str
 
 
 @dataclass
