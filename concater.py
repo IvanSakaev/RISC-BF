@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING
 
+import config
+
 if TYPE_CHECKING:
     from registers import Register
 
@@ -30,7 +32,8 @@ class _Concater:
 
     def rem(self, text: str, comments: bool):
         if comments:
-            self.current_program += "\n  " + self.sanitize(text) + "\n    "
+            bp = " #" if config.BREAKPOINT_EVERY_INSTRUCTION else ""
+            self.current_program += "\n  " + self.sanitize(text) + bp + "\n    "
 
     def init_block(self):
         self.current_pos = self.root

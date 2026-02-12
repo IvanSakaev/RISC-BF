@@ -5,6 +5,7 @@ import types
 from typing import Union, get_args, get_origin, get_type_hints
 from urllib.parse import unquote
 
+import config
 import instructions
 from instructions import (
     MNEMONICS,
@@ -46,7 +47,7 @@ def split_blocks_into_kiloblocks(blocks: list[instructions.Block]):
     i = 0
     for block in blocks:
         i += 1
-        if i >= 256:
+        if i > config.BLOCKS_IN_KILOBLOCK:
             i = 1
             kiloblocks.append(instructions.KiloBlock(len(kiloblocks) + 1, []))
         block.myid = i
@@ -75,17 +76,21 @@ class Program:
         i = block.kiloblock.myid
         j = block.myid
         j += 1
-        if j >= 255:
-            j -= 255
+        if j > config.BLOCKS_IN_KILOBLOCK:
+            j = 1
             i += 1
-            assert i < 255
+            assert i < config.MAX_KILOBLOCK_COUNT
         return i, j
 
     def program_prologue(self):
         return "+>+<[[>>+<<-]>[>>+<<-]>>"
 
     def program_epilogue(self):
-        return "\n-]" * len(self.kiloblocks) + "<<<]"
+        out = "\n-" + "]" * len(self.kiloblocks) + "<<<"
+        if config.BREAKPOINT_EVERY_CYCLE:
+            out += "#"
+        out += "]"
+        return out
 
     def kiloblock_prologue(self, kiloblock: instructions.KiloBlock):
         name = f"kiloblock_{kiloblock.myid}"

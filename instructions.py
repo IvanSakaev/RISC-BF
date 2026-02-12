@@ -168,9 +168,9 @@ class Load(Instruction):
             self.dst.clear()
             addressing[0].to()
             concater.raw(
-                "[>>[>+<-]<[>+<-]<[>+<-] >>>>[<<<<+>>>>-]<<< -]"
+                "[>>[>+<-]<[>+<-]<[>+<-]>>>>[<<<<+>>>>-]<<<-] "
                 ">>>>[<+<+>>-]<[>+<-]<<"
-                "[<<[>>>>+<<<<-] >>[<+>-]>[<+>-]<< -]<"
+                " [<<[>>>>+<<<<-]>>[<+>-]>[<+>-]<<-]<"
             )
             addressing[2].move(self.dst)
 
@@ -198,7 +198,7 @@ class Store(Instruction):
                 self.src.move(addressing[2], scraps[0])
                 scraps[0].move(self.src)
             addressing[0].to()
-            concater.raw("[>>[>+<-]<[>+<-]<[>+<-] >>>>[<<<<+>>>>-]<<< -]")
+            concater.raw("[>>[>+<-]<[>+<-]<[>+<-]>>>>[<<<<+>>>>-]<<<-] ")
             if isinstance(self.src, Immediate):
                 concater.raw(">>>>")
                 concater.current_pos.clear()
@@ -206,7 +206,7 @@ class Store(Instruction):
                 concater.raw("<<<")
             else:
                 concater.raw(">>>>[-]<<[>>+<<-]<")
-            concater.raw("[<<[>>>>+<<<<-] >>[<+>-]< -]<")
+            concater.raw(" [<<[>>>>+<<<<-]>>[<+>-]<-]<")
 
 
 @dataclass
