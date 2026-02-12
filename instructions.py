@@ -53,8 +53,8 @@ class Jump(Instruction):
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"jmp {self.target}", comments)
         i, j = program.find_block(self.target)
-        next1.change(0, i)
-        next2.change(0, j)
+        next1.change(i)
+        next2.change(j)
 
 
 @dataclass
@@ -68,8 +68,8 @@ class JumpConditional(Instruction):
         concater.rem(f"jnz {self.cond} {self.target}", comments)
         self.cond.move(scraps[0], scraps[1])
         scraps[1].move(self.cond)
-        next1.change(0, next_i)  # set the default value
-        next2.change(0, next_j)  # set the default value
+        next1.change(next_i)  # set the default value
+        next2.change(next_j)  # set the default value
         scraps[0].to()
         concater.raw("[")  # condition is true
         next1.change(next_i, jump_i)
@@ -85,8 +85,8 @@ class JumpRelative(Instruction):
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         next_i, next_j = program.find_next_block(cur_block)
         concater.rem(f"jmr {self.offset}", comments)
-        next1.change(0, next_i)
-        next2.change(0, next_j)
+        next1.change(next_i)
+        next2.change(next_j)
 
 
 @dataclass
@@ -202,7 +202,7 @@ class Store(Instruction):
             if isinstance(self.src, Immediate):
                 concater.raw(">>>>")
                 concater.current_pos.clear()
-                concater.current_pos.change(0, self.src)
+                concater.current_pos.change(self.src)
                 concater.raw("<<<")
             else:
                 concater.raw(">>>>[-]<<[>>+<<-]<")
@@ -233,7 +233,7 @@ class Print(Instruction):
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"prt {self.val}", comments)
         for value in self.val:
-            scraps[0].change(0, ord(value))
+            scraps[0].change(ord(value))
             scraps[0].to()
             concater.raw(".")
             scraps[0].clear()
@@ -247,9 +247,9 @@ class Call(Instruction):
         next_i, next_j = program.find_next_block(cur_block)
         concater.rem(f"call {self.target}", comments)
         Store(regs["SP"], Immediate(next_i)).evaluate(program, cur_block)
-        regs["SP"].change(0, 1)
+        regs["SP"].change(1)
         Store(regs["SP"], Immediate(next_j)).evaluate(program, cur_block)
-        regs["SP"].change(0, 1)
+        regs["SP"].change(1)
         Jump(self.target).evaluate(program, cur_block)
 
 
@@ -257,9 +257,9 @@ class Call(Instruction):
 class Return(Instruction):
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem("ret", comments)
-        regs["SP"].change(0, -1)
+        regs["SP"].change(-1)
         Load(next2, regs["SP"]).evaluate(program, cur_block)
-        regs["SP"].change(0, -1)
+        regs["SP"].change(-1)
         Load(next1, regs["SP"]).evaluate(program, cur_block)
 
 

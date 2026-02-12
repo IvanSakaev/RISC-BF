@@ -14,10 +14,14 @@ class Register:
             concater.current_program += "<" * (concater.current_pos.addr - self.addr)
         concater.current_pos = self
 
-    def change(self, a: int, b: int):
+    def change(self, a: int, b: int | None = None):
         """
         Change this register value from "a" to "b"
+        Or from 0 to a, if b is None
         """
+        if b is None:
+            b = a
+            a = 0
         if a > b:
             self.to()
             concater.raw("-" * (a - b))
@@ -35,8 +39,8 @@ class Register:
         self.to()
         concater.raw("[")
         for dst, mult in zip(dsts, multiplier):
-            dst.change(0, mult)
-        self.change(0, -1)
+            dst.change(mult)
+        self.change(-1)
         self.to()
         concater.raw("]")
 
@@ -55,7 +59,7 @@ class Immediate(int):
         if isinstance(multiplier, int):
             multiplier = [multiplier] * len(dsts)
         for dst, mult in zip(dsts, multiplier):
-            dst.change(0, self * mult)
+            dst.change(self * mult)
 
 
 RegisterOrImmediate = Register | Immediate
