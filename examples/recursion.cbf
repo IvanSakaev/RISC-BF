@@ -5,59 +5,59 @@ jmp  <exit>
 
 fib:
     ; arg a
-    addm SP 2
+    add SP 2
 
     jnz  R2 <not_zero>
 
     ; base case x = 0
-    subm SP 2
+    sub SP 2
     mov  R1 0
     ret
 
 not_zero:
-    subm R2 1
+    sub R2 1
     jnz  R2 <not_one>
 
     ; base case x = 1
-    subm SP 2
+    sub SP 2
     mov  R1 1
     ret
 
 not_one:
-    addm R2 1
+    add R2 1
 
     ; store arg
-    subm SP 2
+    sub SP 2
     sta  SP R2
-    addm SP 2
+    add SP 2
 
     ; call n-1
-    subm R2 1
+    sub R2 1
     call <fib>
 
     ; store a
-    subm SP 1
+    sub SP 1
     sta  SP R1
-    addm SP 1
+    add SP 1
 
     ; load arg
-    subm SP 2
+    sub SP 2
     lda  R2 SP
-    addm SP 2
+    add SP 2
     
     ; call n-2
-    subm R2 2
+    sub R2 2
     call <fib>
     ; b is now in R1
 
     ; load a
-    subm SP 1
+    sub SP 1
     lda  R2 SP
-    addm SP 1
+    add SP 1
 
-    addm R1 R2
+    add R1 R2
 
     ; return
-    subm SP 2
+    sub SP 2
     ret
 

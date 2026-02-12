@@ -154,7 +154,6 @@ def parse(s: str):
             args_str = line[line.find(" ") :].strip(" ")
             for arg_s in args_str.split(" "):
                 arg_s = arg_s.strip()
-                print(arg_s)
                 if arg_s in regs:
                     args.append(regs[arg_s])
                 elif arg_s[0] == "<" and arg_s[-1] == ">":
