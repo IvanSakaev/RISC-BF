@@ -18,10 +18,11 @@ class Register:
         """
         Change this register value from "a" to "b"
         """
-        self.to()
         if a > b:
+            self.to()
             concater.raw("-" * (a - b))
         elif a < b:
+            self.to()
             concater.raw("+" * (b - a))
 
     def clear(self):
