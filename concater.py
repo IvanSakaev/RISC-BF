@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 import config
@@ -26,7 +28,7 @@ class _Concater:
             .replace("#", "_")
         )
         return name
-    
+
     def raw(self, text: str):
         self.current_program += text
 
