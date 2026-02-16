@@ -44,6 +44,12 @@ class Register:
         self.to()
         concater.raw("]")
 
+    def reg_rel(self, n: int):
+        """
+        Returns register that is n cells right
+        """
+        return Register(self.addr + n)
+
     def __repr__(self):
         if self.addr == -2:
             return "J"
@@ -65,38 +71,38 @@ class Immediate(int):
 RegisterOrImmediate = Register | Immediate
 
 
-ROOT = Register(-1)  # Every block starts and ends here
+next2 = Register(-6)  # next block number
+next1 = Register(-5)  # next kiloblock number
+
+current2 = Register(-4)  # current block number
+current1 = Register(-3)  # current kiloblock number
+
+ROOT = Register(-2)  # Every block starts and ends here
 concater = _Concater(ROOT)
-
-next2 = Register(-5)  # next block number
-next1 = Register(-4)  # next kiloblock number
-
-current2 = Register(-3)  # current block number
-current1 = Register(-2)  # current kiloblock number
 
 # Safe to modiefy in blocks, equal zero in blocks, after modiefying must stay zero
 scraps = [
-    Register(-3),  # current block number
-    Register(-2),  # current kiloblock number
-    Register(-1),  # ROOT, it is used in ifnot checks
-    Register(0),  # it is used in ifnot checks
+    Register(-4),  # current block number
+    Register(-3),  # current kiloblock number
+    Register(-2),  # ROOT, it is used in ifnot checks
+    Register(-1),  # it is used in ifnot checks
 ]
 
 regs = {
-    "R1": Register(1),
-    "R2": Register(2),
-    "R3": Register(3),
-    "R4": Register(4),
-    "R5": Register(5),
-    "R6": Register(6),
-    "R7": Register(7),
-    "SP": Register(8),
+    "R1": Register(0),
+    "R2": Register(8),
+    "R3": Register(16),
+    "R4": Register(24),
+    "R5": Register(32),
+    "R6": Register(40),
+    "R7": Register(48),
+    "SP": Register(56),
 }
 
 # Use only for memory addressing
 addressing = [
-    Register(9),  # address we need to go
-    Register(10),  # address we need to return (must equal previous register at start)
-    Register(11),  # value to write/read
-    Register(12),  # always equal zero
+    Register(57),  # address we need to go
+    Register(58),  # address we need to return (must equal previous register at start)
+    Register(59),  # value to write/read
+    Register(60),  # always equal zero
 ]
