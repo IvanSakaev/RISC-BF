@@ -4,7 +4,7 @@ from concater import _Concater
 
 
 class Register:
-    def __init__(self, addr):
+    def __init__(self, addr: int):
         self.addr = addr
 
     def to(self):
@@ -71,6 +71,8 @@ class Immediate(int):
 RegisterOrImmediate = Register | Immediate
 
 
+ZERO = Register(-7)  # it isn't a physical register, it mustn't be used for data storage
+
 next2 = Register(-6)  # next block number
 next1 = Register(-5)  # next kiloblock number
 
@@ -88,21 +90,25 @@ scraps = [
     Register(-1),  # it is used in ifnot checks
 ]
 
+# Variable is only the first cell of register. 7 cells after that are register too.
+# Register cells SHOULD BE only 4 bits (values between 0 and 15)
 regs = {
-    "R1": Register(0),
-    "R2": Register(8),
-    "R3": Register(16),
-    "R4": Register(24),
-    "R5": Register(32),
-    "R6": Register(40),
-    "R7": Register(48),
-    "SP": Register(56),
+    "x0": ZERO,
+    "x1": Register(0),
+    "x2": Register(8),
+    "x3": Register(16),
+    "x4": Register(24),
+    "x5": Register(32),
+    "x6": Register(40),
+    "x7": Register(48),
+    "x8": Register(56),
+    "sp": Register(64),  # TODO
 }
 
 # Use only for memory addressing
 addressing = [
-    Register(57),  # address we need to go
-    Register(58),  # address we need to return (must equal previous register at start)
-    Register(59),  # value to write/read
-    Register(60),  # always equal zero
+    Register(65),  # address we need to go
+    Register(66),  # address we need to return (must equal previous register at start)
+    Register(67),  # value to write/read
+    Register(68),  # always equal zero
 ]
