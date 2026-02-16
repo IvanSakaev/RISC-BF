@@ -141,8 +141,10 @@ class Program:
 def parse(s: str):
     insts: list[instructions.Instruction | instructions.LabelDefine] = []
     for line in s.split("\n"):
-        if ";" in line:
-            line = line[: line.find(";")]
+        if "#" in line:
+            line = line[: line.find("#")]
+        if "." in line:
+            line = line[: line.find(".")]
         if line.isspace() or not line:
             continue
         line = line.strip(" ")
