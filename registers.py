@@ -51,13 +51,10 @@ class Register:
         return Register(self.addr + n)
 
     def __repr__(self):
-        if self.addr == -2:
-            return "J"
-        elif self.addr == -1:
-            return "S"
-        elif self.addr == 8:
-            return "SP"
-        return f"R{self.addr}"
+        for key, value in regs.items():
+            if self is value:
+                return key
+        return f"ADDR{self.addr}"
 
 
 class Immediate(int):
@@ -92,6 +89,7 @@ scraps = [
 
 # Variable is only the first cell of register. 7 cells after that are register too.
 # Register cells SHOULD BE only 4 bits (values between 0 and 15)
+# Operations with registers should be little-endian
 regs = {
     "x0": ZERO,
     "x1": Register(0),

@@ -96,8 +96,13 @@ class LI(Instruction):
         concater.rem(f"li {self.dst} {self.src}", comments)
         if self.dst is ZERO:
             return
-        self.dst.clear()
-        self.src.move(self.dst)
+        assert self.src < (2 ** 32)
+        reg = self.dst
+        while self.src > 0:
+            reg.clear()
+            reg.change(self.src % 16)
+            self.src = Immediate(self.src // 16)
+            reg = Register(reg.addr + 1)
 
 
 @dataclass
