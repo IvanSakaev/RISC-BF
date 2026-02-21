@@ -36,11 +36,32 @@ class Register:
     def move(self, *dsts: Register, multiplier: int | tuple | list = 1):
         if isinstance(multiplier, int):
             multiplier = [multiplier] * len(dsts)
+        assert self not in dsts
         self.to()
         concater.raw("[")
         for dst, mult in zip(dsts, multiplier):
             dst.change(mult)
         self.change(-1)
+        self.to()
+        concater.raw("]")
+
+    def copy(self, *dsts: Register, scrap: Register | None = None, multiplier: int | tuple | list = 1):
+        if scrap is None:
+            scrap = scraps[0]
+        assert self not in dsts
+        assert scrap not in dsts
+        if isinstance(multiplier, int):
+            multiplier = [multiplier] * len(dsts)
+        dsts2 = list(dsts) + [scrap]
+        multiplier = list(multiplier) + [1]
+        self.move(*dsts2, multiplier=multiplier)
+        scrap.move(self)
+    
+    def start_loop(self):
+        self.to()
+        concater.raw("[")
+    
+    def end_loop(self):
         self.to()
         concater.raw("]")
 
@@ -63,6 +84,9 @@ class Immediate(int):
             multiplier = [multiplier] * len(dsts)
         for dst, mult in zip(dsts, multiplier):
             dst.change(self * mult)
+    
+    def copy(self, *dsts: Register, multiplier: int | list = 1):
+        self.move(*dsts, multiplier=multiplier)
 
 
 RegisterOrImmediate = Register | Immediate

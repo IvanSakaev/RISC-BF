@@ -64,16 +64,14 @@ class JumpConditional(Instruction):
         next_i, next_j = program.find_next_block(cur_block)
         jump_i, jump_j = program.find_block(self.target)
         concater.rem(f"jnz {self.cond} {self.target}", comments)
-        self.cond.move(scraps[0], scraps[1])
-        scraps[1].move(self.cond)
+        self.cond.copy(scraps[0], scrap=scraps[1])
         next1.change(next_i)  # set the default value
         next2.change(next_j)  # set the default value
-        scraps[0].to()
-        concater.raw("[")  # condition is true
+        scraps[0].start_loop()
         next1.change(next_i, jump_i)
         next2.change(next_j, jump_j)
-        scraps[0].to()
-        concater.raw("[-]]")
+        scraps[0].clear()
+        scraps[0].end_loop()
 
 
 @dataclass
@@ -96,12 +94,13 @@ class LI(Instruction):
         concater.rem(f"li {self.dst} {self.src}", comments)
         if self.dst is ZERO:
             return
-        assert self.src < (2 ** 32)
+        val = int(self.src)
         reg = self.dst
-        while self.src > 0:
+        assert val < (2 ** 32)
+        while val > 0:
             reg.clear()
-            reg.change(self.src % 16)
-            self.src = Immediate(self.src // 16)
+            reg.change(val % 16)
+            val //= 16
             reg = Register(reg.addr + 1)
 
 
@@ -117,11 +116,9 @@ class Add(Instruction):
             return
         self.dst.clear()
         if self.src1 is not ZERO:
-            self.src1.move(self.dst, scraps[0])
-            scraps[0].move(self.src1)
+            self.src1.copy(self.dst)
         if self.src2 is not ZERO:
-            self.src2.move(self.dst, scraps[0])
-            scraps[0].move(self.src2)
+            self.src2.copy(self.dst)
 
 
 @dataclass
@@ -136,8 +133,7 @@ class AddI(Instruction):
             return
         self.dst.clear()
         if self.src1 is not ZERO:
-            self.src1.move(self.dst, scraps[0])
-            scraps[0].move(self.src1)
+            self.src1.copy(self.dst)
         self.src2.move(self.dst)
 
 
@@ -153,11 +149,9 @@ class Sub(Instruction):
             return
         self.dst.clear()
         if self.src1 is not ZERO:
-            self.src1.move(self.dst, scraps[0], multiplier=(-1, 1))
-            scraps[0].move(self.src1)
+            self.src1.copy(self.dst, multiplier=-1)
         if self.src2 is not ZERO:
-            self.src2.move(self.dst, scraps[0], multiplier=(-1, 1))
-            scraps[0].move(self.src2)
+            self.src2.copy(self.dst, multiplier=-1)
 
 
 @dataclass
@@ -172,8 +166,7 @@ class SubI(Instruction):
             return
         self.dst.clear()
         if self.src1 is not ZERO:
-            self.src1.move(self.dst, scraps[0], multiplier=(-1, 1))
-            scraps[0].move(self.src1)
+            self.src1.copy(self.dst, multiplier=-1)
         self.src2.move(self.dst, multiplier=-1)
 
 
@@ -207,10 +200,10 @@ def is_block_boundary(self):
     return isinstance(
         self,
         (
-            LabelDefine,
-            JumpRelative,
-            JumpConditional,
-            Jump,
+            # LabelDefine,
+            # JumpRelative,
+            # JumpConditional,
+            # Jump,
             # Call,
             # Return,
         ),
