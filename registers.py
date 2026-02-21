@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from concater import _Concater
+from config import SCRAP_COUNT
 
 
 class Register:
@@ -45,7 +46,12 @@ class Register:
         self.to()
         concater.raw("]")
 
-    def copy(self, *dsts: Register, scrap: Register | None = None, multiplier: int | tuple | list = 1):
+    def copy(
+        self,
+        *dsts: Register,
+        scrap: Register | None = None,
+        multiplier: int | tuple | list = 1,
+    ):
         if scrap is None:
             scrap = scraps[0]
         assert self not in dsts
@@ -56,11 +62,11 @@ class Register:
         multiplier = list(multiplier) + [1]
         self.move(*dsts2, multiplier=multiplier)
         scrap.move(self)
-    
+
     def start_loop(self):
         self.to()
         concater.raw("[")
-    
+
     def end_loop(self):
         self.to()
         concater.raw("]")
@@ -84,7 +90,7 @@ class Immediate(int):
             multiplier = [multiplier] * len(dsts)
         for dst, mult in zip(dsts, multiplier):
             dst.change(self * mult)
-    
+
     def copy(self, *dsts: Register, multiplier: int | list = 1):
         self.move(*dsts, multiplier=multiplier)
 
@@ -104,33 +110,20 @@ ROOT = Register(-2)  # Every block starts and ends here
 concater = _Concater(ROOT)
 
 # Safe to modiefy in blocks, equal zero in blocks, after modiefying must stay zero
-scraps = [
-    Register(-4),  # current block number
-    Register(-3),  # current kiloblock number
-    Register(-2),  # ROOT, it is used in ifnot checks
-    Register(-1),  # it is used in ifnot checks
-]
+scraps = [Register(i - 4) for i in range(SCRAP_COUNT)]
 
 # Variable is only the first cell of register. 7 cells after that are register too.
 # Register cells SHOULD BE only 4 bits (values between 0 and 15)
 # Operations with registers should be little-endian
 regs = {
     "x0": ZERO,
-    "x1": Register(0),
-    "x2": Register(8),
-    "x3": Register(16),
-    "x4": Register(24),
-    "x5": Register(32),
-    "x6": Register(40),
-    "x7": Register(48),
-    "x8": Register(56),
-    "sp": Register(64),  # TODO
-}
+    "zero": ZERO,
+} | {f"x{i + 1}": Register(i * 8 + SCRAP_COUNT - 4) for i in range(8)}
 
-# Use only for memory addressing
-addressing = [
-    Register(65),  # address we need to go
-    Register(66),  # address we need to return (must equal previous register at start)
-    Register(67),  # value to write/read
-    Register(68),  # always equal zero
-]
+# # Use only for memory addressing
+# addressing = [  # TODO
+#     Register(65),  # address we need to go
+#     Register(66),  # address we need to return (must equal previous register at start)
+#     Register(67),  # value to write/read
+#     Register(68),  # always equal zero
+# ]
