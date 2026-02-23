@@ -114,9 +114,14 @@ class Add(Instruction):
         concater.rem(f"add {self.dst} {self.src1} {self.src2}", comments)
         if self.dst == ZERO:
             return
-        if self.dst not in (self.src1, self.src2):
-            self.dst.clear()
 
+        if self.src1 == self.dst and self.src2 == self.dst:
+            self.dst.move_big(scraps[0])
+            concater.debug()
+            scraps[0].move_big(self.dst, multiplier=2)
+            concater.debug()
+            concater.raw("\n    ")
+            self.dst.normalize_big()
         self.src1, self.src2 = sorted(
             (self.src1, self.src2),
             key=lambda a: 0 if a == ZERO else (1 if a == self.dst else 2),
@@ -194,6 +199,13 @@ class Output(Instruction):
             concater.raw(".")
 
 
+@dataclass
+class Debug(Instruction):
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem("dbg", comments)
+        concater.debug()
+
+
 MNEMONICS: dict[str, type[Instruction]] = dict()
 
 MNEMONICS["li"] = LI
@@ -203,6 +215,7 @@ MNEMONICS["sub"] = Sub
 MNEMONICS["subi"] = SubI
 
 MNEMONICS["out"] = Output
+MNEMONICS["dbg"] = Debug
 
 
 def is_block_boundary(self):

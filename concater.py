@@ -36,6 +36,9 @@ class _Concater:
         if comments:
             bp = " #" if config.BREAKPOINT_EVERY_INSTRUCTION else ""
             self.current_program += "\n  " + self.sanitize(text) + bp + "\n    "
+    
+    def debug(self):
+        self.raw("#")
 
     def init_block(self):
         self.current_pos = self.root

@@ -70,10 +70,9 @@ class Register:
         small_src = self
         small_dsts = list(dsts)
         for i in range(8):
-            small_src.move(*dsts, multiplier=multiplier)
+            small_src.move(*small_dsts, multiplier=multiplier)
             small_src = small_src.reg_rel(1)
-            for j in range(len(dsts)):
-                small_dsts[j] = small_dsts[j].reg_rel(1)
+            small_dsts = list(map(lambda r: r.reg_rel(1), small_dsts))
 
     def copy_big(
         self,
@@ -92,6 +91,32 @@ class Register:
         self.move(*dsts2, multiplier=multiplier)
         scrap.move(self)
 
+    def normalize_big(self):
+        mod = scraps[0]
+        # 2 scraps after MOD are used too
+        output = scraps[3]
+        for i in range(8):
+            small = self.reg_rel(i)
+            mod.change(-16)
+
+            small.start_loop()
+            mod.change(1)
+            mod.start_if_not()
+            mod.change(-16)
+            output.change(1)
+            mod.end_if_not()
+            small.change(-1)
+            small.end_loop()
+
+            if i < 7:
+                small2 = self.reg_rel(i + 1)
+                mod.change(16)
+                mod.move(small2)
+            else:
+                mod.clear()
+            output.move(small)
+        # TODO
+
     def start_loop(self):
         self.to()
         concater.raw("[")
@@ -99,6 +124,17 @@ class Register:
     def end_loop(self):
         self.to()
         concater.raw("]")
+    
+    def start_if_not(self):
+        """
+        Two cells after it must be zero
+        """
+        self.to()
+        concater.raw(">+<[>-]>[>]<[-")
+        concater.current_pos = self.reg_rel(1)
+    
+    def end_if_not(self):
+        self.reg_rel(1).end_loop()
 
     def reg_rel(self, n: int):
         """
