@@ -92,12 +92,12 @@ class LI(Instruction):
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"li {self.dst} {self.src}", comments)
-        if self.dst is ZERO:
+        if self.dst == ZERO:
             return
         val = int(self.src)
         reg = self.dst
-        assert val < (2 ** 32)
-        while val > 0:
+        assert val < (2**32)
+        for i in range(8):
             reg.clear()
             reg.change(val % 16)
             val //= 16
@@ -112,12 +112,19 @@ class Add(Instruction):
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"add {self.dst} {self.src1} {self.src2}", comments)
-        if self.dst is ZERO:
+        if self.dst == ZERO:
             return
-        self.dst.clear()
-        if self.src1 is not ZERO:
+        if self.dst not in (self.src1, self.src2):
+            self.dst.clear()
+
+        self.src1, self.src2 = sorted(
+            (self.src1, self.src2),
+            key=lambda a: 0 if a == ZERO else (1 if a == self.dst else 2),
+            reverse=True,
+        )
+        if self.src1 is not ZERO and self.src1 != self.dst:
             self.src1.copy(self.dst)
-        if self.src2 is not ZERO:
+        if self.src2 is not ZERO and self.src2 != self.dst:
             self.src2.copy(self.dst)
 
 
@@ -129,7 +136,7 @@ class AddI(Instruction):
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"addi {self.dst} {self.src1} {self.src2}", comments)
-        if self.dst is ZERO:
+        if self.dst == ZERO:
             return
         self.dst.clear()
         if self.src1 is not ZERO:
@@ -145,7 +152,7 @@ class Sub(Instruction):
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"sub {self.dst} {self.src1} {self.src2}", comments)
-        if self.dst is ZERO:
+        if self.dst == ZERO:
             return
         self.dst.clear()
         if self.src1 is not ZERO:
@@ -162,7 +169,7 @@ class SubI(Instruction):
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"subi {self.dst} {self.src1} {self.src2}", comments)
-        if self.dst is ZERO:
+        if self.dst == ZERO:
             return
         self.dst.clear()
         if self.src1 is not ZERO:
@@ -194,6 +201,8 @@ MNEMONICS["add"] = Add
 MNEMONICS["addi"] = AddI
 MNEMONICS["sub"] = Sub
 MNEMONICS["subi"] = SubI
+
+MNEMONICS["out"] = Output
 
 
 def is_block_boundary(self):

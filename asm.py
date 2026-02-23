@@ -11,12 +11,7 @@ from instructions import (
     MNEMONICS,
     is_block_boundary,
 )
-from registers import (
-    Immediate,
-    concater,
-    regs,
-    SCRAP_COUNT
-)
+from registers import SCRAP_COUNT, Immediate, concater, regs
 
 
 def split_program_into_blocks(instrs):
@@ -160,7 +155,7 @@ def parse(s: str):
         else:
             mnemonic = line[: line.find(" ")]
             args_str = line[line.find(" ") :].strip(" ")
-            for arg_s in args_str.split(" "):
+            for arg_s in args_str.split(","):
                 arg_s = arg_s.strip()
                 if arg_s in regs:
                     args.append(regs[arg_s])
