@@ -101,7 +101,7 @@ class LI(Instruction):
             reg.clear()
             reg.change(val % 16)
             val //= 16
-            reg = Register(reg.addr + 1)
+            reg = reg.reg_rel(1)
 
 
 @dataclass
