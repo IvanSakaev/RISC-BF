@@ -110,11 +110,12 @@ class Register:
 
             if i < 7:
                 small2 = self.reg_rel(i + 1)
-                mod.change(16)
-                mod.move(small2)
+                output.move(small2)
             else:
-                mod.clear()
-            output.move(small)
+                output.clear()
+            mod.change(16)
+            mod.move(small)
+            concater.debug()
         # TODO
 
     def start_loop(self):
