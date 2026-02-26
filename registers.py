@@ -38,7 +38,6 @@ class Register:
         if isinstance(multiplier, int):
             multiplier = [multiplier] * len(dsts)
         dsts2 = list(dsts)
-        dsts2.sort(key=lambda r: r.addr)
         assert self not in dsts2
         self.to()
         concater.raw("[")
@@ -88,10 +87,37 @@ class Register:
             multiplier = [multiplier] * len(dsts)
         dsts2 = list(dsts) + [scrap]
         multiplier = list(multiplier) + [1]
-        self.move(*dsts2, multiplier=multiplier)
-        scrap.move(self)
+        self.move_big(*dsts2, multiplier=multiplier)
+        scrap.move_big(self)
+
+    def clear_big(self):
+        reg = self
+        for i in range(8):
+            reg.clear()
+            reg = reg.reg_rel(1)
+
+    def change_big(self, a: int, b: int | None = None, clear=False):
+        if b is None:
+            b = a
+            a = 0
+        val = b - a
+        assert val > 0
+        reg = self
+        for i in range(8):
+            if clear:
+                reg.clear()
+            reg.change(val % 16)
+            val //= 16
+            reg = reg.reg_rel(1)
 
     def normalize_big(self):
+        """
+        Normalize big register (8 cells).
+        Before normalization every cell should be <= 240.
+        After every cell store only one hex number (value <= 15).
+
+        It uses scraps 0, 1, 2, 3
+        """
         mod = scraps[0]
         # 2 scraps after MOD are used too
         output = scraps[3]
@@ -115,8 +141,6 @@ class Register:
                 output.clear()
             mod.change(16)
             mod.move(small)
-            concater.debug()
-        # TODO
 
     def start_loop(self):
         self.to()
@@ -125,7 +149,7 @@ class Register:
     def end_loop(self):
         self.to()
         concater.raw("]")
-    
+
     def start_if_not(self):
         """
         Two cells after it must be zero
@@ -133,7 +157,7 @@ class Register:
         self.to()
         concater.raw(">+<[>-]>[>]<[-")
         concater.current_pos = self.reg_rel(1)
-    
+
     def end_if_not(self):
         self.reg_rel(1).end_loop()
 

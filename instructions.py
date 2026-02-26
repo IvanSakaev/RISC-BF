@@ -94,14 +94,8 @@ class LI(Instruction):
         concater.rem(f"li {self.dst} {self.src}", comments)
         if self.dst == ZERO:
             return
-        val = int(self.src)
-        reg = self.dst
-        assert val < (2**32)
-        for i in range(8):
-            reg.clear()
-            reg.change(val % 16)
-            val //= 16
-            reg = reg.reg_rel(1)
+        assert self.src < (2**32)
+        self.dst.change_big(self.src, clear=True)
 
 
 @dataclass
@@ -115,22 +109,35 @@ class Add(Instruction):
         if self.dst == ZERO:
             return
 
-        if self.src1 == self.dst and self.src2 == self.dst:
-            self.dst.move_big(scraps[0])
-            concater.debug()
-            scraps[0].move_big(self.dst, multiplier=2)
-            concater.debug()
-            concater.raw("\n    ")
-            self.dst.normalize_big()
         self.src1, self.src2 = sorted(
             (self.src1, self.src2),
             key=lambda a: 0 if a == ZERO else (1 if a == self.dst else 2),
-            reverse=True,
         )
-        if self.src1 is not ZERO and self.src1 != self.dst:
-            self.src1.copy(self.dst)
-        if self.src2 is not ZERO and self.src2 != self.dst:
-            self.src2.copy(self.dst)
+
+        if self.src1 == ZERO and self.src2 == ZERO:
+            self.dst.clear_big()
+        elif self.src1 == ZERO and self.src2 == self.dst:
+            pass
+        elif self.src1 == self.dst and self.src2 == self.dst:
+            self.dst.move_big(scraps[0])
+            scraps[0].move_big(self.dst, multiplier=2)
+            self.dst.normalize_big()
+        elif self.src1 == ZERO:
+            self.dst.clear_big()
+            self.src2.copy_big(self.dst)
+        elif self.src1 == self.dst:
+            self.src2.copy_big(self.dst)
+            self.dst.normalize_big()
+        elif self.src1 == self.src2:
+            self.dst.clear_big()
+            self.src1.copy_big(self.dst, multiplier=2)
+            self.dst.normalize_big()
+        else:
+            self.dst.clear_big()
+            self.src1.copy_big(self.dst)
+            self.src2.copy_big(self.dst)
+            self.dst.normalize_big()
+        
 
 
 @dataclass
