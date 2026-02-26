@@ -137,7 +137,6 @@ class Add(Instruction):
             self.src1.copy_big(self.dst)
             self.src2.copy_big(self.dst)
             self.dst.normalize_big()
-        
 
 
 @dataclass

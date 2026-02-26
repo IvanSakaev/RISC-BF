@@ -214,11 +214,11 @@ if __name__ == "__main__":
     with open(sys.argv[2], "w") as f:
         f.write(out_contents)
         f.write("\n")
-    
+
     # Generate addrmap
     with open(sys.argv[2] + ".addr", "w") as f:
         f.write("a0[2] next\n")
         f.write("a2[2] current\n")
         f.write(f"a2[{SCRAP_COUNT:x}] scraps\n")
         for i in range(len(regs)):
-            f.write(f"a{i * 8 + SCRAP_COUNT + 2:x}[8] x{i+1}\n")
+            f.write(f"a{i * 8 + SCRAP_COUNT + 2:x}[8] x{i + 1}\n")
