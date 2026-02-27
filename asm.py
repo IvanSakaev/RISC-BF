@@ -174,6 +174,7 @@ def parse(s: str):
                         imm = int(arg_s)
                     args.append(Immediate(imm))
 
+        mnemonic = mnemonic.lower()
         op = MNEMONICS[mnemonic]
         op_args = get_type_hints(op).values()
         if len(args) != len(op_args):

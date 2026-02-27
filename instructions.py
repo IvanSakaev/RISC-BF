@@ -149,10 +149,18 @@ class AddI(Instruction):
         concater.rem(f"addi {self.dst} {self.src1} {self.src2}", comments)
         if self.dst == ZERO:
             return
-        self.dst.clear()
-        if self.src1 is not ZERO:
-            self.src1.copy(self.dst)
-        self.src2.move(self.dst)
+        
+        if self.src1 == ZERO:
+            self.dst.change_big(self.src2, clear=True)
+        elif self.src1 == self.dst:
+            self.dst.change_big(self.src2)
+            self.dst.normalize_big()
+        else:
+            self.dst.clear_big()
+            self.src1.copy_big(self.dst)
+            print(self.src2)
+            self.dst.change_big(self.src2)
+            self.dst.normalize_big()
 
 
 @dataclass
