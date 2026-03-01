@@ -250,10 +250,22 @@ class SubI(Instruction):
         concater.rem(f"subi {self.dst} {self.src1} {self.src2}", comments)
         if self.dst == ZERO:
             return
-        self.dst.clear()
-        if self.src1 is not ZERO:
-            self.src1.copy(self.dst, multiplier=-1)
-        self.src2.move(self.dst, multiplier=-1)
+        if self.src2 == 0:
+            new_src2 = Immediate(0)
+        else:
+            new_src2 = Immediate(2**32 - self.src2)
+        if self.src1 == ZERO:
+            self.dst.change_big(new_src2, clear=True)
+        else:
+            if self.src1 != self.dst:
+                self.dst.clear_big()
+                self.src1.copy_big(self.dst)
+            if new_src2 > 0:
+                self.dst.change_big(new_src2)
+                if new_src2 <= 1:
+                    self.dst.normalize_big_fast()
+                else:
+                    self.dst.normalize_big()
 
 
 @dataclass
