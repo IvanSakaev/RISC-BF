@@ -113,8 +113,8 @@ class Register:
     def normalize_big(self):
         """
         Normalize big register (8 cells).
-        Before normalization every cell should be <= 240.
-        After every cell store only one hex number (value <= 15).
+        Before normalization every cell should be <= 0xf0.
+        After every cell store only one hex number (value <= 0xf).
 
         It uses scraps 0, 1, 2, 3
         """
@@ -142,37 +142,39 @@ class Register:
             mod.change(16)
             mod.move(small)
 
-    def normalize_big_fast(self):  # TODO: make logic faster
+    def normalize_big_fast(self):  # TODO: check on bugs
         """
         Normalize big register (8 cells).
-        Before normalization every cell should be <= 0x1f.
-        After every cell store only one hex number (value <= 15).
+        Before normalization every cell SHOULD BE <= 0x10. For other cases use normalize_big().
+        After every cell store only one hex number (value <= 0xf).
 
-        It uses scraps 0, 1, 2, 3
+        It uses scraps 0, 1
         """
-        mod = scraps[0]
-        # 2 scraps after MOD are used too
-        output = scraps[3]
+        concater.rem("", True)
+
+        transfer = scraps[0]
+        output = scraps[1]
         for i in range(8):
             small = self.reg_rel(i)
-            mod.change(-16)
+
+            transfer.change(1)
+            small.change(-16)
 
             small.start_loop()
-            mod.change(1)
-            mod.start_if_not()
-            mod.change(-16)
-            output.change(1)
-            mod.end_if_not()
-            small.change(-1)
+            small.move(output)
+            transfer.change(-1)
             small.end_loop()
 
+            small.change(16)
+            output.move(small)
+
+            transfer.start_loop()
+            small.change(-16)
             if i < 7:
-                small2 = self.reg_rel(i + 1)
-                output.move(small2)
-            else:
-                output.clear()
-            mod.change(16)
-            mod.move(small)
+                self.reg_rel(i + 1).change(1)
+            transfer.end_loop()
+
+        concater.rem("", True)
 
     def start_loop(self):
         self.to()

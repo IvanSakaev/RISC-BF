@@ -154,13 +154,18 @@ class AddI(Instruction):
             self.dst.change_big(self.src2, clear=True)
         elif self.src1 == self.dst:
             self.dst.change_big(self.src2)
-            self.dst.normalize_big()
+            if self.src2 == 1:
+                self.dst.normalize_big_fast()
+            else:
+                self.dst.normalize_big()
         else:
             self.dst.clear_big()
             self.src1.copy_big(self.dst)
-            print(self.src2)
             self.dst.change_big(self.src2)
-            self.dst.normalize_big()
+            if self.src2 == 1:
+                self.dst.normalize_big_fast()
+            else:
+                self.dst.normalize_big()
 
 
 @dataclass
@@ -187,7 +192,7 @@ class Sub(Instruction):
             self.dst.normalize_big_fast()
         elif self.src1 == self.dst:
             self.move_invert_big(self.src2, self.dst, scrap=scraps[0])
-            self.dst.normalize_big_fast()
+            self.dst.normalize_big()
         elif self.src2 == ZERO:
             self.dst.clear_big()
             self.src1.copy_big(self.dst)
@@ -195,11 +200,11 @@ class Sub(Instruction):
             self.dst.move_big(scraps[0])
             self.move_invert_big(scraps[0], self.dst)
             self.src1.copy_big(self.dst)
-            self.dst.normalize_big_fast()
+            self.dst.normalize_big()
         else:
             self.move_invert_big(self.src2, self.dst, scrap=scraps[0], clear=True)
             self.src1.copy_big(self.dst)
-            self.dst.normalize_big_fast()
+            self.dst.normalize_big()
 
     @classmethod
     def move_invert_big(
