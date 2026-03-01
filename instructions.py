@@ -149,7 +149,7 @@ class AddI(Instruction):
         concater.rem(f"addi {self.dst} {self.src1} {self.src2}", comments)
         if self.dst == ZERO:
             return
-        
+
         if self.src1 == ZERO:
             self.dst.change_big(self.src2, clear=True)
         elif self.src1 == self.dst:
@@ -173,11 +173,66 @@ class Sub(Instruction):
         concater.rem(f"sub {self.dst} {self.src1} {self.src2}", comments)
         if self.dst == ZERO:
             return
-        self.dst.clear()
-        if self.src1 is not ZERO:
-            self.src1.copy(self.dst, multiplier=-1)
-        if self.src2 is not ZERO:
-            self.src2.copy(self.dst, multiplier=-1)
+
+        if self.src1 == self.src2:
+            self.dst.clear_big()
+        elif self.src1 == self.dst and self.src2 == ZERO:
+            pass
+        elif self.src1 == ZERO and self.src2 == self.dst:
+            self.dst.move_big(scraps[0])
+            self.move_invert_big(scraps[0], self.dst)
+            self.dst.normalize_big_fast()
+        elif self.src1 == ZERO:
+            self.move_invert_big(self.src2, self.dst, scrap=scraps[0], clear=True)
+            self.dst.normalize_big_fast()
+        elif self.src1 == self.dst:
+            self.move_invert_big(self.src2, self.dst, scrap=scraps[0])
+            self.dst.normalize_big_fast()
+        elif self.src2 == ZERO:
+            self.dst.clear_big()
+            self.src1.copy_big(self.dst)
+        elif self.src2 == self.dst:
+            self.dst.move_big(scraps[0])
+            self.move_invert_big(scraps[0], self.dst)
+            self.src1.copy_big(self.dst)
+            self.dst.normalize_big_fast()
+        else:
+            self.move_invert_big(self.src2, self.dst, scrap=scraps[0], clear=True)
+            self.src1.copy_big(self.dst)
+            self.dst.normalize_big_fast()
+
+    @classmethod
+    def move_invert_big(
+        cls, src: Register, dst: Register, scrap: Register | None = None, clear=False
+    ):
+        """
+        Moves bitwise not src to dst. After this function, src will become zero.
+        Initial src value will be restored from scrap if scrap isn't None.
+
+        Src must be normalized. Dst will be NOT normalized.
+        If dst was zero or clear=True, every dst cell will be <= 0x10.
+
+        dst.normalize_big_fast() can be used after this function
+        """
+        for i in range(8):
+            if clear:
+                dst.clear()
+            dst.change(15)
+            dst = dst.reg_rel(1)
+        dst = dst.reg_rel(-8)
+
+        for i in range(8):
+            src.move(dst, multiplier=-1)
+            if scrap is not None:
+                src.move(scrap)
+            src = src.reg_rel(1)
+            dst = dst.reg_rel(1)
+        src = src.reg_rel(-8)
+        dst = dst.reg_rel(-8)
+
+        dst.change(1)
+        if scrap is not None:
+            scrap.move_big(src)
 
 
 @dataclass

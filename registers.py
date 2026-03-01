@@ -142,6 +142,38 @@ class Register:
             mod.change(16)
             mod.move(small)
 
+    def normalize_big_fast(self):  # TODO: make logic faster
+        """
+        Normalize big register (8 cells).
+        Before normalization every cell should be <= 0x1f.
+        After every cell store only one hex number (value <= 15).
+
+        It uses scraps 0, 1, 2, 3
+        """
+        mod = scraps[0]
+        # 2 scraps after MOD are used too
+        output = scraps[3]
+        for i in range(8):
+            small = self.reg_rel(i)
+            mod.change(-16)
+
+            small.start_loop()
+            mod.change(1)
+            mod.start_if_not()
+            mod.change(-16)
+            output.change(1)
+            mod.end_if_not()
+            small.change(-1)
+            small.end_loop()
+
+            if i < 7:
+                small2 = self.reg_rel(i + 1)
+                output.move(small2)
+            else:
+                output.clear()
+            mod.change(16)
+            mod.move(small)
+
     def start_loop(self):
         self.to()
         concater.raw("[")
