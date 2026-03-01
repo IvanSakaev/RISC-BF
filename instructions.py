@@ -7,7 +7,6 @@ from registers import (
     ZERO,
     Immediate,
     Register,
-    RegisterOrImmediate,
     concater,
     next1,
     next2,
@@ -270,19 +269,40 @@ class SubI(Instruction):
 
 @dataclass
 class Output(Instruction):
-    reg: RegisterOrImmediate
+    reg: Register
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"out {self.reg}", comments)
 
-        if isinstance(self.reg, Immediate):
-            self.reg.move(scraps[0])
-            scraps[0].to()
+        # Division by 10
+        mod = scraps[0]
+        # 2 scraps after MOD are used too
+        output = scraps[3]
+
+        for i in range(8):
+            small = self.reg.reg_rel(7 - i)
+            mod.change(-10)
+
+            small.start_loop()
+            mod.change(1)
+            mod.start_if_not()
+            mod.change(-10)
+            output.change(1)
+            mod.end_if_not()
+            small.change(-1)
+            small.end_loop()
+
+            output.start_loop()
+            output.clear()
+            mod.change(48, 65)  # Start at ASCII `A`
+            output.end_loop()
+
+            mod.change(10 + 48)  # Start at ASCII `zero`
             concater.raw(".")
-            scraps[0].clear()
-        else:
-            self.reg.to()
-            concater.raw(".")
+            mod.clear()
+        mod.change(10)  # Line feed
+        concater.raw(".")
+        mod.clear()
 
 
 @dataclass
