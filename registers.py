@@ -187,6 +187,7 @@ class Register:
                 small.change(-16)
                 if i < 7:
                     self.reg_rel(i + 1).change(1)
+                transfer.change(-1)
 
     @contextmanager
     def loop(self):
