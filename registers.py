@@ -112,6 +112,35 @@ class Register:
             val //= 16
             reg = reg.reg_rel(1)
 
+    def div_imm(self, base: int, need_output: bool = True):
+        """
+        It divides register by constant number. Result and reminder are stored. (Result isn't stored if need_output=False)'
+
+
+        Register will be cleared.
+
+        Reminder is stored in scraps[0]
+
+        Output value is stored in scraps[3]  (only if need_output = True)
+
+        scraps[1] and scraps[2] are used for calculations
+        """
+        assert base > 0
+        mod = scraps[0]  # 2 scraps after MOD are used too
+        if need_output:
+            output = scraps[3]
+
+        mod.change(-base)
+
+        with self.loop():
+            mod.change(1)
+            with mod.ifnot():
+                mod.change(-base)
+                if need_output:
+                    output.change(1)
+            self.change(-1)
+        mod.change(base)
+
     def normalize_big(self):
         """
         Normalize big register (8 cells).
@@ -120,27 +149,16 @@ class Register:
 
         It uses scraps 0, 1, 2, 3
         """
-        mod = scraps[0]
-        # 2 scraps after MOD are used too
+        mod = scraps[0]  # 2 scraps after MOD are used too in div_imm()
         output = scraps[3]
+
         for i in range(8):
             small = self.reg_rel(i)
-            mod.change(-16)
-
-            with small.loop():
-                mod.change(1)
-                with mod.ifnot():
-                    mod.change(-16)
-                    output.change(1)
-                small.change(-1)
-
+            small.div_imm(16, need_output=(i < 7))
+            mod.move(small)
             if i < 7:
                 small2 = self.reg_rel(i + 1)
                 output.move(small2)
-            else:
-                output.clear()
-            mod.change(16)
-            mod.move(small)
 
     def normalize_big_fast(self):  # TODO: check on bugs
         """
@@ -150,8 +168,6 @@ class Register:
 
         It uses scraps 0, 1
         """
-        concater.rem("", True)
-
         transfer = scraps[0]
         mod = scraps[1]
         for i in range(8):
@@ -171,8 +187,6 @@ class Register:
                 small.change(-16)
                 if i < 7:
                     self.reg_rel(i + 1).change(1)
-
-        concater.rem("", True)
 
     @contextmanager
     def loop(self):

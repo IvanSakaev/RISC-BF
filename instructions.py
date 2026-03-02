@@ -277,19 +277,12 @@ class Output(Instruction):
         mod = scraps[0]
         # 2 scraps after MOD are used too
         output = scraps[3]
+        # scrap 4 is used too
 
         for i in range(8):
             small = self.reg.reg_rel(7 - i)
-            mod.change(-10)
+            small.div_imm(10)
 
-            with small.loop():
-                mod.change(1)
-                with mod.ifnot():
-                    mod.change(-10)
-                    output.change(1)
-                small.change(-1)
-
-            mod.change(10)
             mod.copy(small, scrap=scraps[4])
             mod.change(48)
 
