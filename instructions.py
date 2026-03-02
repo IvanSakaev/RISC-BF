@@ -66,11 +66,10 @@ class JumpConditional(Instruction):
         self.cond.copy(scraps[0], scrap=scraps[1])
         next1.change(next_i)  # set the default value
         next2.change(next_j)  # set the default value
-        scraps[0].start_loop()
-        next1.change(next_i, jump_i)
-        next2.change(next_j, jump_j)
-        scraps[0].clear()
-        scraps[0].end_loop()
+        with scraps[0].loop():
+            scraps[0].clear()
+            next1.change(next_i, jump_i)
+            next2.change(next_j, jump_j)
 
 
 @dataclass
@@ -283,19 +282,16 @@ class Output(Instruction):
             small = self.reg.reg_rel(7 - i)
             mod.change(-10)
 
-            small.start_loop()
-            mod.change(1)
-            mod.start_if_not()
-            mod.change(-10)
-            output.change(1)
-            mod.end_if_not()
-            small.change(-1)
-            small.end_loop()
+            with small.loop():
+                mod.change(1)
+                with mod.ifnot():
+                    mod.change(-10)
+                    output.change(1)
+                small.change(-1)
 
-            output.start_loop()
-            output.clear()
-            mod.change(48, 65)  # Start at ASCII `A`
-            output.end_loop()
+            with output.loop():
+                output.clear()
+                mod.change(48, 65)  # Start at ASCII `A`
 
             mod.change(10 + 48)  # Start at ASCII `zero`
             concater.raw(".")

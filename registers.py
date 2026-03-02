@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
+
 from concater import _Concater
 from config import SCRAP_COUNT
 
@@ -125,14 +127,12 @@ class Register:
             small = self.reg_rel(i)
             mod.change(-16)
 
-            small.start_loop()
-            mod.change(1)
-            mod.start_if_not()
-            mod.change(-16)
-            output.change(1)
-            mod.end_if_not()
-            small.change(-1)
-            small.end_loop()
+            with small.loop():
+                mod.change(1)
+                with mod.ifnot():
+                    mod.change(-16)
+                    output.change(1)
+                small.change(-1)
 
             if i < 7:
                 small2 = self.reg_rel(i + 1)
@@ -153,47 +153,45 @@ class Register:
         concater.rem("", True)
 
         transfer = scraps[0]
-        output = scraps[1]
+        mod = scraps[1]
         for i in range(8):
             small = self.reg_rel(i)
 
             transfer.change(1)
             small.change(-16)
 
-            small.start_loop()
-            small.move(output)
-            transfer.change(-1)
-            small.end_loop()
+            with small.loop():
+                small.move(mod)
+                transfer.change(-1)
 
             small.change(16)
-            output.move(small)
+            mod.move(small)
 
-            transfer.start_loop()
-            small.change(-16)
-            if i < 7:
-                self.reg_rel(i + 1).change(1)
-            transfer.end_loop()
+            with transfer.loop():
+                small.change(-16)
+                if i < 7:
+                    self.reg_rel(i + 1).change(1)
 
         concater.rem("", True)
 
-    def start_loop(self):
+    @contextmanager
+    def loop(self):
         self.to()
         concater.raw("[")
-
-    def end_loop(self):
+        yield
         self.to()
         concater.raw("]")
 
-    def start_if_not(self):
+    @contextmanager
+    def ifnot(self):
         """
         Two cells after it must be zero
         """
         self.to()
-        concater.raw(">+<[>-]>[>]<[-")
-        concater.current_pos = self.reg_rel(1)
-
-    def end_if_not(self):
-        self.reg_rel(1).end_loop()
+        concater.raw(">+<[>-]>[>]<", pos_offset=1)
+        with self.reg_rel(1).loop():
+            self.reg_rel(1).change(-1)
+            yield
 
     def reg_rel(self, n: int):
         """
