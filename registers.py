@@ -103,7 +103,6 @@ class Register:
             b = a
             a = 0
         val = b - a
-        assert val > 0
         reg = self
         for i in range(8):
             if clear:

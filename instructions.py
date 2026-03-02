@@ -147,12 +147,16 @@ class AddI(Instruction):
         concater.rem(f"addi {self.dst} {self.src1} {self.src2}", comments)
         if self.dst == ZERO:
             return
+        if self.src2 < 0:
+            self.src2 = Immediate(2**32 + self.src2)
 
         if self.src1 == ZERO:
             self.dst.change_big(self.src2, clear=True)
         elif self.src1 == self.dst:
             self.dst.change_big(self.src2)
-            if self.src2 == 1:
+            if self.src2 == 0:
+                pass
+            elif self.src2 == 1:
                 self.dst.normalize_big_fast()
             else:
                 self.dst.normalize_big()
@@ -160,7 +164,9 @@ class AddI(Instruction):
             self.dst.clear_big()
             self.src1.copy_big(self.dst)
             self.dst.change_big(self.src2)
-            if self.src2 == 1:
+            if self.src2 == 0:
+                pass
+            elif self.src2 == 1:
                 self.dst.normalize_big_fast()
             else:
                 self.dst.normalize_big()
@@ -239,34 +245,6 @@ class Sub(Instruction):
 
 
 @dataclass
-class SubI(Instruction):
-    dst: Register
-    src1: Register
-    src2: Immediate
-
-    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        concater.rem(f"subi {self.dst} {self.src1} {self.src2}", comments)
-        if self.dst == ZERO:
-            return
-        if self.src2 == 0:
-            new_src2 = Immediate(0)
-        else:
-            new_src2 = Immediate(2**32 - self.src2)
-        if self.src1 == ZERO:
-            self.dst.change_big(new_src2, clear=True)
-        else:
-            if self.src1 != self.dst:
-                self.dst.clear_big()
-                self.src1.copy_big(self.dst)
-            if new_src2 > 0:
-                self.dst.change_big(new_src2)
-                if new_src2 <= 1:
-                    self.dst.normalize_big_fast()
-                else:
-                    self.dst.normalize_big()
-
-
-@dataclass
 class Output(Instruction):
     reg: Register
 
@@ -310,7 +288,6 @@ MNEMONICS["li"] = LI
 MNEMONICS["add"] = Add
 MNEMONICS["addi"] = AddI
 MNEMONICS["sub"] = Sub
-MNEMONICS["subi"] = SubI
 
 MNEMONICS["out"] = Output
 MNEMONICS["dbg"] = Debug

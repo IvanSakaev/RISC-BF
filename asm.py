@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import types
 from typing import Union, get_args, get_origin, get_type_hints
-from urllib.parse import unquote
 
 import config
 import instructions
@@ -161,18 +160,21 @@ def parse(s: str):
                     args.append(regs[arg_s])
                 elif arg_s[0] == "<" and arg_s[-1] == ">":
                     args.append(instructions.Label(arg_s[1:-1]))
-                elif arg_s[0] == '"' and arg_s[-1] == '"':
-                    args.append(unquote(arg_s[1:-1]))
                 else:
+                    sign = 1
+                    if arg_s.startswith("-"):
+                        sign = -1
+                        arg_s = arg_s[1:]
+                    arg_s = arg_s.lower()
                     if arg_s.startswith("0x"):
                         imm = int(arg_s[2:], 16)
-                    elif arg_s.startswith("0o"):
-                        imm = int(arg_s[2:], 8)
+                    elif arg_s.startswith("0"):
+                        imm = int(arg_s[1:], 8)
                     elif arg_s.startswith("0b"):
                         imm = int(arg_s[2:], 2)
                     else:
                         imm = int(arg_s)
-                    args.append(Immediate(imm))
+                    args.append(Immediate(sign * imm))
 
         mnemonic = mnemonic.lower()
         op = MNEMONICS[mnemonic]
