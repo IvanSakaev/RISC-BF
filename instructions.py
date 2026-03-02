@@ -289,11 +289,14 @@ class Output(Instruction):
                     output.change(1)
                 small.change(-1)
 
-            with output.loop():
-                output.clear()
-                mod.change(48, 65)  # Start at ASCII `A`
+            mod.change(10)
+            mod.copy(small, scrap=scraps[4])
+            mod.change(48)
 
-            mod.change(10 + 48)  # Start at ASCII `zero`
+            with output.loop():
+                output.move(small, multiplier=10)
+                mod.change(48, 65)  # Start at ASCII `A`
+            mod.to()
             concater.raw(".")
             mod.clear()
         mod.change(10)  # Line feed
