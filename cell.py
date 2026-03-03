@@ -5,6 +5,8 @@ from contextlib import contextmanager
 from concater import _Concater
 from config import SCRAP_COUNT
 
+_default = object()
+
 
 class Cell:
     def __init__(self, addr: int):
@@ -102,31 +104,41 @@ class Cell:
         self.move(*dsts2, multiplier=multiplier)
         scrap.move(self)
 
-    def div_imm(self, base: int, need_output: bool = True):
+    def div_imm(
+        self,
+        base: int,
+        mod: Cell | None = None,
+        output: Cell | None | object = _default,
+    ):
         """
         It divides cell by constant number. Result and reminder are stored. (Result isn't stored if need_output=False)'
 
         Register will be cleared.
 
-        Reminder is stored in scraps[0]
+        Reminder is stored in "mod" (scraps[0] by default).
 
-        Output value is stored in scraps[3]  (only if need_output = True)
+        Two scraps after "mod" are used for calculations (scraps[1] and scraps[2] by default
 
-        scraps[1] and scraps[2] are used for calculations
+        Output value is stored in "output" (scraps[3] by default).
+        It won't be stored if "output" = None.
         """
-        assert base > 0
-        mod = scraps[0]  # 2 scraps after MOD are used too
-        if need_output:
+        if mod is None:
+            mod = scraps[0]
+        if output is _default:
             output = scraps[3]
+        assert isinstance(output, Cell) or output is None
+        assert base > 0
 
         mod.change(-base)
 
         with self.loop():
             mod.change(1)
+            concater.debug()
             with mod.ifnot():
                 mod.change(-base)
-                if need_output:
+                if output is not None:
                     output.change(1)
+                concater.debug()
             self.change(-1)
         mod.change(base)
 
