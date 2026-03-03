@@ -133,12 +133,10 @@ class Cell:
 
         with self.loop():
             mod.change(1)
-            concater.debug()
             with mod.ifnot():
                 mod.change(-base)
                 if output is not None:
                     output.change(1)
-                concater.debug()
             self.change(-1)
         mod.change(base)
 
