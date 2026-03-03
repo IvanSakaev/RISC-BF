@@ -71,10 +71,7 @@ class LI(Instruction):
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"li {self.dst} {self.src}", comments)
-        if self.dst == ZERO:
-            return
-        assert self.src < (2**32)
-        self.dst.change_big(self.src, clear=True)
+        AddI(self.dst, ZERO, self.src).evaluate(program, cur_block, False)
 
 
 @dataclass
@@ -204,7 +201,7 @@ class Sub(Instruction):
         Initial src value will be restored from scrap if scrap isn't None.
 
         Src must be normalized. Dst will be NOT normalized.
-        If dst was zero or clear=True, every dst cell will be <= 0x10.
+        If dst was zero or clear=True, every dst cell will be <= 0xf, excluding first cell that can be <=0x10.
 
         dst.normalize_big_fast() can be used after this function
         """
@@ -236,11 +233,86 @@ class Sub(Instruction):
 
 
 @dataclass
+class Mul(Instruction):
+    dst: Register
+    src1: Register
+    src2: Register
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"mul {self.dst} {self.src1}, {self.src2}", comments)
+        if self.dst == ZERO:
+            return
+
+        if self.src1 == ZERO or self.src2 == ZERO:
+            self.dst.clear_big()
+            return
+
+        self.src1, self.src2 = sorted(
+            (self.src1, self.src2),
+            key=lambda a: 0 if a == self.dst else 1,
+        )
+
+        src1 = self.src1
+        src2 = self.src2
+        if self.src2 == self.dst:
+            src1 = Register(scraps[5])
+            src2 = Register(scraps[13])
+            self.dst.move_big(src1, src2)
+        elif self.src1 == self.dst:
+            src1 = Register(scraps[5])
+            self.dst.move_big(src1)
+        else:
+            self.dst.clear_big()
+
+        for i in range(8):
+            digit_output = scraps[0]
+            scr1 = digit1_cell_copy = scraps[1]
+            digit2_cell_copy = scraps[2]
+            # scrap2 and scrap3 is used for div_imm()
+            next_translator = scraps[4]
+            final_output = self.dst.get_cell(i)
+
+            next_translator.move(final_output)
+
+            for digit1 in range(0, i + 1):
+                digit2 = i - digit1
+                digit1_cell = Cell(src1.addr + digit1)
+                digit2_cell = Cell(src2.addr + digit2)
+
+                # Multiply digits
+                # digit1_cell -> scr1
+                # mul product -> scr2
+                # temporary   -> scr3
+                with digit1_cell.loop():
+                    digit2_cell.copy(digit_output, scrap=digit2_cell_copy)
+                    digit1_cell_copy.change(1)
+                    digit1_cell.change(-1)
+                digit1_cell_copy.move(digit1_cell)
+
+                # digit_output = digit1 * digit2
+                # digit_output <= 0xe1
+
+                digit_output.div_imm(16, scr1, next_translator)
+                # scr1 <= 0xf
+                # next_translator <= 0xe
+                # next_translator <= 0x62 (summary)
+                scr1.move(final_output)
+                # final_output <= 0xda
+
+        # TODO: Remove saving next_translator at the end
+        # TODO: Remove adding next_translator at start
+        # TODO: Add normalization after multiply
+        # TODO: clear scraps if it was dst as src
+
+
+@dataclass
 class Output(Instruction):
     reg: Register
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"out {self.reg}", comments)
+        if self.reg == ZERO:
+            return
 
         # Division by 10
         mod = scraps[0]
@@ -278,7 +350,9 @@ MNEMONICS["li"] = LI
 MNEMONICS["add"] = Add
 MNEMONICS["addi"] = AddI
 MNEMONICS["sub"] = Sub
+MNEMONICS["mul"] = Mul
 
+# debug commands
 MNEMONICS["out"] = Output
 MNEMONICS["dbg"] = Debug
 
