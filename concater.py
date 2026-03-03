@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING
 import config
 
 if TYPE_CHECKING:
-    from registers import Register
+    from registers import Cell
 
 
 class _Concater:
-    def __init__(self, root: Register):
+    def __init__(self, root: Cell):
         self.root = root
         self.current_pos = self.root
         self.current_program = ""
@@ -31,7 +31,7 @@ class _Concater:
 
     def raw(self, text: str, pos_offset: int = 0):
         self.current_program += text
-        self.current_pos = self.current_pos.reg_rel(pos_offset)
+        self.current_pos = self.current_pos.cell_rel(pos_offset)
 
     def rem(self, text: str, comments: bool):
         if comments:

@@ -3,13 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from cell import concater, next1, next2
 from registers import (
     ZERO,
+    Cell,
     Immediate,
     Register,
-    concater,
-    next1,
-    next2,
     scraps,
 )
 
@@ -52,24 +51,6 @@ class Jump(Instruction):
         i, j = program.find_block(self.target)
         next1.change(i)
         next2.change(j)
-
-
-@dataclass
-class JumpConditional(Instruction):
-    cond: Register
-    target: Label
-
-    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        next_i, next_j = program.find_next_block(cur_block)
-        jump_i, jump_j = program.find_block(self.target)
-        concater.rem(f"jnz {self.cond} {self.target}", comments)
-        self.cond.copy(scraps[0], scrap=scraps[1])
-        next1.change(next_i)  # set the default value
-        next2.change(next_j)  # set the default value
-        with scraps[0].loop():
-            scraps[0].clear()
-            next1.change(next_i, jump_i)
-            next2.change(next_j, jump_j)
 
 
 @dataclass
@@ -118,7 +99,7 @@ class Add(Instruction):
             pass
         elif self.src1 == self.dst and self.src2 == self.dst:
             self.dst.move_big(scraps[0])
-            scraps[0].move_big(self.dst, multiplier=2)
+            Register(scraps[0]).move_big(self.dst, multiplier=2)
             self.dst.normalize_big()
         elif self.src1 == ZERO:
             self.dst.clear_big()
@@ -212,7 +193,11 @@ class Sub(Instruction):
 
     @classmethod
     def move_invert_big(
-        cls, src: Register, dst: Register, scrap: Register | None = None, clear=False
+        cls,
+        src: Cell | Register,
+        dst: Cell | Register,
+        scrap: Cell | Register | None = None,
+        clear=False,
     ):
         """
         Moves bitwise not src to dst. After this function, src will become zero.
@@ -223,23 +208,29 @@ class Sub(Instruction):
 
         dst.normalize_big_fast() can be used after this function
         """
-        for i in range(8):
+        src = Register(src)
+        dst = Register(dst)
+        if scrap is not None:
+            scrap = Register(scrap)
+
+        for small in dst.get_cells():
             if clear:
-                dst.clear()
-            dst.change(15)
-            dst = dst.reg_rel(1)
-        dst = dst.reg_rel(-8)
+                small.clear()
+            small.change(15)
 
-        for i in range(8):
-            src.move(dst, multiplier=-1)
+        if scrap is None:
+            scrap_cells = [None] * 8
+        else:
+            scrap_cells = scrap.get_cells()
+
+        for small_src, small_dst, small_scrap in zip(
+            src.get_cells(), dst.get_cells(), scrap_cells
+        ):
+            small_src.move(small_dst, multiplier=-1)
             if scrap is not None:
-                src.move(scrap)
-            src = src.reg_rel(1)
-            dst = dst.reg_rel(1)
-        src = src.reg_rel(-8)
-        dst = dst.reg_rel(-8)
+                small_src.move(small_scrap)
 
-        dst.change(1)
+        dst.get_cell(0).change(1)
         if scrap is not None:
             scrap.move_big(src)
 
@@ -257,8 +248,7 @@ class Output(Instruction):
         output = scraps[3]
         # scrap 4 is used too
 
-        for i in range(8):
-            small = self.reg.reg_rel(7 - i)
+        for small in reversed(self.reg.get_cells()):
             small.div_imm(10)
 
             mod.copy(small, scrap=scraps[4])

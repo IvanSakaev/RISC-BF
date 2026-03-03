@@ -6,11 +6,12 @@ from typing import Union, get_args, get_origin, get_type_hints
 
 import config
 import instructions
+from cell import concater
 from instructions import (
     MNEMONICS,
     is_block_boundary,
 )
-from registers import SCRAP_COUNT, Immediate, concater, regs
+from registers import SCRAP_COUNT, Immediate, regs
 
 
 def split_program_into_blocks(instrs):
