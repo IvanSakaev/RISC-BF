@@ -258,13 +258,18 @@ class Mul(Instruction):
             src1 = Register(scraps[5])
             src2 = Register(scraps[13])
             self.dst.move_big(src1, src2)
+            raise NotImplementedError
         elif self.src1 == self.dst:
             src1 = Register(scraps[5])
             self.dst.move_big(src1)
+            raise NotImplementedError
         else:
             self.dst.clear_big()
 
         for i in range(8):
+            is_first = i == 0
+            is_last = i == 7
+
             digit_output = scraps[0]
             scr1 = digit1_cell_copy = scraps[1]
             digit2_cell_copy = scraps[2]
@@ -272,36 +277,42 @@ class Mul(Instruction):
             next_translator = scraps[4]
             final_output = self.dst.get_cell(i)
 
-            next_translator.move(final_output)
+            if not is_first:
+                next_translator.move(final_output)
+            
+            # final_output <= 0x70
 
-            for digit1 in range(0, i + 1):
-                digit2 = i - digit1
-                digit1_cell = Cell(src1.addr + digit1)
-                digit2_cell = Cell(src2.addr + digit2)
+            for digit1_num in range(0, i + 1):
+                digit2_num = i - digit1_num
+
+                digit1 = Cell(src1.addr + digit1_num)
+                digit2 = Cell(src2.addr + digit2_num)
 
                 # Multiply digits
                 # digit1_cell -> scr1
                 # mul product -> scr2
                 # temporary   -> scr3
-                with digit1_cell.loop():
-                    digit2_cell.copy(digit_output, scrap=digit2_cell_copy)
+                with digit1.loop():
+                    digit2.copy(digit_output, scrap=digit2_cell_copy)
                     digit1_cell_copy.change(1)
-                    digit1_cell.change(-1)
-                digit1_cell_copy.move(digit1_cell)
+                    digit1.change(-1)
+                digit1_cell_copy.move(digit1)
 
                 # digit_output = digit1 * digit2
                 # digit_output <= 0xe1
 
-                digit_output.div_imm(16, scr1, next_translator)
+                digit_output.div_imm(16, scr1, None if is_last else next_translator)
                 # scr1 <= 0xf
                 # next_translator <= 0xe
                 # next_translator <= 0x62 (summary)
                 scr1.move(final_output)
-                # final_output <= 0xda
+                # final_output <= 0xe8
 
-        # TODO: Remove saving next_translator at the end
-        # TODO: Remove adding next_translator at start
-        # TODO: Add normalization after multiply
+            if not is_first:
+                final_output.div_imm(16, scr1, None if is_last else next_translator)
+                scr1.move(final_output)
+                # next_translator <= 0x70
+
         # TODO: clear scraps if it was dst as src
 
 
