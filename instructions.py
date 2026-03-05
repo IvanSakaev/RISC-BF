@@ -254,15 +254,11 @@ class Mul(Instruction):
 
         src1 = self.src1
         src2 = self.src2
-        if self.src2 == self.dst:
-            src1 = Register(scraps[5])
-            src2 = Register(scraps[13])
-            self.dst.move_big(src1, src2)
-            raise NotImplementedError
-        elif self.src1 == self.dst:
-            src1 = Register(scraps[5])
+        if self.src1 == self.dst:
+            src1 = Register(scraps[6])
+            if self.src2 == self.dst:
+                src2 = Register(scraps[6])
             self.dst.move_big(src1)
-            raise NotImplementedError
         else:
             self.dst.clear_big()
 
@@ -275,11 +271,12 @@ class Mul(Instruction):
             digit2_cell_copy = scraps[2]
             # scrap2 and scrap3 is used for div_imm()
             next_translator = scraps[4]
+            digit_scrap = scraps[5]  # used when src1 == src2
             final_output = self.dst.get_cell(i)
 
             if not is_first:
                 next_translator.move(final_output)
-            
+
             # final_output <= 0x70
 
             for digit1_num in range(0, i + 1):
@@ -287,16 +284,21 @@ class Mul(Instruction):
 
                 digit1 = Cell(src1.addr + digit1_num)
                 digit2 = Cell(src2.addr + digit2_num)
+                if digit1 == digit2:
+                    digit2.copy(digit_scrap, scrap=scr1)
+                    digit2 = digit_scrap
 
                 # Multiply digits
                 # digit1_cell -> scr1
                 # mul product -> scr2
                 # temporary   -> scr3
-                with digit1.loop():
-                    digit2.copy(digit_output, scrap=digit2_cell_copy)
-                    digit1_cell_copy.change(1)
-                    digit1.change(-1)
-                digit1_cell_copy.move(digit1)
+                with digit2.loop():
+                    digit1.copy(digit_output, scrap=digit1_cell_copy)
+                    if digit2 != digit_scrap:
+                        digit2_cell_copy.change(1)
+                    digit2.change(-1)
+                if digit2 != digit_scrap:
+                    digit2_cell_copy.move(digit2)
 
                 # digit_output = digit1 * digit2
                 # digit_output <= 0xe1
@@ -313,7 +315,8 @@ class Mul(Instruction):
                 scr1.move(final_output)
                 # next_translator <= 0x70
 
-        # TODO: clear scraps if it was dst as src
+        if self.src1 == self.dst:
+            src1.clear_big()
 
 
 @dataclass
