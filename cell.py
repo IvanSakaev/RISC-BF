@@ -146,6 +146,11 @@ class Cell:
         """
         return Cell(self.addr + n)
 
+    def __eq__(self, other):
+        if not isinstance(other, Cell):
+            return NotImplemented
+        return self.addr == other.addr
+
 
 ROOT = Cell(-2)  # Every block starts and ends here
 concater = _Concater(ROOT)

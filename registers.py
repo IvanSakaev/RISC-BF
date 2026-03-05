@@ -85,7 +85,7 @@ class Register:
                 small2 = small.cell_rel(1)
                 output.move(small2)
 
-    def normalize_big_fast(self):  # TODO: check on bugs
+    def normalize_big_fast(self):
         """
         Normalize big register (8 cells).
         Before normalization every cell except one SHOULD BE normalized. This one cell SHOULD BE <= 0x10. For other cases use normalize_big().
@@ -113,6 +113,11 @@ class Register:
                 if i < 7:
                     small.cell_rel(1).change(1)
                 transfer.change(-1)
+
+    def __eq__(self, other):
+        if not isinstance(other, Register):
+            return NotImplemented
+        return self.addr == other.addr
 
     def __repr__(self):
         for key, value in regs.items():
