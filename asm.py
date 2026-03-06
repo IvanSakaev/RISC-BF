@@ -170,7 +170,10 @@ def parse(s: str):
                     if arg_s.startswith("0x"):
                         imm = int(arg_s[2:], 16)
                     elif arg_s.startswith("0"):
-                        imm = int(arg_s[1:], 8)
+                        if len(arg_s[1:]) == 0:
+                            imm = 0
+                        else:
+                            imm = int(arg_s[1:], 8)
                     elif arg_s.startswith("0b"):
                         imm = int(arg_s[2:], 2)
                     else:

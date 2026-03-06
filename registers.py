@@ -8,10 +8,9 @@ class Register:
     def __init__(self, addr: int | Cell | Register):
         if isinstance(addr, Register):
             addr = addr.addr
-            return
         if isinstance(addr, Cell):
             addr = addr.addr
-        self.addr: int = addr
+        self.addr = addr
 
     def get_cell(self, number):
         assert 0 <= number < 8
