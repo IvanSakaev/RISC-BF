@@ -340,10 +340,9 @@ class MulHighUnsigned(Instruction):
         src1 = self.src1
         src2 = self.src2
         if self.src1 == self.dst:
-            raise NotImplementedError  # TODO:
             src1 = Register(scraps[7])
             if self.src2 == self.dst:
-                src2 = Register(scraps[7])
+                src2 = src1
             self.dst.move_big(src1)
         else:
             self.dst.clear_big()

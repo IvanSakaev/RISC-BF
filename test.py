@@ -39,5 +39,6 @@ out x3
 
     if predict != num3_str:
         print(f"num1: {num1}\nnum2: {num2}\ncorrect: {num3_str}\npredicted: {predict}")
+        exit()
     if i % 10 == 0:
         print(f"tested {i} times")
