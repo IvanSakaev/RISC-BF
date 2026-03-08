@@ -239,7 +239,7 @@ class Mul(Instruction):
     src2: Register
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        concater.rem(f"mul {self.dst} {self.src1}, {self.src2}", comments)
+        concater.rem(f"mul {self.dst} {self.src1} {self.src2}", comments)
         if self.dst == ZERO:
             return
 
@@ -324,7 +324,7 @@ class MulHighUnsigned(Instruction):
     src2: Register
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        concater.rem(f"mulhu {self.dst} {self.src1}, {self.src2}", comments)
+        concater.rem(f"mulhu {self.dst} {self.src1} {self.src2}", comments)
         if self.dst == ZERO:
             return
 
@@ -340,7 +340,7 @@ class MulHighUnsigned(Instruction):
         src1 = self.src1
         src2 = self.src2
         if self.src1 == self.dst:
-            raise NotImplementedError
+            raise NotImplementedError  # TODO:
             src1 = Register(scraps[7])
             if self.src2 == self.dst:
                 src2 = Register(scraps[7])
@@ -361,7 +361,8 @@ class MulHighUnsigned(Instruction):
             if i >= 8:
                 final_output = self.dst.get_cell(i - 8)
             else:
-                final_output = scraps[6]  # we don't need to save output of first 8 digits
+                final_output = scraps[6]
+                # we don't need to save output of first 8 digits
 
             if not is_first:
                 next_translator.move(final_output)
