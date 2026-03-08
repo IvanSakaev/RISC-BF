@@ -266,8 +266,8 @@ class Mul(Instruction):
             is_first = i == 0
             is_last = i == 7
 
-            digit_output = scraps[0]
-            scr1 = digit1_cell_copy = scraps[1]
+            output_scrap = scraps[0]
+            scrap1 = digit1_cell_copy = scraps[1]
             digit2_cell_copy = scraps[2]
             # scrap2 and scrap3 is used for div_imm()
             next_translator = scraps[4]
@@ -285,35 +285,134 @@ class Mul(Instruction):
                 digit1 = Cell(src1.addr + digit1_num)
                 digit2 = Cell(src2.addr + digit2_num)
                 if digit1 == digit2:
-                    digit2.copy(digit_scrap, scrap=scr1)
+                    digit2.copy(digit_scrap, scrap=scrap1)
                     digit2 = digit_scrap
 
                 # Multiply digits
-                # digit1_cell -> scr1
-                # mul product -> scr2
-                # temporary   -> scr3
                 with digit2.loop():
-                    digit1.copy(digit_output, scrap=digit1_cell_copy)
+                    digit1.copy(output_scrap, scrap=digit1_cell_copy)
                     if digit2 != digit_scrap:
                         digit2_cell_copy.change(1)
                     digit2.change(-1)
+
                 if digit2 != digit_scrap:
                     digit2_cell_copy.move(digit2)
 
                 # digit_output = digit1 * digit2
                 # digit_output <= 0xe1
 
-                digit_output.div_imm(16, scr1, None if is_last else next_translator)
+                output_scrap.div_imm(16, scrap1, None if is_last else next_translator)
                 # scr1 <= 0xf
                 # next_translator <= 0xe
                 # next_translator <= 0x62 (summary)
-                scr1.move(final_output)
+                scrap1.move(final_output)
                 # final_output <= 0xe8
 
             if not is_first:
-                final_output.div_imm(16, scr1, None if is_last else next_translator)
-                scr1.move(final_output)
+                final_output.div_imm(16, scrap1, None if is_last else next_translator)
+                scrap1.move(final_output)
                 # next_translator <= 0x70
+
+        if self.src1 == self.dst:
+            src1.clear_big()
+
+
+@dataclass
+class MulHighUnsigned(Instruction):
+    dst: Register
+    src1: Register
+    src2: Register
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"mulhu {self.dst} {self.src1}, {self.src2}", comments)
+        if self.dst == ZERO:
+            return
+
+        if self.src1 == ZERO or self.src2 == ZERO:
+            self.dst.clear_big()
+            return
+
+        self.src1, self.src2 = sorted(
+            (self.src1, self.src2),
+            key=lambda a: 0 if a == self.dst else 1,
+        )
+
+        src1 = self.src1
+        src2 = self.src2
+        if self.src1 == self.dst:
+            raise NotImplementedError
+            src1 = Register(scraps[7])
+            if self.src2 == self.dst:
+                src2 = Register(scraps[7])
+            self.dst.move_big(src1)
+        else:
+            self.dst.clear_big()
+
+        for i in range(16):
+            is_first = i == 0
+            is_last = i == 15
+
+            output_scrap = scraps[0]
+            scrap1 = digit1_cell_copy = scraps[1]
+            digit2_cell_copy = scraps[2]
+            # scrap2 and scrap3 is used for div_imm()
+            next_translator = scraps[4]
+            digit_scrap = scraps[5]  # used when src1 == src2
+            if i >= 8:
+                final_output = self.dst.get_cell(i - 8)
+            else:
+                final_output = scraps[6]  # we don't need to save output of first 8 digits
+
+            if not is_first:
+                next_translator.move(final_output)
+
+            # final_output <= 0x70
+
+            for digit1_num in range(0, i + 1):
+                digit2_num = i - digit1_num
+                if digit1_num >= 8:
+                    continue
+                if digit2_num >= 8:
+                    continue
+
+                digit1 = Cell(src1.addr + digit1_num)
+                digit2 = Cell(src2.addr + digit2_num)
+                if digit1 == digit2:
+                    digit2.copy(digit_scrap, scrap=scrap1)
+                    digit2 = digit_scrap
+
+                # Multiply digits
+                with digit2.loop():
+                    digit1.copy(output_scrap, scrap=digit1_cell_copy)
+                    if digit2 != digit_scrap:
+                        digit2_cell_copy.change(1)
+                    digit2.change(-1)
+
+                if digit2 != digit_scrap:
+                    digit2_cell_copy.move(digit2)
+
+                # output_scrap = digit1 * digit2
+                # output_scrap <= 0xe1
+
+                output_scrap.div_imm(16, scrap1, None if is_last else next_translator)
+                # scr1 <= 0xf
+                # next_translator <= 0xe
+                # next_translator <= 0x62 (summary)
+                if not is_first:
+                    scrap1.move(final_output)
+                else:
+                    scrap1.clear()
+                # final_output <= 0xe8
+
+            if not is_first:
+                final_output.div_imm(16, scrap1, None if is_last else next_translator)
+                if i >= 8:
+                    scrap1.move(final_output)
+                else:
+                    scrap1.clear()
+                # next_translator <= 0x70
+
+            concater.debug()
 
         if self.src1 == self.dst:
             src1.clear_big()
@@ -341,7 +440,8 @@ class Output(Instruction):
             mod.change(48)
 
             with output.loop():
-                output.move(small, multiplier=10)
+                output.change(-1)
+                small.change(10)
                 mod.change(48, 65)  # Start at ASCII `A`
             mod.to()
             concater.raw(".")
@@ -365,6 +465,7 @@ MNEMONICS["add"] = Add
 MNEMONICS["addi"] = AddI
 MNEMONICS["sub"] = Sub
 MNEMONICS["mul"] = Mul
+MNEMONICS["mulhu"] = MulHighUnsigned
 
 # debug commands
 MNEMONICS["out"] = Output

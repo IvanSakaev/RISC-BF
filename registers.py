@@ -10,7 +10,7 @@ class Register:
             addr = addr.addr
         if isinstance(addr, Cell):
             addr = addr.addr
-        self.addr = addr
+        self.addr: int = addr
 
     def get_cell(self, number):
         assert 0 <= number < 8
