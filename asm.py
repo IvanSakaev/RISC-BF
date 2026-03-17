@@ -23,17 +23,17 @@ def split_program_into_blocks(instrs):
             cur_block.append(i)
         if is_block_boundary(i):
             if isinstance(i, instructions.LabelDefine):
-                cur_block.append(instructions.JumpRelative(1))
+                cur_block.append(instructions.JumpRelative(Immediate(1)))
 
-            blocks.append(instructions.Block(None, None, block_name, cur_block))
+            blocks.append(instructions.Block(0, instructions.KiloBlock(0, []), block_name, cur_block))
             cur_block = []
             if isinstance(i, instructions.LabelDefine):
                 block_name = i.name
             else:
                 block_name = None
 
-    cur_block.append(instructions.JumpRelative(1))
-    blocks.append(instructions.Block(None, None, block_name, cur_block))
+    cur_block.append(instructions.JumpRelative(Immediate(1)))
+    blocks.append(instructions.Block(0, instructions.KiloBlock(0, []), block_name, cur_block))
 
     return blocks
 

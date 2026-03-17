@@ -224,7 +224,7 @@ class Sub(Instruction):
             src.get_cells(), dst.get_cells(), scrap_cells
         ):
             small_src.move(small_dst, multiplier=-1)
-            if scrap is not None:
+            if small_scrap is not None:
                 small_src.move(small_scrap)
 
         dst.get_cell(0).change(1)
