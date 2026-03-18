@@ -65,13 +65,24 @@ class JumpRelative(Instruction):
 
 
 @dataclass
-class LI(Instruction):
+class LoadI(Instruction):
     dst: Register
     src: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"li {self.dst} {self.src}", comments)
         AddI(self.dst, ZERO, self.src).evaluate(program, cur_block, False)
+
+
+@dataclass
+class LoadUpperI(Instruction):
+    dst: Register
+    src: Immediate
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"li {self.dst} {self.src}", comments)
+        inst = LoadI(self.dst, Immediate(self.src * (2**12)))
+        inst.evaluate(program, cur_block, False)
 
 
 @dataclass
@@ -460,7 +471,8 @@ class Debug(Instruction):
 
 MNEMONICS: dict[str, type[Instruction]] = dict()
 
-MNEMONICS["li"] = LI
+MNEMONICS["li"] = LoadI
+MNEMONICS["lui"] = LoadUpperI
 MNEMONICS["add"] = Add
 MNEMONICS["addi"] = AddI
 MNEMONICS["sub"] = Sub
