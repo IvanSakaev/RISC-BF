@@ -430,6 +430,79 @@ class MulHighUnsigned(Instruction):
 
 
 @dataclass
+class ShiftLeft(Instruction):
+    dst: Register
+    src: Register
+    shift: Register
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"shl {self.dst} {self.src} {self.shift}", comments)
+        if self.dst == ZERO:
+            return
+
+        if self.src == ZERO:
+            self.dst.clear_big()
+            return
+
+        shift_big = scraps[0]  # shift / 4
+        shift_small = scraps[1]  # shift % 4
+        shift_big_scrap = scraps[2]
+        shift_scrap = scraps[3]
+        shift_verybig_unused = mul_scrap = scraps[4]
+        # scraps 3 and 4 are used for div_imm()
+
+        self.shift.get_cell(0).div_imm(4, shift_small, shift_big)
+        shift_big.copy(self.shift.get_cell(0), multiplier=4, scrap=shift_big_scrap)
+        self.shift.get_cell(1).div_imm(2, shift_scrap, shift_verybig_unused)
+        shift_verybig_unused.move(self.shift.get_cell(1), multiplier=2)
+        shift_scrap.move(shift_big, self.shift.get_cell(1), multiplier=(4, 1))
+        shift_big.copy(shift_big_scrap, scrap=shift_scrap)
+
+        concater.debug()
+
+        if self.src == self.dst:
+            raise NotImplementedError
+
+        for i in range(7, -1, -1):
+            # custom ifnot
+            shift_big_scrap.to()
+            concater.raw(">+<[->-]>[>]<", pos_offset=1)
+            #                 ^
+            with shift_big_scrap.cell_rel(1).loop():
+                shift_big_scrap.cell_rel(1).change(-1)
+
+                small_dst = self.dst.get_cell(i)
+                if self.src != self.dst:
+                    small_src = self.src.get_cell(i)
+                    small_dst.clear()
+                    small_src.copy(small_dst, scrap=mul_scrap)
+
+                with shift_small.loop():
+                    small_dst.move(mul_scrap, multiplier=2)
+                    mul_scrap.move(small_dst)
+                    shift_scrap.change(1)
+                    shift_small.change(-1)
+                shift_scrap.move(shift_small)
+
+        with shift_big.loop():
+            self.dst.get_cell(7).clear()
+            for i in range(6, -1, -1):
+                small_src = self.dst.get_cell(i)
+                small_dst = self.dst.get_cell(i + 1)
+                small_src.move(small_dst)
+            shift_big.change(-1)
+
+        shift_big_scrap.to()
+        concater.raw("!0")
+
+        shift_small.move(self.shift.get_cell(0))
+        shift_big.clear()
+        self.dst.normalize_big()
+
+        # TODO: save original register values
+
+
+@dataclass
 class Output(Instruction):
     reg: Register
 
@@ -478,6 +551,7 @@ MNEMONICS["addi"] = AddI
 MNEMONICS["sub"] = Sub
 MNEMONICS["mul"] = Mul
 MNEMONICS["mulhu"] = MulHighUnsigned
+MNEMONICS["sll"] = ShiftLeft
 
 # debug commands
 MNEMONICS["out"] = Output

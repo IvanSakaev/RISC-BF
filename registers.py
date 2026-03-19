@@ -49,6 +49,7 @@ class Register:
             cell.clear()
 
     def change_big(self, a: int, b: int | None = None, clear=False):
+        assert 0 <= a < 2**32
         if b is None:
             b = a
             a = 0
