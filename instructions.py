@@ -492,14 +492,9 @@ class ShiftLeft(Instruction):
                 small_src.move(small_dst)
             shift_big.change(-1)
 
-        shift_big_scrap.to()
-        concater.raw("!0")
-
         shift_small.move(self.shift.get_cell(0))
         shift_big.clear()
         self.dst.normalize_big()
-
-        # TODO: save original register values
 
 
 @dataclass
