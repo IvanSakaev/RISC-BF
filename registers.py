@@ -77,9 +77,9 @@ class Register:
             small = self.get_cell(i)
             need_output = i < 7
             if need_output:
-                small.div_imm(16)
+                small.div_imm(16, mod, output)
             else:
-                small.div_imm(16, output=None)
+                small.div_imm(16, mod, output=None)
             mod.move(small)
             if need_output:
                 small2 = small.cell_rel(1)

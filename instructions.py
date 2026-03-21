@@ -436,13 +436,22 @@ class ShiftLeft(Instruction):
     shift: Register
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        concater.rem(f"shl {self.dst} {self.src} {self.shift}", comments)
+        concater.rem(f"sll {self.dst} {self.src} {self.shift}", comments)
         if self.dst == ZERO:
             return
 
         if self.src == ZERO:
             self.dst.clear_big()
             return
+
+        if self.shift == ZERO:
+            if self.src != self.dst:
+                self.dst.clear_big()
+                self.src.copy_big(self.dst)
+                return
+
+        if self.src == self.shift:
+            raise NotImplementedError
 
         shift_big = scraps[0]  # shift / 4
         shift_small = scraps[1]  # shift % 4
@@ -457,11 +466,6 @@ class ShiftLeft(Instruction):
         shift_verybig_unused.move(self.shift.get_cell(1), multiplier=2)
         shift_scrap.move(shift_big, self.shift.get_cell(1), multiplier=(4, 1))
         shift_big.copy(shift_big_scrap, scrap=shift_scrap)
-
-        concater.debug()
-
-        if self.src == self.dst:
-            raise NotImplementedError
 
         for i in range(7, -1, -1):
             # custom ifnot
@@ -492,9 +496,65 @@ class ShiftLeft(Instruction):
                 small_src.move(small_dst)
             shift_big.change(-1)
 
-        shift_small.move(self.shift.get_cell(0))
+        if self.dst != self.shift:
+            shift_small.move(self.shift.get_cell(0))
+        else:
+            shift_small.clear()
         shift_big.clear()
         self.dst.normalize_big()
+
+
+@dataclass
+class ShiftLeftI(Instruction):
+    dst: Register
+    src: Register
+    shift: Immediate
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"slli {self.dst} {self.src} {self.shift}", comments)
+        if self.dst == ZERO:
+            return
+
+        if self.src == ZERO:
+            self.dst.clear_big()
+            return
+
+        small_shift = self.shift % 4
+        big_shift = (self.shift // 4) % 8
+
+        for i in range(7 - big_shift, -1, -1):
+            small_src = self.src.get_cell(i)
+            small_dst = self.dst.get_cell(i + big_shift)
+            if small_src != small_dst:
+                small_dst.clear()
+                if self.src == self.dst:
+                    small_src.move(small_dst, multiplier=(2**small_shift))
+                else:
+                    small_src.copy(small_dst, multiplier=(2**small_shift))
+            elif small_shift != 0:
+                small_dst.move(scraps[0])
+                scraps[0].move(small_dst, multiplier=(2**small_shift))
+
+        if small_shift != 0:
+            # normalize only changed digits
+            mod = scraps[0]  # 2 scraps after MOD are used too in div_imm()
+            output = scraps[3]
+            for i in range(big_shift, 8):
+                small = self.dst.get_cell(i)
+                need_output = i < 7
+                if need_output:
+                    small.div_imm(16, mod, output)
+                else:
+                    small.div_imm(16, mod, output=None)
+                mod.move(small)
+                if need_output:
+                    small2 = small.cell_rel(1)
+                    output.move(small2)
+
+        # set small digits to zero
+        for i in range(big_shift):
+            small_dst = self.src.get_cell(i)
+            small_dst.clear()
 
 
 @dataclass
@@ -547,6 +607,7 @@ MNEMONICS["sub"] = Sub
 MNEMONICS["mul"] = Mul
 MNEMONICS["mulhu"] = MulHighUnsigned
 MNEMONICS["sll"] = ShiftLeft
+MNEMONICS["slli"] = ShiftLeftI
 
 # debug commands
 MNEMONICS["out"] = Output
