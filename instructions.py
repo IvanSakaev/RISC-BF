@@ -553,7 +553,7 @@ class ShiftLeftI(Instruction):
 
         # set small digits to zero
         for i in range(big_shift):
-            small_dst = self.src.get_cell(i)
+            small_dst = self.dst.get_cell(i)
             small_dst.clear()
 
 
