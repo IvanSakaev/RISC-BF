@@ -45,7 +45,7 @@ class Register:
             small_src = self.get_cell(i)
             small_dsts = [d.get_cell(i) for d in dsts]
             small_dsts.append(scrap)
-            small_src.move(small_dsts, multiplier)
+            small_src.move(*small_dsts, multiplier=multiplier)
             scrap.move(small_src)
 
     def clear_big(self):
