@@ -11,8 +11,10 @@ for i in range(100):
         file.write(
             f"""
 li x1, 0x{num1:x}
-xori x1, x1, 0x{num2:x}
-out x1
+li x2, 0x{num2:x}
+li x3, 0x123
+sub x3, x1, x2
+out x3
 """.lstrip()
         )
 
@@ -38,12 +40,13 @@ out x1
         .rstrip("\n")
     )
 
-    num3 = num1 ^ num2
+    num3 = num1 - num2
+    num3 &= 0xffffffff
     num3_str = f"{num3:08X}"
 
     if predict != num3_str:
         print(
-            f"num1: {num1:08X}\nnum2: {num2:08X}\ncorrect: {num3_str}\npredicted: {predict}"
+            f"num1: {num1:08X}\ncorrect: {num3_str}\npredicted: {predict}"
         )
         exit()
     if i % 10 == 0:

@@ -177,70 +177,33 @@ class Sub(Instruction):
         elif self.src1 == self.dst and self.src2 == ZERO:
             pass
         elif self.src1 == ZERO and self.src2 == self.dst:
-            self.dst.move_big(scraps[0])
-            self.move_invert_big(scraps[0], self.dst)
+            Not.invert_big(self.dst, self.dst, clear=True)
+            self.dst.change_big(1)
             self.dst.normalize_big_fast()
         elif self.src1 == ZERO:
-            self.move_invert_big(self.src2, self.dst, scrap=scraps[0], clear=True)
+            self.dst.clear_big()
+            Not.invert_big(self.src2, self.dst, clear=True)
+            self.dst.change_big(1)
             self.dst.normalize_big_fast()
         elif self.src1 == self.dst:
-            self.move_invert_big(self.src2, self.dst, scrap=scraps[0])
+            self.dst.clear_big()
+            Not.invert_big(self.src2, self.dst, clear=False)
+            self.dst.change_big(1)
             self.dst.normalize_big()
         elif self.src2 == ZERO:
             self.dst.clear_big()
             self.src1.copy_big(self.dst)
         elif self.src2 == self.dst:
-            self.dst.move_big(scraps[0])
-            self.move_invert_big(scraps[0], self.dst)
+            Not.invert_big(self.dst, self.dst, clear=True)
+            self.dst.change_big(1)
             self.src1.copy_big(self.dst)
             self.dst.normalize_big()
         else:
-            self.move_invert_big(self.src2, self.dst, scrap=scraps[0], clear=True)
+            self.dst.clear_big()
             self.src1.copy_big(self.dst)
+            Not.invert_big(self.src2, self.dst, clear=False)
+            self.dst.change_big(1)
             self.dst.normalize_big()
-
-    @classmethod
-    def move_invert_big(
-        cls,
-        src: Cell | Register,
-        dst: Cell | Register,
-        scrap: Cell | Register | None = None,
-        clear=False,
-    ):
-        """
-        Moves bitwise not src to dst. After this function, src will become zero.
-        Initial src value will be restored from scrap if scrap isn't None.
-
-        Src must be normalized. Dst will be NOT normalized.
-        If dst was zero or clear=True, every dst cell will be <= 0xf, excluding first cell that can be <=0x10.
-
-        dst.normalize_big_fast() can be used after this function
-        """
-        src = Register(src)
-        dst = Register(dst)
-        if scrap is not None:
-            scrap = Register(scrap)
-
-        for small in dst.get_cells():
-            if clear:
-                small.clear()
-            small.change(15)
-
-        if scrap is None:
-            scrap_cells = [None] * 8
-        else:
-            scrap_cells = scrap.get_cells()
-
-        for small_src, small_dst, small_scrap in zip(
-            src.get_cells(), dst.get_cells(), scrap_cells
-        ):
-            small_src.move(small_dst, multiplier=-1)
-            if small_scrap is not None:
-                small_src.move(small_scrap)
-
-        dst.get_cell(0).change(1)
-        if scrap is not None:
-            scrap.move_big(src)
 
 
 @dataclass
@@ -794,6 +757,37 @@ class Xor(Instruction):
 
 
 @dataclass
+class Not(Instruction):
+    dst: Register
+    src: Register
+
+    def evaluate(self, program, cur_block, comments=False):
+        if self.dst == ZERO:
+            return
+        if self.src == ZERO:
+            self.dst.change_big(2**32 - 1, clear=True)
+            return
+        self.invert_big(self.src, self.dst)
+
+    @classmethod
+    def invert_big(cls, src: Register, dst: Register, clear: bool = True):
+        scrap = scraps[0]
+        for i in range(8):
+            small_src = src.get_cell(i)
+            small_dst = dst.get_cell(i)
+            if src != dst:
+                if clear:
+                    small_dst.clear()
+                small_dst.change(15)
+                small_src.move(scrap)
+                scrap.move(small_src, small_dst, multiplier=[1, -1])
+            else:
+                small_src.move(scrap)
+                small_src.change(15)
+                scrap.move(small_src, multiplier=-1)
+
+
+@dataclass
 class OrI(Instruction):
     dst: Register
     src1: Register
@@ -1035,6 +1029,7 @@ MNEMONICS["slli"] = ShiftLeftI
 MNEMONICS["or"] = Or
 MNEMONICS["and"] = And
 MNEMONICS["xor"] = Xor
+MNEMONICS["not"] = Not
 MNEMONICS["ori"] = OrI
 MNEMONICS["andi"] = AndI
 MNEMONICS["xori"] = XorI
