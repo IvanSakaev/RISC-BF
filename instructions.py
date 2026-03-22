@@ -631,11 +631,86 @@ class Or(Instruction):
                         output.clear()
                         output.change(1)
                         mod.change(-1)
-                
+
                 if self.src1 != self.dst:
                     output.move(dst_small, multiplier=2**j)
                 else:
                     output.move(src1_scrap, multiplier=2**j)
+            # Restoring value
+            src1_scrap.move(src1_small)
+            src2_scrap.move(src2_small)
+
+
+@dataclass
+class And(Instruction):
+    dst: Register
+    src1: Register
+    src2: Register
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"and {self.dst}, {self.src1}, {self.src2}", comments)
+        if self.dst == ZERO:
+            return
+        if self.src1 == ZERO or self.src2 == ZERO:
+            self.dst.clear_big()
+            return
+        if self.src1 == self.src2:
+            self.dst.clear_big()
+            self.src1.copy_big(self.dst)
+            return
+
+        if self.src2 == self.dst:
+            self.src2 = self.src1
+            self.src1 = self.dst
+
+        mod = scraps[0]
+        div_output = scraps[3]
+        src1_scrap = scraps[4]
+        src2_scrap = scraps[5]
+        output = scraps[6]
+
+        for i in range(8):
+            src1_small = self.src1.get_cell(i)
+            src2_small = self.src2.get_cell(i)
+            if self.src1 != self.dst:
+                dst_small = self.dst.get_cell(i)
+                dst_small.clear()
+            else:
+                dst_small = src1_scrap
+            for j in range(4):
+                # Move first bit to output
+                if j == 3:
+                    if self.src1 != self.dst:
+                        src1_small.move(src1_scrap, output, multiplier=[2**j, 1])
+                    else:
+                        src1_small.move(output)
+                else:
+                    src1_small.div_imm(2, mod, div_output)
+                    div_output.move(src1_small)
+                    if self.src1 != self.dst:
+                        mod.move(src1_scrap, output, multiplier=[2**j, 1])
+                    else:
+                        mod.move(output)
+
+                # Move second bit to output
+                if j == 3:
+                    with src2_small.loop():
+                        src2_scrap.change(2**3)
+                        with output.loop():
+                            dst_small.change(2**j)
+                            output.change(-1)
+                        src2_small.change(-1)
+                else:
+                    src2_small.div_imm(2, mod, div_output)
+                    div_output.move(src2_small)
+                    with mod.loop():
+                        src2_scrap.change(2**j)
+                        with output.loop():
+                            dst_small.change(2**j)
+                            output.change(-1)
+                        mod.change(-1)
+                output.clear()
+
             # Restoring value
             src1_scrap.move(src1_small)
             src2_scrap.move(src2_small)
@@ -693,6 +768,7 @@ MNEMONICS["mulhu"] = MulHighUnsigned
 MNEMONICS["sll"] = ShiftLeft
 MNEMONICS["slli"] = ShiftLeftI
 MNEMONICS["or"] = Or
+MNEMONICS["and"] = And
 
 # debug commands
 MNEMONICS["out"] = Output
