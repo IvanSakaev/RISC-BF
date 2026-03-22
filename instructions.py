@@ -564,7 +564,7 @@ class Or(Instruction):
     src2: Register
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        concater.rem(f"xor {self.dst}, {self.src1}, {self.src2}", comments)
+        concater.rem(f"or {self.dst}, {self.src1}, {self.src2}", comments)
         if self.dst == ZERO:
             return
         if self.src1 == ZERO and self.src2 == ZERO:
