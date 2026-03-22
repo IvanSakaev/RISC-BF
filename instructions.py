@@ -794,6 +794,68 @@ class Xor(Instruction):
 
 
 @dataclass
+class AndI(Instruction):
+    dst: Register
+    src1: Register
+    src2: Immediate
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"andi {self.dst}, {self.src1}, {self.src2}", comments)
+        if self.dst == ZERO:
+            return
+        if self.src1 == ZERO:
+            self.dst.change_big(self.src2, clear=True)
+            return
+
+        mod = scraps[0]
+        div_output = scraps[3]
+        src1_scrap = scraps[4]
+        output = scraps[5]
+
+        for i in range(8):
+            src1_small = self.src1.get_cell(i)
+            dst_small = self.dst.get_cell(i)
+            if self.src1 != self.dst:
+                dst_small.clear()
+            for j in range(4):
+                need_value = (self.src2 & (2 ** (i * 4 + j))) > 0
+
+                # Move first bit to output
+                if j == 3:
+                    if need_value:
+                        if self.src1 != self.dst:
+                            src1_small.move(src1_scrap, output, multiplier=[2**j, 1])
+                        else:
+                            src1_small.move(output)
+                    else:
+                        if self.src1 != self.dst:
+                            src1_small.move(src1_scrap, multiplier=2**j)
+                        else:
+                            src1_small.clear()
+                else:
+                    src1_small.div_imm(2, mod, div_output)
+                    div_output.move(src1_small)
+                    if need_value:
+                        if self.src1 != self.dst:
+                            mod.move(src1_scrap, output, multiplier=[2**j, 1])
+                        else:
+                            mod.move(output)
+                    else:
+                        if self.src1 != self.dst:
+                            mod.move(src1_scrap, multiplier=2**j)
+                        else:
+                            mod.clear()
+
+                if need_value:
+                    if self.src1 != self.dst:
+                        output.move(dst_small, multiplier=2**j)
+                    else:
+                        output.move(src1_scrap, multiplier=2**j)
+            # Restoring value
+            src1_scrap.move(src1_small)
+
+
+@dataclass
 class Output(Instruction):
     reg: Register
 
@@ -847,6 +909,8 @@ MNEMONICS["slli"] = ShiftLeftI
 MNEMONICS["or"] = Or
 MNEMONICS["and"] = And
 MNEMONICS["xor"] = Xor
+
+MNEMONICS["andi"] = AndI
 
 # debug commands
 MNEMONICS["out"] = Output
