@@ -20,29 +20,33 @@ class Register:
         return [Cell(self.addr + i) for i in range(8)]
 
     def move_big(self, *dsts: Cell | Register, multiplier: int | tuple | list = 1):
-        dsts2 = list(map(lambda d: d if isinstance(d, Register) else Register(d), dsts))
+        dsts2 = [Register(dst) for dst in dsts]
         assert self not in dsts2
         for i in range(8):
             small_src = self.get_cell(i)
-            small_dsts = list(map(lambda r: r.get_cell(i), dsts2))
+            small_dsts = [d.get_cell(i) for d in dsts2]
             small_src.move(*small_dsts, multiplier=multiplier)
 
     def copy_big(
         self,
         *dsts: Register,
-        scrap: Register | None = None,
+        scrap: Cell | None = None,
         multiplier: int | tuple | list = 1,
     ):
         if scrap is None:
-            scrap = Register(scraps[0])
+            scrap = scraps[0]
         assert self not in dsts
-        assert scrap not in dsts
+        for dst in dsts:
+            assert scrap not in dst.get_cells()
         if isinstance(multiplier, int):
             multiplier = [multiplier] * len(dsts)
-        dsts2 = list(dsts) + [scrap]
         multiplier = list(multiplier) + [1]
-        self.move_big(*dsts2, multiplier=multiplier)
-        scrap.move_big(self)
+        for i in range(8):
+            small_src = self.get_cell(i)
+            small_dsts = [d.get_cell(i) for d in dsts]
+            small_dsts.append(scrap)
+            small_src.move(small_dsts, multiplier)
+            scrap.move(small_src)
 
     def clear_big(self):
         for cell in self.get_cells():
