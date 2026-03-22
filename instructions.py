@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from asm import Program
 from cell import concater, next1, next2
 from registers import (
     ZERO,
@@ -83,6 +84,26 @@ class LoadUpperI(Instruction):
         concater.rem(f"li {self.dst} {self.src}", comments)
         inst = LoadI(self.dst, Immediate(self.src * (2**12)))
         inst.evaluate(program, cur_block, False)
+
+
+@dataclass
+class Move(Instruction):
+    dst: Register
+    src: Register
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"mv {self.dst} {self.src}", comments)
+        AddI(self.dst, self.src, Immediate(0)).evaluate(program, cur_block, False)
+
+
+@dataclass
+class Neg(Instruction):
+    dst: Register
+    src: Register
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"neg {self.dst} {self.src}", comments)
+        Sub(self.dst, ZERO, self.src).evaluate(program, cur_block, False)
 
 
 @dataclass
@@ -1050,6 +1071,8 @@ MNEMONICS: dict[str, type[Instruction]] = dict()
 
 MNEMONICS["li"] = LoadI
 MNEMONICS["lui"] = LoadUpperI
+MNEMONICS["mv"] = Move
+MNEMONICS["neg"] = Neg
 MNEMONICS["add"] = Add
 MNEMONICS["addi"] = AddI
 MNEMONICS["sub"] = Sub

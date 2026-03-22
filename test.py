@@ -41,13 +41,11 @@ out x3
     )
 
     num3 = num1 | num2
-    num3 &= 0xffffffff
+    num3 &= 0xFFFFFFFF
     num3_str = f"{num3:08X}"
 
     if predict != num3_str:
-        print(
-            f"num1: {num1:08X}\ncorrect: {num3_str}\npredicted: {predict}"
-        )
+        print(f"num1: {num1:08X}\ncorrect: {num3_str}\npredicted: {predict}")
         exit()
     if i % 10 == 0:
         print(f"tested {i} times")
