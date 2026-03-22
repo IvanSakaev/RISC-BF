@@ -811,47 +811,58 @@ class OrI(Instruction):
             dst_small = self.dst.get_cell(i)
             if self.src1 != self.dst:
                 dst_small.clear()
-            for j in range(4):
-                need_value = (self.src2 & (2 ** (i * 4 + j))) == 0
+            src2_small = self.src2 // 2 ** (i * 4)
+            src2_small %= 2**4
+            if src2_small == 0:
+                if self.src1 != self.dst:
+                    src1_small.copy(dst_small, scrap=src1_scrap)
+            elif src2_small == 15:
+                dst_small.clear()
+                dst_small.change(15)
+            else:
+                for j in range(4):
+                    need_value = (src2_small & (2**j)) == 0
 
-                # Move first bit to output
-                if j == 3:
+                    # Move first bit to output
+                    if j == 3:
+                        if need_value:
+                            if self.src1 != self.dst:
+                                src1_small.move(
+                                    src1_scrap, output, multiplier=[2**j, 1]
+                                )
+                            else:
+                                src1_small.move(output)
+                        else:
+                            if self.src1 != self.dst:
+                                src1_small.move(src1_scrap, multiplier=2**j)
+                            else:
+                                src1_small.clear()
+                    else:
+                        src1_small.div_imm(2, mod, div_output)
+                        div_output.move(src1_small)
+                        if need_value:
+                            if self.src1 != self.dst:
+                                mod.move(src1_scrap, output, multiplier=[2**j, 1])
+                            else:
+                                mod.move(output)
+                        else:
+                            if self.src1 != self.dst:
+                                mod.move(src1_scrap, multiplier=2**j)
+                            else:
+                                mod.clear()
+
                     if need_value:
                         if self.src1 != self.dst:
-                            src1_small.move(src1_scrap, output, multiplier=[2**j, 1])
+                            output.move(dst_small, multiplier=2**j)
                         else:
-                            src1_small.move(output)
+                            output.move(src1_scrap, multiplier=2**j)
                     else:
                         if self.src1 != self.dst:
-                            src1_small.move(src1_scrap, multiplier=2**j)
+                            dst_small.change(2**j)
                         else:
-                            src1_small.clear()
-                else:
-                    src1_small.div_imm(2, mod, div_output)
-                    div_output.move(src1_small)
-                    if need_value:
-                        if self.src1 != self.dst:
-                            mod.move(src1_scrap, output, multiplier=[2**j, 1])
-                        else:
-                            mod.move(output)
-                    else:
-                        if self.src1 != self.dst:
-                            mod.move(src1_scrap, multiplier=2**j)
-                        else:
-                            mod.clear()
-
-                if need_value:
-                    if self.src1 != self.dst:
-                        output.move(dst_small, multiplier=2**j)
-                    else:
-                        output.move(src1_scrap, multiplier=2**j)
-                else:
-                    if self.src1 != self.dst:
-                        dst_small.change(2**j)
-                    else:
-                        src1_scrap.change(2**j)
-            # Restoring value
-            src1_scrap.move(src1_small)
+                            src1_scrap.change(2**j)
+                # Restoring value
+                src1_scrap.move(src1_small)
 
 
 @dataclass

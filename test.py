@@ -1,7 +1,7 @@
 import random
 import subprocess
 
-for i in range(100):
+for i in range(1, 101):
     num1 = random.randrange(2**32)
     num2 = random.randrange(2**32)
     # num1 = random.randrange(32)
@@ -13,7 +13,7 @@ for i in range(100):
 li x1, 0x{num1:x}
 li x2, 0x{num2:x}
 li x3, 0x123
-sub x3, x1, x2
+ori x3, x1, 0x{num2:x}
 out x3
 """.lstrip()
         )
@@ -40,7 +40,7 @@ out x3
         .rstrip("\n")
     )
 
-    num3 = num1 - num2
+    num3 = num1 | num2
     num3 &= 0xffffffff
     num3_str = f"{num3:08X}"
 
