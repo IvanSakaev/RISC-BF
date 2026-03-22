@@ -11,8 +11,8 @@ for i in range(100):
         file.write(
             f"""
 li x1, 0x{num1:x}
-ori x3, x1, 0x{num2:x}
-out x3
+xori x1, x1, 0x{num2:x}
+out x1
 """.lstrip()
         )
 
@@ -38,7 +38,7 @@ out x3
         .rstrip("\n")
     )
 
-    num3 = num1 | num2
+    num3 = num1 ^ num2
     num3_str = f"{num3:08X}"
 
     if predict != num3_str:
