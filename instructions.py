@@ -1044,36 +1044,51 @@ class SetLessThanUnsigned(Instruction):
         if self.src2 == ZERO:
             self.dst.clear_big()
             return
-
-        if self.src1 == self.dst or self.src2 == self.dst:
-            raise NotImplementedError
+        
+        invert = False
+        if self.src2 == self.dst:
+            self.src2 = self.src1
+            self.src1 = self.dst
+            invert = True
 
         running = scraps[0]
         running.change(1)
         output_value = scraps[1]
+        if invert:
+            output_value.change(1)
         for i in range(7, -1, -1):
             small_src1 = self.src1.get_cell(i)
             small_src2 = self.src2.get_cell(i)
-            scrap_src1 = scraps[2]
-            scrap_src2 = scraps[3]
-            small_src1.move(scrap_src1)
-            small_src2.move(scrap_src2)
+            if self.src1 == self.dst:
+               scrap_src1 = small_src1
+               scrap_src2 = scraps[2]
+               small_src2.move(scrap_src2) 
+            else:
+                scrap_src1 = scraps[2]
+                scrap_src2 = scraps[3]
+                small_src1.move(scrap_src1)
+                small_src2.move(scrap_src2)
 
             with scrap_src1.loop():
                 with scrap_src2.ifnot():  # >
                     running.change(-1)
-                    scrap_src1.move(small_src1)
+                    if self.src1 == self.dst:
+                        scrap_src1.clear()
+                    else:
+                        scrap_src1.move(small_src1)
                     scrap_src1.change(1)
-                    small_src1.change(-1)
+                    if self.src1 != self.dst:
+                        small_src1.change(-1)
                     small_src2.change(-1)
                     scrap_src2.change(1)
                 small_src2.change(1)
-                small_src1.change(1)
+                if self.src1 != self.dst:
+                    small_src1.change(1)
                 scrap_src2.change(-1)
                 scrap_src1.change(-1)
             with scrap_src2.loop():  # <
                 running.change(-1)
-                output_value.change(1)
+                output_value.change(-1 if invert else 1)
                 scrap_src2.move(small_src2)
 
             running.to()

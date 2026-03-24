@@ -141,8 +141,6 @@ class Immediate(int):
         self.move(*dsts, multiplier=multiplier)
 
 
-RegisterOrImmediate = Register | Immediate
-
 ZERO = Register(
     -7
 )  # IMPORTANT! It isn't a physical register, it mustn't be used for data storage

@@ -13,8 +13,8 @@ for i in range(1, 101):
 li x1, 0x{num1:x}
 li x2, 0x{num2:x}
 li x3, 0x123
-sltu x3, x1, x2
-out x3
+sltu x1, x1, x2
+out x1
 """.lstrip()
         )
 
