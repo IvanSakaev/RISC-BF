@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from asm import Program
 from cell import concater, next1, next2
 from registers import (
     ZERO,
@@ -1028,6 +1027,64 @@ class XorI(Instruction):
 
 
 @dataclass
+class SetLessThanUnsigned(Instruction):
+    dst: Register
+    src1: Register
+    src2: Register
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"sltu {self.dst} {self.src1} {self.src2}", comments)
+        if self.dst == ZERO:
+            return
+        if self.src1 == self.src2:
+            self.dst.clear_big()
+            return
+        if self.src1 == ZERO:
+            raise NotImplementedError
+        if self.src2 == ZERO:
+            self.dst.clear_big()
+            return
+
+        if self.src1 == self.dst or self.src2 == self.dst:
+            raise NotImplementedError
+
+        running = scraps[0]
+        running.change(1)
+        output_value = scraps[1]
+        for i in range(7, -1, -1):
+            small_src1 = self.src1.get_cell(i)
+            small_src2 = self.src2.get_cell(i)
+            scrap_src1 = scraps[2]
+            scrap_src2 = scraps[3]
+            small_src1.move(scrap_src1)
+            small_src2.move(scrap_src2)
+
+            with scrap_src1.loop():
+                with scrap_src2.ifnot():  # >
+                    running.change(-1)
+                    scrap_src1.move(small_src1)
+                    scrap_src1.change(1)
+                    small_src1.change(-1)
+                    small_src2.change(-1)
+                    scrap_src2.change(1)
+                small_src2.change(1)
+                small_src1.change(1)
+                scrap_src2.change(-1)
+                scrap_src1.change(-1)
+            with scrap_src2.loop():  # <
+                running.change(-1)
+                output_value.change(1)
+                scrap_src2.move(small_src2)
+
+            running.to()
+            concater.raw("[")
+        running.change(-1)
+        concater.raw("]]]]]]]]")
+        self.dst.clear_big()
+        output_value.move(self.dst.get_cell(0))
+
+
+@dataclass
 class Output(Instruction):
     reg: Register
 
@@ -1087,6 +1144,7 @@ MNEMONICS["not"] = Not
 MNEMONICS["ori"] = OrI
 MNEMONICS["andi"] = AndI
 MNEMONICS["xori"] = XorI
+MNEMONICS["sltu"] = SetLessThanUnsigned
 
 # debug commands
 MNEMONICS["out"] = Output
