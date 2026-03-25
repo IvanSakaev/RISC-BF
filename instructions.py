@@ -1025,6 +1025,7 @@ class XorI(Instruction):
                 # Restoring value
                 src1_scrap.move(src1_small)
 
+
 @dataclass
 class SetLessThan(Instruction):
     dst: Register
@@ -1038,16 +1039,48 @@ class SetLessThan(Instruction):
         if self.src1 == self.src2:
             self.dst.clear_big()
             return
-        if self.src1 == ZERO:
-            raise NotImplementedError
+        invert = False
+
         if self.src2 == ZERO:
-            raise NotImplementedError
-        
+            self.src2 = self.src1
+            self.src1 = ZERO
+            invert = True
+        if self.src1 == ZERO:
+            sign = scraps[0]
+            divmod = scraps[1]
+            if not invert:
+                self.src2.get_cell(7).div_imm(8, divmod, sign, invert_output=True)
+                if self.src2 == self.dst:
+                    divmod.clear()
+                else:
+                    divmod.move(self.src2.get_cell(7))
+                self.dst.clear_big()
+                if self.src2 == self.dst:
+                    sign.change(1)
+                    sign.move(self.dst.get_cell(0))
+                else:
+                    self.src2.get_cell(7).change(8)
+                    sign.change(1)
+                    sign.move(
+                        self.dst.get_cell(0), self.src2.get_cell(7), multiplier=[1, -8]
+                    )
+            else:
+                self.src2.get_cell(7).div_imm(8, divmod, sign)
+                if self.src2 == self.dst:
+                    divmod.clear()
+                else:
+                    divmod.move(self.src2.get_cell(7))
+                self.dst.clear_big()
+                sign.move(
+                    self.dst.get_cell(0), self.src2.get_cell(7), multiplier=[1, 8]
+                )
+            return
+
         if self.src1 == self.dst or self.src2 == self.dst:
             raise NotImplementedError
 
         invert = False
-        
+
         sign1 = scraps[0]
         divmod1 = scraps[1]
         sign2 = scraps[1]
@@ -1072,7 +1105,7 @@ class SetLessThan(Instruction):
                 self.src2.get_cell(7).change(-8)
                 sign1.change(-2)
             running.change(-1)
-        
+
         with running.loop():
             output_value = scraps[0]
             if invert:
@@ -1118,6 +1151,7 @@ class SetLessThan(Instruction):
             concater.raw("]]]]]]]]")
             self.dst.clear_big()
             output_value.move(self.dst.get_cell(0))
+
 
 @dataclass
 class SetLessThanUnsigned(Instruction):

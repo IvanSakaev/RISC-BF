@@ -74,13 +74,10 @@ class Cell:
             multiplier = [multiplier] * len(dsts)
         dsts2 = list(dsts)
         assert self not in dsts2
-        self.to()
-        concater.raw("[")
-        for dst, mult in zip(dsts2, multiplier, strict=True):
-            dst.change(mult)
-        self.change(-1)
-        self.to()
-        concater.raw("]")
+        with self.loop():
+            for dst, mult in zip(dsts2, multiplier, strict=True):
+                dst.change(mult)
+            self.change(-1)
 
     def copy(
         self,
@@ -109,6 +106,7 @@ class Cell:
         base: int,
         mod: Cell | None = None,
         output: Cell | None | object = _default,
+        invert_output: bool = False,
     ):
         """
         It divides cell by constant number. Result and reminder are stored. (Result isn't stored if need_output=False)'
@@ -136,7 +134,7 @@ class Cell:
             with mod.ifnot():
                 mod.change(-base)
                 if output is not None:
-                    output.change(1)
+                    output.change(-1 if invert_output else 1)
             self.change(-1)
         mod.change(base)
 
