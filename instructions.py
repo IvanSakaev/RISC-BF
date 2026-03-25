@@ -1217,6 +1217,15 @@ class SetEqualToZero(Instruction):
 
 
 @dataclass
+class SetNotEqualToZero(Instruction):
+    dst: Register
+    src: Register
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        SetLessThanUnsigned(self.dst, ZERO, self.src).evaluate(program, cur_block)
+
+
+@dataclass
 class Output(Instruction):
     reg: Register
 
@@ -1278,6 +1287,7 @@ MNEMONICS["xori"] = XorI
 MNEMONICS["slt"] = SetLessThan
 MNEMONICS["sltu"] = SetLessThanUnsigned
 MNEMONICS["seqz"] = SetEqualToZero
+MNEMONICS["snez"] = SetNotEqualToZero
 
 # debug commands
 MNEMONICS["out"] = Output

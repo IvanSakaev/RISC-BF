@@ -20,7 +20,7 @@ for i in range(1, 101):
 li x1, 0x{num1text:x}
 li x2, 0x{num2text:x}
 li x3, 0x123
-seqz x1, x1
+snez x1, x1
 out x1
 """.lstrip()
         )
@@ -48,7 +48,7 @@ out x1
     except UnicodeDecodeError:
         predict = predict_byte
 
-    num3 = 1 if num1 == 0 else 0
+    num3 = 1 if num1 != 0 else 0
 
     num3 &= 0xFFFFFFFF
     num3_str = f"{num3:08X}"
