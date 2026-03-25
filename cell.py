@@ -26,10 +26,10 @@ class Cell:
         Two cells after it must be zero
         """
         self.to()
-        concater.raw(">+<[>-]>[>]<", pos_offset=1)
-        with self.cell_rel(1).loop():
-            self.cell_rel(1).change(-1)
-            yield
+        concater.raw(">+<[>-]>[-", pos_offset=1)
+        yield
+        self.cell_rel(2).to()
+        concater.raw("]")
 
     def to(self):
         """
