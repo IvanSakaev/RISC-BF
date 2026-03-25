@@ -1182,6 +1182,41 @@ class SetLessThanUnsigned(Instruction):
 
 
 @dataclass
+class SetEqualToZero(Instruction):
+    dst: Register
+    src: Register
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        if self.dst == ZERO:
+            return
+        if self.src == ZERO:
+            self.dst.change_big(1, clear=True)
+            return
+
+        running = scraps[0]
+        running.change(1)
+        output = scraps[1]
+        for i in range(8):
+            small_src2 = self.src.get_cell(i)
+            scrap_src2 = scraps[2]
+            with small_src2.loop():
+                running.change(-1)
+                if self.src == self.dst:
+                    small_src2.clear()
+                else:
+                    small_src2.move(scrap_src2)
+            if self.src != self.dst:
+                scrap_src2.move(small_src2)
+            running.raw("[")
+        output.change(1)
+        running.change(-1)
+        running.raw("]]]]]]]]")
+
+        self.dst.clear_big()
+        output.move(self.dst.get_cell(0))
+
+
+@dataclass
 class Output(Instruction):
     reg: Register
 
@@ -1242,6 +1277,7 @@ MNEMONICS["andi"] = AndI
 MNEMONICS["xori"] = XorI
 MNEMONICS["slt"] = SetLessThan
 MNEMONICS["sltu"] = SetLessThanUnsigned
+MNEMONICS["seqz"] = SetEqualToZero
 
 # debug commands
 MNEMONICS["out"] = Output
