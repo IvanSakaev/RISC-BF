@@ -4,10 +4,10 @@ import subprocess
 for i in range(1, 101):
     # num1 = random.randrange(-127, 128)
     # num2 = random.randrange(-127, 128)
-    num1 = random.randrange(256)
-    num2 = random.randrange(256)
-    # num1 = random.randint(-2**31, 2**31)
-    # num2 = random.randint(-2**31, 2**31)
+    # num1 = random.randrange(256)
+    # num2 = random.randrange(256)
+    num1 = random.randint(-2**31, 2**31)
+    num2 = random.randint(-2**31, 2**31)
     # num1 = random.randrange(2**32)
     # num2 = random.randrange(2**32)
 

@@ -1072,80 +1072,24 @@ class SetLessThan(Instruction):
                 )
             return
 
-        invert = False
-        if self.src2 == self.dst:
-            self.src2 = self.src1
-            self.src1 = self.dst
-            invert = True
+        mod = scraps[0]
+        self.src1.get_cell(7).change(8)
+        self.src1.get_cell(7).div_imm(16, mod, None)
+        mod.move(self.src1.get_cell(7))
+        self.src2.get_cell(7).change(8)
+        self.src2.get_cell(7).div_imm(16, mod, None)
+        mod.move(self.src2.get_cell(7))
 
-        sign1 = scraps[0]
-        divmod1 = scraps[1]
-        sign2 = scraps[1]
-        divmod2 = scraps[2]
-        running = scraps[2]
+        SetLessThanUnsigned(self.dst, self.src1, self.src2).evaluate(program, cur_block)
 
-        self.src1.get_cell(7).div_imm(8, divmod1, sign1)
-        divmod1.move(self.src1.get_cell(7))
-        self.src2.get_cell(7).div_imm(8, divmod2, sign2)
-        divmod2.move(self.src2.get_cell(7))
-
-        sign2.move(sign1, multiplier=-1)
-        running.change(1)
-        with sign1.loop():  # Знаки различаются
-            sign1.change(1)
-            self.dst.clear_big()
+        if self.src1 != self.dst:
+            self.src1.get_cell(7).change(8)
+            self.src1.get_cell(7).div_imm(16, mod, None)
+            mod.move(self.src1.get_cell(7))
+        if self.src2 != self.dst:
             self.src2.get_cell(7).change(8)
-            with sign1.loop():  # Первое число отрицательное
-                self.dst.get_cell(0).change(1)
-                self.src1.get_cell(7).change(8)
-                self.src2.get_cell(7).change(-8)
-                sign1.change(-2)
-            running.change(-1)
-
-        with running.loop():
-            output_value = scraps[0]
-            if invert:
-                output_value.change(1)
-            for i in range(7, -1, -1):
-                small_src1 = self.src1.get_cell(i)
-                small_src2 = self.src2.get_cell(i)
-                if self.src1 == self.dst:
-                    scrap_src1 = small_src1
-                    scrap_src2 = scraps[3]
-                    small_src2.move(scrap_src2)
-                else:
-                    scrap_src1 = scraps[1]
-                    scrap_src2 = scraps[3]
-                    small_src1.move(scrap_src1)
-                    small_src2.move(scrap_src2)
-
-                with scrap_src1.loop():
-                    with scrap_src2.ifnot():  # >
-                        running.change(-1)
-                        if self.src1 == self.dst:
-                            scrap_src1.clear()
-                        else:
-                            scrap_src1.move(small_src1)
-                        scrap_src1.change(1)
-                        if self.src1 != self.dst:
-                            small_src1.change(-1)
-                        small_src2.change(-1)
-                        scrap_src2.change(1)
-                    small_src2.change(1)
-                    if self.src1 != self.dst:
-                        small_src1.change(1)
-                    scrap_src2.change(-1)
-                    scrap_src1.change(-1)
-                with scrap_src2.loop():  # <
-                    running.change(-1)
-                    output_value.change(-1 if invert else 1)
-                    scrap_src2.move(small_src2)
-
-                running.raw("[")
-            running.change(-1)
-            running.raw("]]]]]]]]")
-            self.dst.clear_big()
-            output_value.move(self.dst.get_cell(0))
+            self.src2.get_cell(7).div_imm(16, mod, None)
+            mod.move(self.src2.get_cell(7))
 
 
 @dataclass
