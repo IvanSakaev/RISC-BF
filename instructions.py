@@ -406,8 +406,6 @@ class MulHighUnsigned(Instruction):
                     scrap1.clear()
                 # next_translator <= 0x70
 
-            concater.debug()
-
         if self.src1 == self.dst:
             src1.clear_big()
 
@@ -1074,10 +1072,11 @@ class SetLessThan(Instruction):
                 )
             return
 
-        if self.src1 == self.dst or self.src2 == self.dst:
-            raise NotImplementedError
-
         invert = False
+        if self.src2 == self.dst:
+            self.src2 = self.src1
+            self.src1 = self.dst
+            invert = True
 
         sign1 = scraps[0]
         divmod1 = scraps[1]
@@ -1090,7 +1089,6 @@ class SetLessThan(Instruction):
         self.src2.get_cell(7).div_imm(8, divmod2, sign2)
         divmod2.move(self.src2.get_cell(7))
 
-        concater.debug()
         sign2.move(sign1, multiplier=-1)
         running.change(1)
         with sign1.loop():  # Знаки различаются
@@ -1113,7 +1111,7 @@ class SetLessThan(Instruction):
                 small_src2 = self.src2.get_cell(i)
                 if self.src1 == self.dst:
                     scrap_src1 = small_src1
-                    scrap_src2 = scraps[1]
+                    scrap_src2 = scraps[3]
                     small_src2.move(scrap_src2)
                 else:
                     scrap_src1 = scraps[1]
