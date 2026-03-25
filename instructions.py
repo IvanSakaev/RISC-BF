@@ -1064,12 +1064,14 @@ class SetLessThan(Instruction):
                 self.src2.get_cell(7).div_imm(8, divmod, sign)
                 if self.src2 == self.dst:
                     divmod.clear()
+                    self.dst.clear_big()
+                    sign.move(self.dst.get_cell(0))
                 else:
                     divmod.move(self.src2.get_cell(7))
-                self.dst.clear_big()
-                sign.move(
-                    self.dst.get_cell(0), self.src2.get_cell(7), multiplier=[1, 8]
-                )
+                    self.dst.clear_big()
+                    sign.move(
+                        self.dst.get_cell(0), self.src2.get_cell(7), multiplier=[1, 8]
+                    )
             return
 
         mod = scraps[0]
@@ -1226,6 +1228,15 @@ class SetNotEqualToZero(Instruction):
 
 
 @dataclass
+class SetLessThanZero(Instruction):
+    dst: Register
+    src: Register
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        SetLessThan(self.dst, self.src, ZERO).evaluate(program, cur_block)
+
+
+@dataclass
 class Output(Instruction):
     reg: Register
 
@@ -1288,6 +1299,7 @@ MNEMONICS["slt"] = SetLessThan
 MNEMONICS["sltu"] = SetLessThanUnsigned
 MNEMONICS["seqz"] = SetEqualToZero
 MNEMONICS["snez"] = SetNotEqualToZero
+MNEMONICS["sltz"] = SetLessThanZero
 
 # debug commands
 MNEMONICS["out"] = Output
