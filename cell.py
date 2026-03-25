@@ -12,25 +12,6 @@ class Cell:
     def __init__(self, addr: int):
         self.addr = addr
 
-    @contextmanager
-    def loop(self):
-        self.to()
-        concater.raw("[")
-        yield
-        self.to()
-        concater.raw("]")
-
-    @contextmanager
-    def ifnot(self):
-        """
-        Two cells after it must be zero
-        """
-        self.to()
-        concater.raw(">+<[>-]>[-", pos_offset=1)
-        yield
-        self.cell_rel(2).to()
-        concater.raw("]")
-
     def to(self):
         """
         Move pointer to this cell.
@@ -40,6 +21,25 @@ class Cell:
         elif self.addr < concater.current_pos.addr:
             concater.current_program += "<" * (concater.current_pos.addr - self.addr)
         concater.current_pos = self
+
+    def raw(self, text: str, pos_offset: int = 0):
+        self.to()
+        concater.raw(text, pos_offset)
+
+    @contextmanager
+    def loop(self):
+        self.raw("[")
+        yield
+        self.raw("]")
+
+    @contextmanager
+    def ifnot(self):
+        """
+        Two cells after it must be zero
+        """
+        self.raw(">+<[>-]>[-", pos_offset=1)
+        yield
+        self.cell_rel(2).raw("]")
 
     def change(self, a: int, b: int | None = None):
         """
@@ -51,18 +51,15 @@ class Cell:
             b = a
             a = 0
         if a > b:
-            self.to()
-            concater.raw("-" * (a - b))
+            self.raw("-" * (a - b))
         elif a < b:
-            self.to()
-            concater.raw("+" * (b - a))
+            self.raw("+" * (b - a))
 
     def clear(self):
         """
         Clear register value.
         """
-        self.to()
-        concater.raw("[-]")
+        self.raw("[-]")
 
     def move(self, *dsts: Cell, multiplier: int | tuple | list = 1):
         """

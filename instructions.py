@@ -452,24 +452,22 @@ class ShiftLeft(Instruction):
 
         for i in range(7, -1, -1):
             # custom ifnot
-            shift_big_scrap.to()
-            concater.raw(">+<[->-]>[>]<", pos_offset=1)
-            #                 ^
-            with shift_big_scrap.cell_rel(1).loop():
-                shift_big_scrap.cell_rel(1).change(-1)
+            shift_big_scrap.raw(">+<[->-]>[-", pos_offset=1)
+            #                        ^
+            small_dst = self.dst.get_cell(i)
+            if self.src != self.dst:
+                small_src = self.src.get_cell(i)
+                small_dst.clear()
+                small_src.copy(small_dst, scrap=mul_scrap)
 
-                small_dst = self.dst.get_cell(i)
-                if self.src != self.dst:
-                    small_src = self.src.get_cell(i)
-                    small_dst.clear()
-                    small_src.copy(small_dst, scrap=mul_scrap)
-
-                with shift_small.loop():
-                    small_dst.move(mul_scrap, multiplier=2)
-                    mul_scrap.move(small_dst)
-                    shift_scrap.change(1)
-                    shift_small.change(-1)
-                shift_scrap.move(shift_small)
+            with shift_small.loop():
+                small_dst.move(mul_scrap, multiplier=2)
+                mul_scrap.move(small_dst)
+                shift_scrap.change(1)
+                shift_small.change(-1)
+            shift_scrap.move(shift_small)
+            shift_big_scrap.cell_rel(2).raw("]")
+            # end of ifnot
 
         with shift_big.loop():
             self.dst.get_cell(7).clear()
@@ -1145,10 +1143,9 @@ class SetLessThan(Instruction):
                     output_value.change(-1 if invert else 1)
                     scrap_src2.move(small_src2)
 
-                running.to()
-                concater.raw("[")
+                running.raw("[")
             running.change(-1)
-            concater.raw("]]]]]]]]")
+            running.raw("]]]]]]]]")
             self.dst.clear_big()
             output_value.move(self.dst.get_cell(0))
 
@@ -1178,11 +1175,9 @@ class SetLessThanUnsigned(Instruction):
                     output.change(1)
                     small_src2.move(scrap_src2)
                 scrap_src2.move(small_src2)
-                running.to()
-                concater.raw("[")
+                running.raw("[")
             running.change(-1)
-            running.to()
-            concater.raw("]]]]]]]]")
+            running.raw("]]]]]]]]")
 
             self.dst.clear_big()
             output.move(self.dst.get_cell(0))
@@ -1237,10 +1232,9 @@ class SetLessThanUnsigned(Instruction):
                 output_value.change(-1 if invert else 1)
                 scrap_src2.move(small_src2)
 
-            running.to()
-            concater.raw("[")
+            running.raw("[")
         running.change(-1)
-        concater.raw("]]]]]]]]")
+        running.raw("]]]]]]]]")
         self.dst.clear_big()
         output_value.move(self.dst.get_cell(0))
 
@@ -1270,11 +1264,10 @@ class Output(Instruction):
                 output.change(-1)
                 small.change(10)
                 mod.change(48, 65)  # Start at ASCII `A`
-            mod.to()
-            concater.raw(".")
+            mod.raw(".")
             mod.clear()
         mod.change(10)  # Line feed
-        concater.raw(".")
+        mod.raw(".")
         mod.clear()
 
 

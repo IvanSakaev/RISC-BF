@@ -2,10 +2,12 @@ import random
 import subprocess
 
 for i in range(1, 101):
-    num1 = random.randint(-2**31, 2**31)
-    num2 = random.randint(-2**31, 2**31)
     # num1 = random.randrange(256)
     # num2 = random.randrange(256)
+    num1 = random.randint(-2**31, 2**31)
+    num2 = random.randint(-2**31, 2**31)
+    # num1 = random.randrange(2**32)
+    # num2 = random.randrange(2**32)
 
     num1text = num1 & 0xFFFFFFFF
     num2text = num2 & 0xFFFFFFFF
