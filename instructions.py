@@ -1040,11 +1040,30 @@ class SetLessThanUnsigned(Instruction):
             self.dst.clear_big()
             return
         if self.src1 == ZERO:
-            raise NotImplementedError
+            running = scraps[0]
+            running.change(1)
+            output = scraps[1]
+            for i in range(8):
+                small_src2 = self.src2.get_cell(i)
+                scrap_src2 = scraps[2]
+                with small_src2.loop():
+                    running.change(-1)
+                    output.change(1)
+                    small_src2.move(scrap_src2)
+                scrap_src2.move(small_src2)
+                running.to()
+                concater.raw("[")
+            running.change(-1)
+            running.to()
+            concater.raw("]]]]]]]]")
+
+            self.dst.clear_big()
+            output.move(self.dst.get_cell(0))
+            return
         if self.src2 == ZERO:
             self.dst.clear_big()
             return
-        
+
         invert = False
         if self.src2 == self.dst:
             self.src2 = self.src1
@@ -1060,9 +1079,9 @@ class SetLessThanUnsigned(Instruction):
             small_src1 = self.src1.get_cell(i)
             small_src2 = self.src2.get_cell(i)
             if self.src1 == self.dst:
-               scrap_src1 = small_src1
-               scrap_src2 = scraps[2]
-               small_src2.move(scrap_src2) 
+                scrap_src1 = small_src1
+                scrap_src2 = scraps[2]
+                small_src2.move(scrap_src2)
             else:
                 scrap_src1 = scraps[2]
                 scrap_src2 = scraps[3]
