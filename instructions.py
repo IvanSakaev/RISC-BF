@@ -778,6 +778,7 @@ class Not(Instruction):
     src: Register
 
     def evaluate(self, program, cur_block, comments=False):
+        concater.rem(f"not {self.dst} {self.src}", comments)
         if self.dst == ZERO:
             return
         if self.src == ZERO:
@@ -1176,6 +1177,7 @@ class SetEqualToZero(Instruction):
     src: Register
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"seqz {self.dst} {self.src}", comments)
         if self.dst == ZERO:
             return
         if self.src == ZERO:
@@ -1217,6 +1219,7 @@ class SetNotEqualToZero(Instruction):
         comments: bool = False,
         move_to_dst: bool = True,
     ):
+        concater.rem(f"snez {self.dst} {self.src}", comments)
         running = scraps[0]
         running.change(1)
         output = scraps[1]
@@ -1243,6 +1246,7 @@ class SetLessThanZero(Instruction):
     src: Register
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"sltz {self.dst} {self.src}", comments)
         SetLessThan(self.dst, self.src, ZERO).evaluate(program, cur_block)
 
 
@@ -1252,6 +1256,7 @@ class SetGreaterThanZero(Instruction):
     src: Register
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"sgtz {self.dst} {self.src}", comments)
         SetLessThan(self.dst, ZERO, self.src).evaluate(program, cur_block)
 
 
