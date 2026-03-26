@@ -1050,16 +1050,19 @@ class SetLessThan(Instruction):
                     divmod.clear()
                 else:
                     divmod.move(self.src2.get_cell(7))
-                self.dst.clear_big()
-                if self.src2 == self.dst:
-                    sign.change(1)
-                    sign.move(self.dst.get_cell(0))
-                else:
+                output = scraps[1]
+                if self.src2 != self.dst:
                     self.src2.get_cell(7).change(8)
-                    sign.change(1)
-                    sign.move(
-                        self.dst.get_cell(0), self.src2.get_cell(7), multiplier=[1, -8]
+                sign.change(1)
+                with sign.loop():
+                    sign.change(-1)
+                    if self.src2 != self.dst:
+                        self.src2.get_cell(7).change(-8)
+                    SetNotEqualToZero(self.dst, self.src2).evaluate(
+                        program, cur_block, move_to_dst=False
                     )
+                self.dst.clear_big()
+                output.move(self.dst.get_cell(0))
             else:
                 self.src2.get_cell(7).div_imm(8, divmod, sign)
                 if self.src2 == self.dst:
@@ -1108,23 +1111,7 @@ class SetLessThanUnsigned(Instruction):
             self.dst.clear_big()
             return
         if self.src1 == ZERO:
-            running = scraps[0]
-            running.change(1)
-            output = scraps[1]
-            for i in range(8):
-                small_src2 = self.src2.get_cell(i)
-                scrap_src2 = scraps[2]
-                with small_src2.loop():
-                    running.change(-1)
-                    output.change(1)
-                    small_src2.move(scrap_src2)
-                scrap_src2.move(small_src2)
-                running.raw("[")
-            running.change(-1)
-            running.raw("]]]]]]]]")
-
-            self.dst.clear_big()
-            output.move(self.dst.get_cell(0))
+            SetNotEqualToZero(self.dst, self.src2).evaluate(program, cur_block)
             return
         if self.src2 == ZERO:
             self.dst.clear_big()
@@ -1223,8 +1210,31 @@ class SetNotEqualToZero(Instruction):
     dst: Register
     src: Register
 
-    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        SetLessThanUnsigned(self.dst, ZERO, self.src).evaluate(program, cur_block)
+    def evaluate(
+        self,
+        program: Program,
+        cur_block: Block,
+        comments: bool = False,
+        move_to_dst: bool = True,
+    ):
+        running = scraps[0]
+        running.change(1)
+        output = scraps[1]
+        for i in range(8):
+            small_src = self.src.get_cell(i)
+            scrap_src = scraps[2]
+            with small_src.loop():
+                running.change(-1)
+                output.change(1)
+                small_src.move(scrap_src)
+            scrap_src.move(small_src)
+            running.raw("[")
+        running.change(-1)
+        running.raw("]]]]]]]]")
+
+        if move_to_dst:
+            self.dst.clear_big()
+            output.move(self.dst.get_cell(0))
 
 
 @dataclass
@@ -1234,6 +1244,15 @@ class SetLessThanZero(Instruction):
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         SetLessThan(self.dst, self.src, ZERO).evaluate(program, cur_block)
+
+
+@dataclass
+class SetGreaterThanZero(Instruction):
+    dst: Register
+    src: Register
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        SetLessThan(self.dst, ZERO, self.src).evaluate(program, cur_block)
 
 
 @dataclass
@@ -1300,6 +1319,7 @@ MNEMONICS["sltu"] = SetLessThanUnsigned
 MNEMONICS["seqz"] = SetEqualToZero
 MNEMONICS["snez"] = SetNotEqualToZero
 MNEMONICS["sltz"] = SetLessThanZero
+MNEMONICS["sgtz"] = SetGreaterThanZero
 
 # debug commands
 MNEMONICS["out"] = Output
