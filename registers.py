@@ -148,7 +148,38 @@ ZERO = Register(
 # Variable is only the first cell of register. 7 cells after that are register too.
 # Register cells SHOULD BE only 4 bits (values between 0 and 15)
 # Operations with registers should be little-endian
-regs = {
-    "x0": ZERO,
-    "zero": ZERO,
-} | {f"x{i + 1}": Register(i * 8 + SCRAP_COUNT - 4) for i in range(8)}
+regs = {f"x{i + 1}": Register(i * 8 + SCRAP_COUNT - 4) for i in range(32)}
+regs["x0"] = ZERO
+
+regs["zero"] = regs["x0"]
+regs["ra"] = regs["x1"]
+regs["sp"] = regs["x2"]
+regs["gp"] = regs["x3"]
+regs["tp"] = regs["x4"]
+regs["t0"] = regs["x5"]
+regs["t1"] = regs["x6"]
+regs["t2"] = regs["x7"]
+regs["s0"] = regs["fp"] = regs["x8"]
+regs["s1"] = regs["x9"]
+regs["a0"] = regs["x10"]
+regs["a1"] = regs["x11"]
+regs["a2"] = regs["x12"]
+regs["a3"] = regs["x13"]
+regs["a4"] = regs["x14"]
+regs["a5"] = regs["x15"]
+regs["a6"] = regs["x16"]
+regs["a7"] = regs["x17"]
+regs["s2"] = regs["x18"]
+regs["s3"] = regs["x19"]
+regs["s4"] = regs["x20"]
+regs["s5"] = regs["x21"]
+regs["s6"] = regs["x22"]
+regs["s7"] = regs["x23"]
+regs["s8"] = regs["x24"]
+regs["s9"] = regs["x25"]
+regs["s10"] = regs["x26"]
+regs["s11"] = regs["x27"]
+regs["t3"] = regs["x28"]
+regs["t4"] = regs["x29"]
+regs["t5"] = regs["x30"]
+regs["t6"] = regs["x31"]
