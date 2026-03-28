@@ -11,7 +11,7 @@ from instructions import (
     MNEMONICS,
     is_block_boundary,
 )
-from registers import SCRAP_COUNT, Immediate, regs
+from registers import SCRAP_COUNT, Immediate, Register, regs
 
 
 def split_program_into_blocks(instrs):
@@ -25,7 +25,11 @@ def split_program_into_blocks(instrs):
             if isinstance(i, instructions.LabelDefine):
                 cur_block.append(instructions.JumpRelative(Immediate(1)))
 
-            blocks.append(instructions.Block(0, instructions.KiloBlock(0, []), block_name, cur_block))
+            blocks.append(
+                instructions.Block(
+                    0, instructions.KiloBlock(0, []), block_name, cur_block
+                )
+            )
             cur_block = []
             if isinstance(i, instructions.LabelDefine):
                 block_name = i.name
@@ -33,7 +37,9 @@ def split_program_into_blocks(instrs):
                 block_name = None
 
     cur_block.append(instructions.JumpRelative(Immediate(1)))
-    blocks.append(instructions.Block(0, instructions.KiloBlock(0, []), block_name, cur_block))
+    blocks.append(
+        instructions.Block(0, instructions.KiloBlock(0, []), block_name, cur_block)
+    )
 
     return blocks
 
@@ -134,6 +140,38 @@ class Program:
         )
 
 
+def parse_arg(arg_s: str, expected_type: type, mnemonic: str):
+    """Parse a single argument string to the expected type."""
+    arg_s = arg_s.strip()
+
+    if expected_type == Register:
+        if arg_s in regs:
+            return regs[arg_s]
+        raise ValueError(f"Register {arg_s} is unavailable")
+
+    elif expected_type == instructions.Label:
+        return instructions.Label(arg_s[1:-1])
+
+    elif expected_type == Immediate:
+        sign = 1
+        if arg_s.startswith("-"):
+            sign = -1
+            arg_s = arg_s[1:]
+        arg_s_lower = arg_s.lower()
+        if arg_s_lower.startswith("0x"):
+            imm = int(arg_s_lower[2:], 16)
+        elif arg_s_lower.startswith("0b"):
+            imm = int(arg_s_lower[2:], 2)
+        elif arg_s.startswith("0") and len(arg_s) > 1:
+            imm = int(arg_s[1:], 8)
+        else:
+            imm = int(arg_s)
+        return Immediate(sign * imm)
+
+    else:
+        raise ValueError(f"Unknown expected type: {expected_type}")
+
+
 def parse(s: str):
     insts: list[instructions.Instruction | instructions.LabelDefine] = []
     for line in s.split("\n"):
@@ -143,62 +181,43 @@ def parse(s: str):
             line = line[: line.find(".")]
         if line.isspace() or not line:
             continue
-        line = line.strip(" ")
-        line = line.strip("\t")
-        line = line.strip("\n")
+        line = line.strip()
         if line.endswith(":"):
             insts.append(instructions.LabelDefine(line[:-1]))
             continue
-        args: list = []
+
         if " " not in line:
             mnemonic = line
+            args_str = ""
         else:
             mnemonic = line[: line.find(" ")]
             args_str = line[line.find(" ") :].strip(" ")
-            for arg_s in args_str.split(","):
-                arg_s = arg_s.strip()
-                if arg_s in regs:
-                    args.append(regs[arg_s])
-                elif arg_s[0] == "<" and arg_s[-1] == ">":
-                    args.append(instructions.Label(arg_s[1:-1]))
-                else:
-                    sign = 1
-                    if arg_s.startswith("-"):
-                        sign = -1
-                        arg_s = arg_s[1:]
-                    arg_s = arg_s.lower()
-                    if arg_s.startswith("0x"):
-                        imm = int(arg_s[2:], 16)
-                    elif arg_s.startswith("0"):
-                        if len(arg_s[1:]) == 0:
-                            imm = 0
-                        else:
-                            imm = int(arg_s[1:], 8)
-                    elif arg_s.startswith("0b"):
-                        imm = int(arg_s[2:], 2)
-                    else:
-                        imm = int(arg_s)
-                    args.append(Immediate(sign * imm))
 
         mnemonic = mnemonic.lower()
         op = MNEMONICS[mnemonic]
-        op_args = get_type_hints(op).values()
-        if len(args) != len(op_args):
+        op_args = list(get_type_hints(op).values())
+
+        args: list = []
+        if args_str:
+            arg_strings = [a.strip() for a in args_str.split(",")]
+        else:
+            arg_strings = []
+
+        if len(arg_strings) != len(op_args):
             raise ValueError(
-                f"Wrong number of arguments for {mnemonic}, expected {len(op_args)} arguments, got {len(args)}"
+                f"Wrong number of arguments for {mnemonic}, expected {len(op_args)} "
+                f"arguments, got {len(arg_strings)}"
             )
 
-        for arg, op_arg in zip(args, op_args):
+        for arg_s, op_arg in zip(arg_strings, op_args):
             if get_origin(op_arg) in (Union, types.UnionType):
-                op_arg = get_args(op_arg)
+                expected_types = get_args(op_arg)
             else:
-                op_arg = [op_arg]
+                expected_types = (op_arg,)
 
-            if type(arg) not in op_arg:
-                expected = " or ".join(map(str, op_arg))
-                raise ValueError(
-                    f"Wrong type for argument '{arg}' of '{mnemonic}', expected: {expected}, got {type(arg)}"
-                )
+            for expected_type in expected_types:
+                arg = parse_arg(arg_s, expected_type, mnemonic)
+                args.append(arg)
 
         insts.append(op(*args))
     return insts
