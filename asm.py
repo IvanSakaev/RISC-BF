@@ -173,15 +173,30 @@ def parse_arg(arg_s: str, expected_type: type, mnemonic: str):
 
 
 def parse(s: str):
+    if not hasattr(parse, "_instruction_arg_types"):
+        parse._instruction_arg_types = {}
+        for mnem, op in MNEMONICS.items():
+            hints = get_type_hints(op)
+            op_args = list(hints.values())
+            arg_types = []
+            for op_arg in op_args:
+                if get_origin(op_arg) in (Union, types.UnionType):
+                    expected_types = get_args(op_arg)
+                else:
+                    expected_types = (op_arg,)
+                arg_types.append(expected_types)
+            parse._instruction_arg_types[mnem] = arg_types
+
     insts: list[instructions.Instruction | instructions.LabelDefine] = []
     for line in s.split("\n"):
+        # Удаляем комментарии и метки
         if "#" in line:
             line = line[: line.find("#")]
         if "." in line:
             line = line[: line.find(".")]
-        if line.isspace() or not line:
-            continue
         line = line.strip()
+        if not line:
+            continue
         if line.endswith(":"):
             insts.append(instructions.LabelDefine(line[:-1]))
             continue
@@ -194,32 +209,37 @@ def parse(s: str):
             args_str = line[line.find(" ") :].strip(" ")
 
         mnemonic = mnemonic.lower()
-        op = MNEMONICS[mnemonic]
-        op_args = list(get_type_hints(op).values())
+        if mnemonic not in MNEMONICS:
+            raise ValueError(f"Unknown mnemonic: {mnemonic}")
+        arg_types_list = parse._instruction_arg_types[mnemonic]
 
-        args: list = []
         if args_str:
             arg_strings = [a.strip() for a in args_str.split(",")]
         else:
             arg_strings = []
 
-        if len(arg_strings) != len(op_args):
+        if len(arg_strings) != len(arg_types_list):
             raise ValueError(
-                f"Wrong number of arguments for {mnemonic}, expected {len(op_args)} "
+                f"Wrong number of arguments for {mnemonic}, expected {len(arg_types_list)} "
                 f"arguments, got {len(arg_strings)}"
             )
 
-        for arg_s, op_arg in zip(arg_strings, op_args):
-            if get_origin(op_arg) in (Union, types.UnionType):
-                expected_types = get_args(op_arg)
-            else:
-                expected_types = (op_arg,)
-
+        args: list = []
+        for arg_s, expected_types in zip(arg_strings, arg_types_list):
+            last_exc = None
             for expected_type in expected_types:
-                arg = parse_arg(arg_s, expected_type, mnemonic)
-                args.append(arg)
+                try:
+                    arg = parse_arg(arg_s, expected_type, mnemonic)
+                    args.append(arg)
+                    break
+                except Exception as e:
+                    last_exc = e
+            else:
+                raise ValueError(
+                    f"Failed to parse argument '{arg_s}' for {mnemonic}: {last_exc}"
+                )
 
-        insts.append(op(*args))
+        insts.append(MNEMONICS[mnemonic](*args))
     return insts
 
 
