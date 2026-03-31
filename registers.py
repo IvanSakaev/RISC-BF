@@ -28,10 +28,10 @@ class Register:
             small_src.move(*small_dsts, multiplier=multiplier)
 
     def copy_big(
-        self,
-        *dsts: Register,
-        scrap: Cell | None = None,
-        multiplier: int | tuple | list = 1,
+            self,
+            *dsts: Register,
+            scrap: Cell | None = None,
+            multiplier: int | tuple | list = 1,
     ):
         if scrap is None:
             scrap = scraps[0]
@@ -53,13 +53,13 @@ class Register:
             cell.clear()
 
     def change_big(self, a: int, b: int | None = None, clear=False):
-        assert 0 <= a < 2**32
+        assert 0 <= a < 2 ** 32
         if b is None:
             b = a
             a = 0
         val = b - a
         if val < 0:
-            val = 2**32 - val
+            val = 2 ** 32 - val
         for cell in self.get_cells():
             if clear:
                 cell.clear()
@@ -142,7 +142,7 @@ class Immediate(int):
 
 
 ZERO = Register(
-    -7
+    -1000
 )  # IMPORTANT! It isn't a physical register, it mustn't be used for data storage
 
 # Variable is only the first cell of register. 7 cells after that are register too.

@@ -5,11 +5,13 @@ import types
 from typing import Union, get_args, get_origin, get_type_hints
 
 import config
-import instructions
+import instructions.mnemonics
 from cell import concater
-from instructions import (
+from instructions.mnemonics import (
     MNEMONICS,
     is_block_boundary,
+    Block,
+    KiloBlock,
 )
 from registers import SCRAP_COUNT, Immediate, Register, regs
 
@@ -19,39 +21,39 @@ def split_program_into_blocks(instrs):
     cur_block = []
     block_name = None
     for i in instrs:
-        if not isinstance(i, instructions.LabelDefine):
+        if not isinstance(i, instructions.mnemonics.LabelDefine):
             cur_block.append(i)
         if is_block_boundary(i):
-            if isinstance(i, instructions.LabelDefine):
-                cur_block.append(instructions.JumpRelative(Immediate(1)))
+            if isinstance(i, instructions.mnemonics.LabelDefine):
+                cur_block.append(instructions.mnemonics.JumpRelative(Immediate(1)))
 
             blocks.append(
-                instructions.Block(
-                    0, instructions.KiloBlock(0, []), block_name, cur_block
+                Block(
+                    0, KiloBlock(0, []), block_name, cur_block
                 )
             )
             cur_block = []
-            if isinstance(i, instructions.LabelDefine):
+            if isinstance(i, instructions.mnemonics.LabelDefine):
                 block_name = i.name
             else:
                 block_name = None
 
-    cur_block.append(instructions.JumpRelative(Immediate(1)))
+    cur_block.append(instructions.mnemonics.JumpRelative(Immediate(1)))
     blocks.append(
-        instructions.Block(0, instructions.KiloBlock(0, []), block_name, cur_block)
+        Block(0, KiloBlock(0, []), block_name, cur_block)
     )
 
     return blocks
 
 
-def split_blocks_into_kiloblocks(blocks: list[instructions.Block]):
-    kiloblocks = [instructions.KiloBlock(1, [])]
+def split_blocks_into_kiloblocks(blocks: list[Block]):
+    kiloblocks = [KiloBlock(1, [])]
     i = 0
     for block in blocks:
         i += 1
         if i > config.BLOCKS_IN_KILOBLOCK:
             i = 1
-            kiloblocks.append(instructions.KiloBlock(len(kiloblocks) + 1, []))
+            kiloblocks.append(KiloBlock(len(kiloblocks) + 1, []))
         block.myid = i
         block.kiloblock = kiloblocks[-1]
         kiloblocks[-1].blocks.append(block)
@@ -74,7 +76,7 @@ class Program:
                     return i, j
         raise ValueError(f"Block not found: {name}")
 
-    def find_next_block(self, block: instructions.Block):
+    def find_next_block(self, block: Block):
         i = block.kiloblock.myid
         j = block.myid
         j += 1
@@ -94,15 +96,15 @@ class Program:
         out += "]"
         return out
 
-    def kiloblock_prologue(self, kiloblock: instructions.KiloBlock):
+    def kiloblock_prologue(self, kiloblock: KiloBlock):
         name = f"kiloblock_{kiloblock.myid}"
         name_line = f"{concater.sanitize(name)}:"
         return f"\n{name_line}\n->+<[>-]>[>]<[-<<[>+<-]>\n"
 
-    def kiloblock_epilogue(self, kiloblock: instructions.KiloBlock):
+    def kiloblock_epilogue(self, kiloblock: KiloBlock):
         return "\nend_kiloblock -" + "]" * len(kiloblock.blocks) + " >]<["
 
-    def block_prologue(self, block: instructions.Block):
+    def block_prologue(self, block: Block):
         name = block.name
         if name is None:
             name = f"block_{block.myid}"
@@ -113,34 +115,34 @@ class Program:
     def block_epilogue(self):
         return "\n]<["
 
-    def assemble_block(self, block: instructions.Block):
+    def assemble_block(self, block: Block):
         concater.init_block()
         for inst in block.insts:
             inst.evaluate(self, block, True)
         return (
-            self.block_prologue(block)
-            + concater.get_block_code()
-            + self.block_epilogue()
+                self.block_prologue(block)
+                + concater.get_block_code()
+                + self.block_epilogue()
         )
 
-    def assemble_kiloblock(self, kiloblock: instructions.KiloBlock):
+    def assemble_kiloblock(self, kiloblock: KiloBlock):
         return (
-            self.kiloblock_prologue(kiloblock)
-            + "\n".join([self.assemble_block(block) for block in kiloblock.blocks])
-            + self.kiloblock_epilogue(kiloblock)
+                self.kiloblock_prologue(kiloblock)
+                + "\n".join([self.assemble_block(block) for block in kiloblock.blocks])
+                + self.kiloblock_epilogue(kiloblock)
         )
 
     def assemble(self):
         return (
-            self.program_prologue()
-            + "\n".join(
-                [self.assemble_kiloblock(kiloblock) for kiloblock in self.kiloblocks]
-            )
-            + self.program_epilogue()
+                self.program_prologue()
+                + "\n".join(
+            [self.assemble_kiloblock(kiloblock) for kiloblock in self.kiloblocks]
+        )
+                + self.program_epilogue()
         )
 
 
-def parse_arg(arg_s: str, expected_type: type, mnemonic: str):
+def parse_arg(arg_s: str, expected_type: type):
     """Parse a single argument string to the expected type."""
     arg_s = arg_s.strip()
 
@@ -149,8 +151,8 @@ def parse_arg(arg_s: str, expected_type: type, mnemonic: str):
             return regs[arg_s]
         raise ValueError(f"Register {arg_s} is unavailable")
 
-    elif expected_type == instructions.Label:
-        return instructions.Label(arg_s[1:-1])
+    elif expected_type == instructions.mnemonics.Label:
+        return instructions.mnemonics.Label(arg_s[1:-1])
 
     elif expected_type == Immediate:
         sign = 1
@@ -187,7 +189,7 @@ def parse(s: str):
                 arg_types.append(expected_types)
             parse._instruction_arg_types[mnem] = arg_types
 
-    insts: list[instructions.Instruction | instructions.LabelDefine] = []
+    insts: list[instructions.mnemonics.Instruction | instructions.mnemonics.LabelDefine] = []
     for line in s.split("\n"):
         # Удаляем комментарии и метки
         if "#" in line:
@@ -198,7 +200,7 @@ def parse(s: str):
         if not line:
             continue
         if line.endswith(":"):
-            insts.append(instructions.LabelDefine(line[:-1]))
+            insts.append(instructions.mnemonics.LabelDefine(line[:-1]))
             continue
 
         if " " not in line:
@@ -206,7 +208,7 @@ def parse(s: str):
             args_str = ""
         else:
             mnemonic = line[: line.find(" ")]
-            args_str = line[line.find(" ") :].strip(" ")
+            args_str = line[line.find(" "):].strip(" ")
 
         mnemonic = mnemonic.lower()
         if mnemonic not in MNEMONICS:
@@ -229,7 +231,7 @@ def parse(s: str):
             last_exc = None
             for expected_type in expected_types:
                 try:
-                    arg = parse_arg(arg_s, expected_type, mnemonic)
+                    arg = parse_arg(arg_s, expected_type)
                     args.append(arg)
                     break
                 except Exception as e:
@@ -239,7 +241,8 @@ def parse(s: str):
                     f"Failed to parse argument '{arg_s}' for {mnemonic}: {last_exc}"
                 )
 
-        insts.append(MNEMONICS[mnemonic](*args))
+        mnemonic_obj = MNEMONICS[mnemonic](*args)
+        insts.append(mnemonic_obj)
     return insts
 
 

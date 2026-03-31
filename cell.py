@@ -77,15 +77,15 @@ class Cell:
             self.change(-1)
 
     def copy(
-        self,
-        *dsts: Cell,
-        scrap: Cell | None = None,
-        multiplier: int | tuple | list = 1,
+            self,
+            *dsts: Cell,
+            scrap: Cell | None = None,
+            multiplier: int | tuple | list = 1,
     ):
         """
         Copy register value to "dsts". Value is multiplied by "multiplier".
 
-        "scrap" cell is used for copying. Before copying it should be 0, after it will be 0 too.
+        "scrap" cell is used for copying. Before copying, it should be 0, after it will be 0 too.
         """
         if scrap is None:
             scrap = scraps[0]
@@ -99,11 +99,11 @@ class Cell:
         scrap.move(self)
 
     def div_imm(
-        self,
-        base: int,
-        mod: Cell | None = None,
-        output: Cell | None | object = _default,
-        invert_output: bool = False,
+            self,
+            base: int,
+            mod: Cell | None = None,
+            output: Cell | None | object = _default,
+            invert_output: bool = False,
     ):
         """
         It divides cell by constant number. Result and reminder are stored. (Result isn't stored if need_output=False)'
@@ -112,7 +112,7 @@ class Cell:
 
         Reminder is stored in "mod" (scraps[0] by default).
 
-        Two scraps after "mod" are used for calculations (scraps[1] and scraps[2] by default
+        Two scraps after "mod" are used for calculations (scraps[1] and scraps[2] by default)
 
         Output value is stored in "output" (scraps[3] by default).
         It won't be stored if "output" = None.
@@ -150,12 +150,11 @@ class Cell:
 ROOT = Cell(-2)  # Every block starts and ends here
 concater = _Concater(ROOT)
 
-
 next2 = Cell(-6)  # next block number
 next1 = Cell(-5)  # next kiloblock number
 
 current2 = Cell(-4)  # current block number
 current1 = Cell(-3)  # current kiloblock number
 
-# Safe to modiefy in blocks, equal zero in blocks, after modiefying must stay zero
+# Safe to modify in blocks, equal zero in blocks, after modifying must stay zero
 scraps = [Cell(i - 4) for i in range(SCRAP_COUNT)]
