@@ -7,7 +7,7 @@ from typing import Union, get_args, get_origin, get_type_hints
 import config
 import instructions.mnemonics
 from cell import concater
-from config import REGISTER_COUNT
+from config import REGISTER_COUNT, MEMORY_SCRAPS_COUNT
 from instructions.mnemonics import (
     MNEMONICS,
     is_block_boundary,
@@ -259,5 +259,5 @@ if __name__ == "__main__":
         f.write(f"a2[{SCRAP_COUNT:x}] scraps\n")  # TODO: print only scraps before registers
         for i in range(4):  # TODO: Replace with REGISTER_COUNT
             f.write(f"a{i * 8 + SCRAP_COUNT + 2:x}[8] x{i + 1}\n")
-        f.write(f"a{REGISTER_COUNT * 8 + SCRAP_COUNT + 2:x}[{14:x}] mem_scraps\n")
-        f.write(f"a{REGISTER_COUNT * 8 + SCRAP_COUNT + 16:x}[{256:x}] memory\n")
+        f.write(f"a{REGISTER_COUNT * 8 + SCRAP_COUNT + 2:x}[{MEMORY_SCRAPS_COUNT :x}] mem_scraps\n")
+        f.write(f"a{REGISTER_COUNT * 8 + SCRAP_COUNT + 2 + MEMORY_SCRAPS_COUNT:x}[{256:x}] memory\n")

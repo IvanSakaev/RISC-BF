@@ -3,7 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 
 from concater import _Concater
-from config import SCRAP_COUNT, REGISTER_COUNT
+from config import SCRAP_COUNT, REGISTER_COUNT, MEMORY_SCRAPS_COUNT
 
 _default = object()
 
@@ -25,6 +25,10 @@ class Cell:
     def raw(self, text: str, pos_offset: int = 0):
         self.to()
         concater.raw(text, pos_offset)
+    
+    def debug(self):
+        self.to()
+        concater.debug()
 
     @contextmanager
     def loop(self):
@@ -158,5 +162,5 @@ current1 = Cell(3)  # current kiloblock number
 
 # Safe to modify in blocks, equal zero in blocks, after modifying must stay zero
 scraps = [Cell(i + 2) for i in range(SCRAP_COUNT)]  # TODO: reduce scrap count
-memory_scraps = [Cell(i + REGISTER_COUNT * 8 + SCRAP_COUNT + 2) for i in range(14)]
+memory_scraps = [Cell(i + REGISTER_COUNT * 8 + SCRAP_COUNT + 2) for i in range(MEMORY_SCRAPS_COUNT)]
 scraps.extend(memory_scraps)
