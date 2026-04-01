@@ -19,21 +19,34 @@ class StoreWord(Instruction):
             small_src = self.src.get_cell(i)
             small_src.copy(data_cell[i // 2], scrap=addr_scrap, multiplier=1 if i % 2 == 0 else 16)
         self.addr.register.move_big(addr_cell)
-        
-        for i in range(8):
+
+        for i in range(5):  # TODO: Make 3-bytes addressing, not 2.5-bytes
             with addr_cell.get_cell(i).loop():
-                first_mem_cell.move(zero_scrap)
-                for j in range(3, -1, -1):
-                    data_cell[j].move(data_cell[j].cell_rel(1))
+                if i == 0:
+                    first_mem_cell.move(zero_scrap)
+                    for j in range(3, -1, -1):
+                        data_cell[j].move(data_cell[j].cell_rel(1))
+                    addr_scrap.move(data_cell[0])
+                    for j in range(7, -1, -1):
+                        addr_cell.get_cell(j).move(addr_cell.get_cell(j).cell_rel(1))
+                    concater.raw("", pos_offset=-1)
+                else:
+                    first_swap_cell = zero_scrap.cell_rel(16 ** i)
+                    first_swap_cell.move(zero_scrap)
+                    zero_swap_cell = first_swap_cell
+                    for j in range(1, len(memory_scraps)):
+                        memory_scraps[j].move(zero_swap_cell)
+                        first_swap_cell.cell_rel(j).move(memory_scraps[j])
+                        zero_swap_cell.move(first_swap_cell.cell_rel(j))
+                    concater.raw("", pos_offset=-(16 ** i))
                 addr_scrap.change(1)
-                addr_scrap.move(data_cell[0])
-                for j in range(7, -1, -1):
-                    addr_cell.get_cell(j).move(addr_cell.get_cell(j).cell_rel(1))
-                concater.raw("", pos_offset=-1)
                 addr_cell.get_cell(i).change(-1)
+                zero_scrap.to()
+                concater.debug()
             addr_scrap.move(addr_cell.get_cell(i))
-        # WARNING: You don't know your actual position now. It's impossible to use default scraps.
+
+        # WARNING: You don't know your actual position now. It's impossible to use cells before zero_scrap
         for i in range(4):
             data_cell[i].move(first_mem_cell.cell_rel(i))
-        first_mem_cell.to()
+        zero_scrap.to()
         concater.debug()

@@ -260,4 +260,4 @@ if __name__ == "__main__":
         for i in range(4):  # TODO: Replace with REGISTER_COUNT
             f.write(f"a{i * 8 + SCRAP_COUNT + 2:x}[8] x{i + 1}\n")
         f.write(f"a{REGISTER_COUNT * 8 + SCRAP_COUNT + 2:x}[{14:x}] mem_scraps\n")
-        f.write(f"a{REGISTER_COUNT * 8 + SCRAP_COUNT + 16:x}[{16:x}] memory\n")
+        f.write(f"a{REGISTER_COUNT * 8 + SCRAP_COUNT + 16:x}[{256:x}] memory\n")
