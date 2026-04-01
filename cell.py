@@ -25,7 +25,7 @@ class Cell:
     def raw(self, text: str, pos_offset: int = 0):
         self.to()
         concater.raw(text, pos_offset)
-    
+
     def debug(self):
         self.to()
         concater.debug()
@@ -161,6 +161,7 @@ current2 = Cell(2)  # current block number
 current1 = Cell(3)  # current kiloblock number
 
 # Safe to modify in blocks, equal zero in blocks, after modifying must stay zero
-scraps = [Cell(i + 2) for i in range(SCRAP_COUNT)]  # TODO: reduce scrap count
-memory_scraps = [Cell(i + REGISTER_COUNT * 8 + SCRAP_COUNT + 2) for i in range(MEMORY_SCRAPS_COUNT)]
+scraps = [Cell(i + 2) for i in range(SCRAP_COUNT - MEMORY_SCRAPS_COUNT)]
+memory_scraps = [Cell(i + REGISTER_COUNT * 8 + SCRAP_COUNT - MEMORY_SCRAPS_COUNT + 2)
+                 for i in range(MEMORY_SCRAPS_COUNT)]
 scraps.extend(memory_scraps)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from cell import Cell, scraps
-from config import SCRAP_COUNT, REGISTER_COUNT
+from config import SCRAP_COUNT, REGISTER_COUNT, MEMORY_SCRAPS_COUNT
 
 
 class Register:
@@ -143,7 +143,7 @@ class Immediate(int):
 
     def copy(self, *dsts: Cell, multiplier: int | list = 1):
         self.move(*dsts, multiplier=multiplier)
-    
+
     @classmethod
     def from_text(cls, text: str):
         sign = 1
@@ -175,7 +175,7 @@ ZERO = Register(
 # Variable is only the first cell of register. 7 cells after that are register too.
 # Register cells SHOULD BE only 4 bits (values between 0 and 15)
 # Operations with registers should be little-endian
-regs = {f"x{i + 1}": Register(i * 8 + SCRAP_COUNT + 2) for i in range(REGISTER_COUNT)}
+regs = {f"x{i + 1}": Register(i * 8 + SCRAP_COUNT - MEMORY_SCRAPS_COUNT + 2) for i in range(REGISTER_COUNT)}
 regs["x0"] = ZERO
 
 regs["zero"] = regs["x0"]
