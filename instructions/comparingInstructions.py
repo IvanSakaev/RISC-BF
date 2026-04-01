@@ -22,13 +22,13 @@ class SetLessThan(Instruction):
             invert = True
         if self.src1 == ZERO:
             sign = scraps[0]
-            divmod = scraps[1]
+            mod = scraps[1]
             if not invert:
-                self.src2.get_cell(7).div_imm(8, divmod, sign, invert_output=True)
+                self.src2.get_cell(7).div_imm(8, mod, sign, invert_output=True)
                 if self.src2 == self.dst:
-                    divmod.clear()
+                    mod.clear()
                 else:
-                    divmod.move(self.src2.get_cell(7))
+                    mod.move(self.src2.get_cell(7))
                 output = scraps[1]
                 if self.src2 != self.dst:
                     self.src2.get_cell(7).change(8)
@@ -43,13 +43,13 @@ class SetLessThan(Instruction):
                 self.dst.clear_big()
                 output.move(self.dst.get_cell(0))
             else:
-                self.src2.get_cell(7).div_imm(8, divmod, sign)
+                self.src2.get_cell(7).div_imm(8, mod, sign)
                 if self.src2 == self.dst:
-                    divmod.clear()
+                    mod.clear()
                     self.dst.clear_big()
                     sign.move(self.dst.get_cell(0))
                 else:
-                    divmod.move(self.src2.get_cell(7))
+                    mod.move(self.src2.get_cell(7))
                     self.dst.clear_big()
                     sign.move(
                         self.dst.get_cell(0), self.src2.get_cell(7), multiplier=[1, 8]
