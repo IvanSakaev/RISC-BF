@@ -125,7 +125,11 @@ class Register:
 
     def __repr__(self):
         for key, value in regs.items():
-            if self is value:
+            if key.startswith("x"):
+                if self == value:
+                    return key
+        for key, value in regs.items():
+            if self == value:
                 return key
         return f"REG{self.addr}"
 

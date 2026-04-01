@@ -157,7 +157,7 @@ def parse_arg(arg_s: str, expected_type: type):
         offset, register = arg_s.split("(")
         assert register.endswith(")")
         register = register[:-1]
-        return OffsetRegister(register, Immediate.from_text(offset))
+        return OffsetRegister(regs[register], Immediate.from_text(offset))
     elif expected_type == instructions.mnemonics.Label:
         return instructions.mnemonics.Label(arg_s[1:-1])
     else:
@@ -256,7 +256,8 @@ if __name__ == "__main__":
     with open(sys.argv[2] + ".addr", "w") as f:
         f.write("a0[2] next\n")
         f.write("a2[2] current\n")
-        f.write(f"a2[{SCRAP_COUNT:x}] scraps\n")
-        for i in range(REGISTER_COUNT):
+        f.write(f"a2[{SCRAP_COUNT:x}] scraps\n")  # TODO: print only scraps before registers
+        for i in range(4):  # TODO: Replace with REGISTER_COUNT
             f.write(f"a{i * 8 + SCRAP_COUNT + 2:x}[8] x{i + 1}\n")
         f.write(f"a{REGISTER_COUNT * 8 + SCRAP_COUNT + 2:x}[{14:x}] mem_scraps\n")
+        f.write(f"a{REGISTER_COUNT * 8 + SCRAP_COUNT + 16:x}[{16:x}] memory\n")

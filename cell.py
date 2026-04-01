@@ -157,6 +157,6 @@ current2 = Cell(2)  # current block number
 current1 = Cell(3)  # current kiloblock number
 
 # Safe to modify in blocks, equal zero in blocks, after modifying must stay zero
-scraps = [Cell(i + 2) for i in range(SCRAP_COUNT)]
-
+scraps = [Cell(i + 2) for i in range(SCRAP_COUNT)]  # TODO: reduce scrap count
 memory_scraps = [Cell(i + REGISTER_COUNT * 8 + SCRAP_COUNT + 2) for i in range(14)]
+scraps.extend(memory_scraps)
