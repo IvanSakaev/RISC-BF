@@ -4,6 +4,8 @@ from instructions.arithmeticInstructions import *
 import instructions.bitwiseInstructions
 from instructions.comparingInstructions import *
 from instructions.jumpInstructions import *
+from instructions.storeInstructions import *
+
 from instructions.baseInstructions import Instruction, Block
 
 if TYPE_CHECKING:
@@ -106,6 +108,7 @@ MNEMONICS["seqz"] = SetEqualToZero
 MNEMONICS["snez"] = SetNotEqualToZero
 MNEMONICS["sltz"] = SetLessThanZero
 MNEMONICS["sgtz"] = SetGreaterThanZero
+MNEMONICS["sw"] = StoreWord
 
 # debug commands
 MNEMONICS["out"] = Output

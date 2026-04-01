@@ -9,6 +9,7 @@ from registers import (
     Cell,
     Immediate,
     Register,
+    OffsetRegister,
     scraps,
 )
 

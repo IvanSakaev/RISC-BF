@@ -3,7 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 
 from concater import _Concater
-from config import SCRAP_COUNT
+from config import SCRAP_COUNT, REGISTER_COUNT
 
 _default = object()
 
@@ -158,3 +158,5 @@ current1 = Cell(-3)  # current kiloblock number
 
 # Safe to modify in blocks, equal zero in blocks, after modifying must stay zero
 scraps = [Cell(i - 4) for i in range(SCRAP_COUNT)]
+
+memory_scraps = [Cell(i + REGISTER_COUNT * 8 + SCRAP_COUNT - 4) for i in range(14)]

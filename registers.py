@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from cell import Cell, scraps
-from config import SCRAP_COUNT
+from config import SCRAP_COUNT, REGISTER_COUNT
 
 
 class Register:
@@ -139,6 +139,29 @@ class Immediate(int):
 
     def copy(self, *dsts: Cell, multiplier: int | list = 1):
         self.move(*dsts, multiplier=multiplier)
+    
+    @classmethod
+    def from_text(cls, text: str):
+        sign = 1
+        if text.startswith("-"):
+            sign = -1
+            text = text[1:]
+        text = text.lower()
+        if text.startswith("0x"):
+            imm = int(text[2:], 16)
+        elif text.startswith("0b"):
+            imm = int(text[2:], 2)
+        elif text.startswith("0") and len(text) > 1:
+            imm = int(text[1:], 8)
+        else:
+            imm = int(text)
+        return Immediate(sign * imm)
+
+
+class OffsetRegister:
+    def __init__(self, register, offset):
+        self.register = Register(register)
+        self.offset = Immediate(offset)
 
 
 ZERO = Register(
@@ -148,7 +171,7 @@ ZERO = Register(
 # Variable is only the first cell of register. 7 cells after that are register too.
 # Register cells SHOULD BE only 4 bits (values between 0 and 15)
 # Operations with registers should be little-endian
-regs = {f"x{i + 1}": Register(i * 8 + SCRAP_COUNT - 4) for i in range(32)}
+regs = {f"x{i + 1}": Register(i * 8 + SCRAP_COUNT - 4) for i in range(REGISTER_COUNT)}
 regs["x0"] = ZERO
 
 regs["zero"] = regs["x0"]

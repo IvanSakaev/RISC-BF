@@ -7,13 +7,14 @@ from typing import Union, get_args, get_origin, get_type_hints
 import config
 import instructions.mnemonics
 from cell import concater
+from config import REGISTER_COUNT
 from instructions.mnemonics import (
     MNEMONICS,
     is_block_boundary,
     Block,
     KiloBlock,
 )
-from registers import SCRAP_COUNT, Immediate, Register, regs
+from registers import SCRAP_COUNT, Immediate, Register, regs, OffsetRegister
 
 
 def split_program_into_blocks(instrs):
@@ -150,26 +151,15 @@ def parse_arg(arg_s: str, expected_type: type):
         if arg_s in regs:
             return regs[arg_s]
         raise ValueError(f"Register {arg_s} is unavailable")
-
+    elif expected_type == Immediate:
+        return Immediate.from_text(arg_s)
+    elif expected_type == OffsetRegister:
+        offset, register = arg_s.split("(")
+        assert register.endswith(")")
+        register = register[:-1]
+        return OffsetRegister(register, Immediate.from_text(offset))
     elif expected_type == instructions.mnemonics.Label:
         return instructions.mnemonics.Label(arg_s[1:-1])
-
-    elif expected_type == Immediate:
-        sign = 1
-        if arg_s.startswith("-"):
-            sign = -1
-            arg_s = arg_s[1:]
-        arg_s_lower = arg_s.lower()
-        if arg_s_lower.startswith("0x"):
-            imm = int(arg_s_lower[2:], 16)
-        elif arg_s_lower.startswith("0b"):
-            imm = int(arg_s_lower[2:], 2)
-        elif arg_s.startswith("0") and len(arg_s) > 1:
-            imm = int(arg_s[1:], 8)
-        else:
-            imm = int(arg_s)
-        return Immediate(sign * imm)
-
     else:
         raise ValueError(f"Unknown expected type: {expected_type}")
 
@@ -228,18 +218,16 @@ def parse(s: str):
 
         args: list = []
         for arg_s, expected_types in zip(arg_strings, arg_types_list):
-            last_exc = None
             for expected_type in expected_types:
                 try:
                     arg = parse_arg(arg_s, expected_type)
                     args.append(arg)
                     break
                 except Exception as e:
-                    last_exc = e
-            else:
-                raise ValueError(
-                    f"Failed to parse argument '{arg_s}' for {mnemonic}: {last_exc}"
-                )
+                    raise ValueError(
+                        f"Failed to parse argument '{arg_s}' for {mnemonic}: {e}\n"
+                        f"Expected type: {expected_type.__name__}"
+                    )
 
         mnemonic_obj = MNEMONICS[mnemonic](*args)
         insts.append(mnemonic_obj)
@@ -269,5 +257,6 @@ if __name__ == "__main__":
         f.write("a0[2] next\n")
         f.write("a2[2] current\n")
         f.write(f"a2[{SCRAP_COUNT:x}] scraps\n")
-        for i in range(len(regs)):
+        for i in range(REGISTER_COUNT):
             f.write(f"a{i * 8 + SCRAP_COUNT + 2:x}[8] x{i + 1}\n")
+        f.write(f"a{REGISTER_COUNT * 8 + SCRAP_COUNT + 2:x}[{14:x}] mem_scraps\n")
