@@ -8,4 +8,3 @@ class StoreWord(Instruction):
     
     def execute(self):
         pass
-    

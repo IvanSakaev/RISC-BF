@@ -147,16 +147,16 @@ class Cell:
         return self.addr == other.addr
 
 
-ROOT = Cell(-2)  # Every block starts and ends here
+ROOT = Cell(4)  # Every block starts and ends here
 concater = _Concater(ROOT)
 
-next2 = Cell(-6)  # next block number
-next1 = Cell(-5)  # next kiloblock number
+next2 = Cell(0)  # next block number
+next1 = Cell(1)  # next kiloblock number
 
-current2 = Cell(-4)  # current block number
-current1 = Cell(-3)  # current kiloblock number
+current2 = Cell(2)  # current block number
+current1 = Cell(3)  # current kiloblock number
 
 # Safe to modify in blocks, equal zero in blocks, after modifying must stay zero
-scraps = [Cell(i - 4) for i in range(SCRAP_COUNT)]
+scraps = [Cell(i + 2) for i in range(SCRAP_COUNT)]
 
-memory_scraps = [Cell(i + REGISTER_COUNT * 8 + SCRAP_COUNT - 4) for i in range(14)]
+memory_scraps = [Cell(i + REGISTER_COUNT * 8 + SCRAP_COUNT + 2) for i in range(14)]
