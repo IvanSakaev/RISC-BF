@@ -159,7 +159,7 @@ def parse_arg(arg_s: str, expected_type: type):
         register = register[:-1]
         return OffsetRegister(regs[register], Immediate.from_text(offset))
     elif expected_type == instructions.mnemonics.Label:
-        return instructions.mnemonics.Label(arg_s[1:-1])
+        return instructions.mnemonics.Label(arg_s)
     else:
         raise ValueError(f"Unknown expected type: {expected_type}")
 

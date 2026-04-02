@@ -109,6 +109,7 @@ MNEMONICS["snez"] = SetNotEqualToZero
 MNEMONICS["sltz"] = SetLessThanZero
 MNEMONICS["sgtz"] = SetGreaterThanZero
 MNEMONICS["sw"] = StoreWord
+MNEMONICS["j"] = Jump
 
 # debug commands
 MNEMONICS["out"] = Output

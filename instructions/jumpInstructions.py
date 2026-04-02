@@ -14,14 +14,14 @@ class Jump(Instruction):
     target: Label
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        concater.rem(f"jmp {self.target}", comments)
+        concater.rem(f"j {self.target}", comments)
         i, j = program.find_block(self.target)
         next1.change(i)
         next2.change(j)
 
 
 @dataclass
-class JumpRelative(Instruction):
+class JumpRelative(Instruction):  # It isn't an instruction to use in your asm-code
     offset: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
@@ -35,11 +35,7 @@ def is_block_boundary(self):
     return isinstance(
         self,
         (
-            # LabelDefine,
-            # JumpRelative,
-            # JumpConditional,
-            # Jump,
-            # Call,
-            # Return,
+            LabelDefine,
+            Jump,
         ),
     )

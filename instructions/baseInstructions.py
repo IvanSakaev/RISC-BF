@@ -33,6 +33,3 @@ class Block(Instruction):
 class KiloBlock(Instruction):
     myid: int
     blocks: list[Block]
-
-
-MNEMONICS = {}
