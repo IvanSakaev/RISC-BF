@@ -61,7 +61,6 @@ class StoreWord(Instruction):
         if self.src != ZERO:
             for i in range(4):
                 data_cell[i].move(first_mem_cell.cell_rel(i))
-        zero_scrap.debug()
 
         # Moving back
         for i in range(MEMORY_ADDRESS_HALFBYTES - 1, -1, -1):
@@ -80,4 +79,3 @@ class StoreWord(Instruction):
                         first_swap_cell.move(first_swap_cell.cell_rel(j))
                     concater.raw("", pos_offset=16 ** i)
                 addr_cell[i].change(-1)
-        zero_scrap.debug()
