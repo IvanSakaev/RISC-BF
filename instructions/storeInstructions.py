@@ -10,10 +10,14 @@ class StoreWord(Instruction):
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"sw {self.src} {self.addr.offset}({self.addr.register})", comments)
 
-        if self.src == ZERO:
-            raise NotImplementedError
         if self.addr.register == ZERO:
-            raise NotImplementedError
+            assert self.addr.offset >= 0
+            dst = memory_scraps[-1].cell_rel(1 + self.addr.offset)
+            for i in range(8):
+                small_src = self.src.get_cell(i)
+                small_dst = dst.cell_rel(i // 2)
+                small_src.copy(small_dst, scrap=memory_scraps[0], multiplier=16 if i % 2 == 0 else 1)
+            return
         if self.addr.offset != 0:
             raise NotImplementedError
 
@@ -23,9 +27,10 @@ class StoreWord(Instruction):
         data_cell = memory_scraps[MEMORY_ADDRESS_HALFBYTES + 2:]
         first_mem_cell = data_cell[-1].cell_rel(1)
 
-        for i in range(8):  # Move src to data
-            small_src = self.src.get_cell(i)
-            small_src.copy(data_cell[i // 2], scrap=zero_scrap, multiplier=1 if i % 2 == 0 else 16)
+        if self.src != ZERO:
+            for i in range(8):  # Move src to data
+                small_src = self.src.get_cell(i)
+                small_src.copy(data_cell[i // 2], scrap=zero_scrap, multiplier=16 if i % 2 == 0 else 1)
         for i in range(MEMORY_ADDRESS_HALFBYTES):
             self.addr.register.get_cell(i).copy(addr_cell[i], scrap=zero_scrap)
 
@@ -53,8 +58,9 @@ class StoreWord(Instruction):
         # WARNING: You don't know your actual position now. It's impossible to use cells before zero_scrap
         for i in range(4):
             first_mem_cell.cell_rel(i).clear()
-        for i in range(4):
-            data_cell[i].move(first_mem_cell.cell_rel(i))
+        if self.src != ZERO:
+            for i in range(4):
+                data_cell[i].move(first_mem_cell.cell_rel(i))
         zero_scrap.debug()
 
         # Moving back
