@@ -67,8 +67,6 @@ class Program:
         self.kiloblocks = split_blocks_into_kiloblocks(blocks)
 
     def find_block(self, name):
-        if name == "exit":
-            return 0, 0
         for kiloblock in self.kiloblocks:
             for block in kiloblock.blocks:
                 if block.name == name:

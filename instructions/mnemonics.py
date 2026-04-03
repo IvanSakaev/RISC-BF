@@ -110,7 +110,7 @@ MNEMONICS["sltz"] = SetLessThanZero
 MNEMONICS["sgtz"] = SetGreaterThanZero
 MNEMONICS["sw"] = StoreWord
 MNEMONICS["j"] = Jump
+MNEMONICS["ebreak"] = Debug
 
 # debug commands
 MNEMONICS["out"] = Output
-MNEMONICS["dbg"] = Debug
