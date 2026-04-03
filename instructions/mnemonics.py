@@ -44,6 +44,12 @@ class Move(Instruction):
 
 
 @dataclass
+class Nop(Instruction):
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem("nop", comments)
+
+
+@dataclass
 class Output(Instruction):
     reg: Register
 
@@ -88,6 +94,7 @@ MNEMONICS["li"] = LoadI
 MNEMONICS["lui"] = LoadUpperI
 MNEMONICS["mv"] = Move
 MNEMONICS["neg"] = Neg
+MNEMONICS["nop"] = Nop
 MNEMONICS["add"] = Add
 MNEMONICS["addi"] = AddI
 MNEMONICS["sub"] = Sub
