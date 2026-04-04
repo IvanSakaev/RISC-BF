@@ -54,14 +54,14 @@ class BranchIfLessThanUnsigned(Instruction):
             BranchIfNotEqualToZero(self.src2, self.label).evaluate(program, cur_block)
             return
 
-        running = scraps[2]
+        running = scraps[0]
         running.change(1)
         JumpRelative(Immediate(1)).evaluate(program, cur_block)
         for i in range(7, -1, -1):
             small_src1 = self.src1.get_cell(i)
             small_src2 = self.src2.get_cell(i)
-            scrap_src1 = scraps[3]
-            scrap_src2 = scraps[4]
+            scrap_src1 = scraps[1]
+            scrap_src2 = scraps[2]
 
             small_src1.move(scrap_src1)
             small_src2.move(scrap_src2)
