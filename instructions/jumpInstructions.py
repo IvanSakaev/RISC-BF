@@ -94,7 +94,20 @@ class BranchIfNotEqualToZero(Instruction):
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"bnez {self.src} {self.label}", comments)
-        raise NotImplementedError
+        running = scraps[0]
+        running.change(1)
+        JumpRelative(Immediate(1)).evaluate(program, cur_block)
+        for i in range(8):
+            small_src = self.src.get_cell(i)
+            scrap_src = scraps[2]
+            with small_src.loop():
+                running.change(-1)
+                Jump(self.label).evaluate(program, cur_block, clear=True)
+                small_src.move(scrap_src)
+            scrap_src.move(small_src)
+            running.raw("[")
+        running.change(-1)
+        running.raw("]]]]]]]]")
 
 
 def is_block_boundary(self):
