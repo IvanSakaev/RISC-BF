@@ -50,6 +50,13 @@ class Nop(Instruction):
 
 
 @dataclass
+class Debug(Instruction):
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem("dbg", comments)
+        concater.debug()
+
+
+@dataclass
 class Output(Instruction):
     reg: Register
 
@@ -81,25 +88,23 @@ class Output(Instruction):
         mod.clear()
 
 
-@dataclass
-class Debug(Instruction):
-    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        concater.rem("dbg", comments)
-        concater.debug()
-
-
 MNEMONICS: dict[str, type[Instruction]] = dict()
 
+# Pseudo-instructions
 MNEMONICS["li"] = LoadI
 MNEMONICS["lui"] = LoadUpperI
 MNEMONICS["mv"] = Move
 MNEMONICS["neg"] = Neg
 MNEMONICS["nop"] = Nop
+
+# Arithmetic
 MNEMONICS["add"] = Add
 MNEMONICS["addi"] = AddI
 MNEMONICS["sub"] = Sub
 MNEMONICS["mul"] = Mul
 MNEMONICS["mulhu"] = MulHighUnsigned
+
+# bitwise
 MNEMONICS["sll"] = instructions.bitwiseInstructions.ShiftLeft
 MNEMONICS["slli"] = instructions.bitwiseInstructions.ShiftLeftI
 MNEMONICS["or"] = instructions.bitwiseInstructions.Or
@@ -109,17 +114,23 @@ MNEMONICS["not"] = instructions.bitwiseInstructions.Not
 MNEMONICS["ori"] = instructions.bitwiseInstructions.OrI
 MNEMONICS["andi"] = instructions.bitwiseInstructions.AndI
 MNEMONICS["xori"] = instructions.bitwiseInstructions.XorI
+
+# comparing
 MNEMONICS["slt"] = SetLessThan
 MNEMONICS["sltu"] = SetLessThanUnsigned
 MNEMONICS["seqz"] = SetEqualToZero
 MNEMONICS["snez"] = SetNotEqualToZero
 MNEMONICS["sltz"] = SetLessThanZero
 MNEMONICS["sgtz"] = SetGreaterThanZero
+
+# store/load
 MNEMONICS["sw"] = StoreWord
+
+# jump
 MNEMONICS["j"] = Jump
 MNEMONICS["bltu"] = BranchIfLessThanUnsigned
 MNEMONICS["bnez"] = BranchIfNotEqualToZero
-MNEMONICS["ebreak"] = Debug
 
-# debug commands
+# special
+MNEMONICS["ebreak"] = Debug
 MNEMONICS["out"] = Output
