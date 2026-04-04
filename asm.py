@@ -155,6 +155,8 @@ def parse_arg(arg_s: str, expected_type: type):
         offset, register = arg_s.split("(")
         assert register.endswith(")")
         register = register[:-1]
+        offset = offset.strip()
+        register = register.strip()
         return OffsetRegister(regs[register], Immediate.from_text(offset))
     elif expected_type == instructions.mnemonics.Label:
         return instructions.mnemonics.Label(arg_s)

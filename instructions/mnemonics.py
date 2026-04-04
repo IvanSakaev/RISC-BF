@@ -117,6 +117,7 @@ MNEMONICS["sltz"] = SetLessThanZero
 MNEMONICS["sgtz"] = SetGreaterThanZero
 MNEMONICS["sw"] = StoreWord
 MNEMONICS["j"] = Jump
+MNEMONICS["bltu"] = BranchIfLessThanUnsigned
 MNEMONICS["ebreak"] = Debug
 
 # debug commands

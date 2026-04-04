@@ -22,7 +22,7 @@ class Instruction:
 
 
 @dataclass
-class Block(Instruction):
+class Block:
     myid: int
     kiloblock: "KiloBlock"
     name: str | None
@@ -30,6 +30,6 @@ class Block(Instruction):
 
 
 @dataclass
-class KiloBlock(Instruction):
+class KiloBlock:
     myid: int
     blocks: list[Block]
