@@ -352,12 +352,78 @@ class BranchIfGreaterThanOrEqualToZero(Instruction):
         BranchIfGreaterThanOrEqual(self.src, ZERO, self.label).evaluate(program, cur_block)
 
 
+@dataclass
+class BranchIfLessThanZero(Instruction):
+    src: Register
+    label: Label
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"bltz {self.src} {self.label}", comments)
+        BranchIfLessThan(self.src, ZERO, self.label).evaluate(program, cur_block)
+
+
+@dataclass
+class BranchIfGreaterThanZero(Instruction):
+    src: Register
+    label: Label
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"bgtz {self.src} {self.label}", comments)
+        BranchIfLessThan(ZERO, self.src, self.label).evaluate(program, cur_block)
+
+
+@dataclass
+class BranchIfGreaterThan(Instruction):
+    src1: Register
+    src2: Register
+    label: Label
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"bgt {self.src1} {self.src2} {self.label}", comments)
+        BranchIfLessThan(self.src2, self.src1, self.label).evaluate(program, cur_block)
+
+
+@dataclass
+class BranchIfLessThanOrEqual(Instruction):
+    src1: Register
+    src2: Register
+    label: Label
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"ble {self.src1} {self.src2} {self.label}", comments)
+        BranchIfGreaterThanOrEqual(self.src2, self.src1, self.label).evaluate(program, cur_block)
+
+
+@dataclass
+class BranchIfGreaterThanUnsigned(Instruction):
+    src1: Register
+    src2: Register
+    label: Label
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"bgtu {self.src1} {self.src2} {self.label}", comments)
+        BranchIfLessThanUnsigned(self.src2, self.src1, self.label).evaluate(program, cur_block)
+
+
+@dataclass
+class BranchIfLessThanOrEqualUnsigned(Instruction):
+    src1: Register
+    src2: Register
+    label: Label
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"bleu {self.src1} {self.src2} {self.label}", comments)
+        BranchIfGreaterThanOrEqualUnsigned(self.src2, self.src1, self.label).evaluate(program, cur_block)
+
+
 def is_block_boundary(instr):
     return isinstance(
         instr,
         (
             LabelDefine,
             Jump,
+
+            # branches
             BranchIfEqual,
             BranchIfNotEqual,
             BranchIfLessThan,
@@ -366,7 +432,15 @@ def is_block_boundary(instr):
             BranchIfGreaterThanOrEqualUnsigned,
             BranchIfEqualToZero,
             BranchIfNotEqualToZero,
+
+            # pseudo-instructions
             BranchIfLessThanOrEqualToZero,
             BranchIfGreaterThanOrEqualToZero,
+            BranchIfLessThanZero,
+            BranchIfGreaterThanZero,
+            BranchIfGreaterThan,
+            BranchIfLessThanOrEqual,
+            BranchIfGreaterThanUnsigned,
+            BranchIfLessThanOrEqualUnsigned,
         ),
     )
