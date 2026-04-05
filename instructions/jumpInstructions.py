@@ -166,9 +166,9 @@ class BranchIfLessThan(Instruction):
                     sign.change(-1)
                     self.src2.get_cell(7).change(8)
                     if not invert_output:
-                        Jump(self.label).evaluate(program, cur_block)
+                        Jump(self.label).evaluate(program, cur_block, clear=True)
                     else:
-                        JumpRelative(Immediate(1)).evaluate(program, cur_block)
+                        JumpRelative(Immediate(1)).evaluate(program, cur_block, clear=True)
             concater.debug()
             return
 
@@ -332,9 +332,29 @@ class BranchIfNotEqualToZero(Instruction):
         running.raw("]]]]]]]]")
 
 
-def is_block_boundary(self):
+@dataclass
+class BranchIfLessThanOrEqualToZero(Instruction):
+    src: Register
+    label: Label
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"blez {self.src} {self.label}", comments)
+        BranchIfGreaterThanOrEqual(ZERO, self.src, self.label).evaluate(program, cur_block)
+
+
+@dataclass
+class BranchIfGreaterThanOrEqualToZero(Instruction):
+    src: Register
+    label: Label
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"bgez {self.src} {self.label}", comments)
+        BranchIfGreaterThanOrEqual(self.src, ZERO, self.label).evaluate(program, cur_block)
+
+
+def is_block_boundary(instr):
     return isinstance(
-        self,
+        instr,
         (
             LabelDefine,
             Jump,
@@ -346,5 +366,7 @@ def is_block_boundary(self):
             BranchIfGreaterThanOrEqualUnsigned,
             BranchIfEqualToZero,
             BranchIfNotEqualToZero,
+            BranchIfLessThanOrEqualToZero,
+            BranchIfGreaterThanOrEqualToZero,
         ),
     )

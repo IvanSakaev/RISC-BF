@@ -137,6 +137,8 @@ MNEMONICS["bge"] = BranchIfGreaterThanOrEqual
 MNEMONICS["bgeu"] = BranchIfGreaterThanOrEqualUnsigned
 MNEMONICS["beqz"] = BranchIfEqualToZero
 MNEMONICS["bnez"] = BranchIfNotEqualToZero
+MNEMONICS["blez"] = BranchIfLessThanOrEqualToZero
+MNEMONICS["bgez"] = BranchIfGreaterThanOrEqualToZero
 
 # special
 MNEMONICS["ebreak"] = Debug
