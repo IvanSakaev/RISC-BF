@@ -1,5 +1,6 @@
 from config import MEMORY_ADDRESS_HALFBYTES
 from instructions.baseInstructions import *
+from dataclasses import dataclass
 
 
 @dataclass

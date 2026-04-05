@@ -1,4 +1,5 @@
 from instructions.baseInstructions import *
+from dataclasses import dataclass
 
 
 @dataclass

@@ -7,6 +7,7 @@ from instructions.jumpInstructions import *
 from instructions.storeInstructions import *
 
 from instructions.baseInstructions import Instruction, Block
+from dataclasses import dataclass
 
 if TYPE_CHECKING:
     from asm import Program
