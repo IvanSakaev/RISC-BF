@@ -22,28 +22,20 @@ def split_program_into_blocks(instrs):
     cur_block = []
     block_name = None
     for i in instrs:
-        if not isinstance(i, instructions.mnemonics.LabelDefine):
+        if isinstance(i, instructions.mnemonics.LabelDefine):
+            block_name = i.name
+        else:
             cur_block.append(i)
-        if is_block_boundary(i):
-            if isinstance(i, instructions.mnemonics.LabelDefine):
+            if not is_block_boundary(i):
                 cur_block.append(instructions.mnemonics.JumpRelative(Immediate(1)))
-
+    
             blocks.append(
                 Block(
                     0, KiloBlock(0, []), block_name, cur_block
                 )
             )
             cur_block = []
-            if isinstance(i, instructions.mnemonics.LabelDefine):
-                block_name = i.name
-            else:
-                block_name = None
-
-    cur_block.append(instructions.mnemonics.JumpRelative(Immediate(1)))
-    blocks.append(
-        Block(0, KiloBlock(0, []), block_name, cur_block)
-    )
-
+            block_name = None
     return blocks
 
 
