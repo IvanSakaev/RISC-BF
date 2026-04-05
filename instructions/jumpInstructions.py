@@ -117,6 +117,65 @@ class BranchIfNotEqual(Instruction):
 
 
 @dataclass
+class BranchIfLessThan(Instruction):
+    src1: Register
+    src2: Register
+    label: Label
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"blt {self.src1} {self.src2} {self.label}", comments)
+        if self.src1 == self.src2:
+            JumpRelative(Immediate(1)).evaluate(program, cur_block)
+            return
+        invert = False
+
+        if self.src2 == ZERO:
+            self.src2 = self.src1
+            self.src1 = ZERO
+            invert = True
+        if self.src1 == ZERO:
+            sign = scraps[0]
+            mod = scraps[1]
+            if not invert:
+                self.src2.get_cell(7).div_imm(8, mod, sign, invert_output=True)
+                mod.move(self.src2.get_cell(7))
+                self.src2.get_cell(7).change(8)
+                sign.change(1)
+                JumpRelative(Immediate(1)).evaluate(program, cur_block)
+                with sign.loop():
+                    sign.change(-1)
+                    self.src2.get_cell(7).change(-8)
+                    BranchIfNotEqualToZero(self.src2, self.label).evaluate(program, cur_block, jumped_relative=True)
+            else:
+                self.src2.get_cell(7).div_imm(8, mod, sign)
+                mod.move(self.src2.get_cell(7))
+                JumpRelative(Immediate(1)).evaluate(program, cur_block)
+                with sign.loop():
+                    sign.change(-1)
+                    self.src2.get_cell(7).change(8)
+                    Jump(self.label).evaluate(program, cur_block, clear=True)
+            concater.debug()
+            return
+
+        mod = scraps[0]
+        self.src1.get_cell(7).change(8)
+        self.src1.get_cell(7).div_imm(16, mod, None)
+        mod.move(self.src1.get_cell(7))
+        self.src2.get_cell(7).change(8)
+        self.src2.get_cell(7).div_imm(16, mod, None)
+        mod.move(self.src2.get_cell(7))
+
+        BranchIfLessThanUnsigned(self.src1, self.src2, self.label).evaluate(program, cur_block)
+
+        self.src1.get_cell(7).change(8)
+        self.src1.get_cell(7).div_imm(16, mod, None)
+        mod.move(self.src1.get_cell(7))
+        self.src2.get_cell(7).change(8)
+        self.src2.get_cell(7).div_imm(16, mod, None)
+        mod.move(self.src2.get_cell(7))
+
+
+@dataclass
 class BranchIfLessThanUnsigned(Instruction):
     src1: Register
     src2: Register
@@ -179,7 +238,7 @@ class BranchIfEqualToZero(Instruction):
         running.change(1)
         for i in range(8):
             small_src = self.src.get_cell(i)
-            scrap_src = scraps[2]
+            scrap_src = scraps[1]
             with small_src.loop():
                 running.change(-1)
                 JumpRelative(Immediate(1)).evaluate(program, cur_block)
@@ -197,24 +256,26 @@ class BranchIfNotEqualToZero(Instruction):
     src: Register
     label: Label
 
-    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False, jumped_relative: bool = False):
         concater.rem(f"bnez {self.src} {self.label}", comments)
         if self.src == ZERO:
-            JumpRelative(Immediate(1)).evaluate(program, cur_block)
+            if not jumped_relative:
+                JumpRelative(Immediate(1)).evaluate(program, cur_block)
             return
 
         running = scraps[0]
         running.change(1)
         for i in range(8):
             small_src = self.src.get_cell(i)
-            scrap_src = scraps[2]
+            scrap_src = scraps[1]
             with small_src.loop():
                 running.change(-1)
-                Jump(self.label).evaluate(program, cur_block)
+                Jump(self.label).evaluate(program, cur_block, clear=jumped_relative)
                 small_src.move(scrap_src)
             scrap_src.move(small_src)
             running.raw("[")
-        JumpRelative(Immediate(1)).evaluate(program, cur_block)
+        if not jumped_relative:
+            JumpRelative(Immediate(1)).evaluate(program, cur_block)
         running.change(-1)
         running.raw("]]]]]]]]")
 
@@ -227,6 +288,7 @@ def is_block_boundary(self):
             Jump,
             BranchIfEqual,
             BranchIfNotEqual,
+            BranchIfLessThan,
             BranchIfLessThanUnsigned,
             BranchIfEqualToZero,
             BranchIfNotEqualToZero,
