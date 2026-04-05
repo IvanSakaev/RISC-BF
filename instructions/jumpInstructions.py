@@ -79,6 +79,43 @@ class BranchIfEqual(Instruction):
 
 
 @dataclass
+class BranchIfNotEqual(Instruction):
+    src1: Register
+    src2: Register
+    label: Label
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"bne {self.src1} {self.src2} {self.label}", comments)
+        if self.src1 == self.src2:
+            JumpRelative(Immediate(1)).evaluate(program, cur_block)
+            return
+        if self.src1 == ZERO:
+            BranchIfNotEqualToZero(self.src2, self.label).evaluate(program, cur_block)
+            return
+        if self.src2 == ZERO:
+            BranchIfNotEqualToZero(self.src1, self.label).evaluate(program, cur_block)
+            return
+
+        running = scraps[0]
+        running.change(1)
+        scrap = scraps[1]
+        copy_scrap = scraps[2]
+        for i in range(8):
+            small_src1 = self.src1.get_cell(i)
+            small_src2 = self.src2.get_cell(i)
+            small_src1.copy(scrap, scrap=copy_scrap)
+            small_src2.copy(scrap, scrap=copy_scrap, multiplier=-1)
+            with scrap.loop():
+                running.change(-1)
+                Jump(self.label).evaluate(program, cur_block)
+                scrap.clear()
+            running.raw("[")
+        JumpRelative(Immediate(1)).evaluate(program, cur_block)
+        running.change(-1)
+        running.raw("]]]]]]]]")
+
+
+@dataclass
 class BranchIfLessThanUnsigned(Instruction):
     src1: Register
     src2: Register
@@ -188,6 +225,7 @@ def is_block_boundary(self):
             LabelDefine,
             Jump,
             BranchIfEqual,
+            BranchIfNotEqual,
             BranchIfLessThanUnsigned,
             BranchIfEqualToZero,
             BranchIfNotEqualToZero,

@@ -129,6 +129,7 @@ MNEMONICS["sw"] = StoreWord
 # jump
 MNEMONICS["j"] = Jump
 MNEMONICS["beq"] = BranchIfEqual
+MNEMONICS["bne"] = BranchIfNotEqual
 MNEMONICS["bltu"] = BranchIfLessThanUnsigned
 MNEMONICS["beqz"] = BranchIfEqualToZero
 MNEMONICS["bnez"] = BranchIfNotEqualToZero
