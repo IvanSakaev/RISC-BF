@@ -166,16 +166,16 @@ class SetEqualToZero(Instruction):
         running.change(1)
         output = scraps[1]
         for i in range(8):
-            small_src2 = self.src.get_cell(i)
-            scrap_src2 = scraps[2]
-            with small_src2.loop():
+            small_src = self.src.get_cell(i)
+            scrap_src = scraps[2]
+            with small_src.loop():
                 running.change(-1)
                 if self.src == self.dst:
-                    small_src2.clear()
+                    small_src.clear()
                 else:
-                    small_src2.move(scrap_src2)
+                    small_src.move(scrap_src)
             if self.src != self.dst:
-                scrap_src2.move(small_src2)
+                scrap_src.move(small_src)
             running.raw("[")
         output.change(1)
         running.change(-1)

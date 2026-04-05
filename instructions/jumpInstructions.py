@@ -30,6 +30,8 @@ class JumpRelative(Instruction):  # It isn't an instruction to use in your asm-c
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False, clear: bool = False):
         concater.rem(f"jmr {self.offset}", comments)
+        if self.offset != 1:
+            raise NotImplementedError
         next_i, next_j = program.find_next_block(cur_block)
         if clear:
             next1.clear()
@@ -37,6 +39,43 @@ class JumpRelative(Instruction):  # It isn't an instruction to use in your asm-c
         if clear:
             next2.clear()
         next2.change(next_j)
+
+
+@dataclass
+class BranchIfEqual(Instruction):
+    src1: Register
+    src2: Register
+    label: Label
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"beq {self.src1} {self.src2} {self.label}", comments)
+        if self.src1 == self.src2:
+            Jump(self.label).evaluate(program, cur_block)
+            return
+        if self.src1 == ZERO:
+            BranchIfEqualToZero(self.src2, self.label).evaluate(program, cur_block)
+            return
+        if self.src2 == ZERO:
+            BranchIfEqualToZero(self.src1, self.label).evaluate(program, cur_block)
+            return
+
+        running = scraps[0]
+        running.change(1)
+        scrap = scraps[1]
+        copy_scrap = scraps[2]
+        for i in range(8):
+            small_src1 = self.src1.get_cell(i)
+            small_src2 = self.src2.get_cell(i)
+            small_src1.copy(scrap, scrap=copy_scrap)
+            small_src2.copy(scrap, scrap=copy_scrap, multiplier=-1)
+            with scrap.loop():
+                running.change(-1)
+                JumpRelative(Immediate(1)).evaluate(program, cur_block)
+                scrap.clear()
+            running.raw("[")
+        Jump(self.label).evaluate(program, cur_block)
+        running.change(-1)
+        running.raw("]]]]]]]]")
 
 
 @dataclass
@@ -101,17 +140,18 @@ class BranchIfEqualToZero(Instruction):
         running = scraps[0]
         running.change(1)
         for i in range(8):
-            small_src2 = self.src.get_cell(i)
-            scrap_src2 = scraps[2]
-            with small_src2.loop():
+            small_src = self.src.get_cell(i)
+            scrap_src = scraps[2]
+            with small_src.loop():
                 running.change(-1)
                 JumpRelative(Immediate(1)).evaluate(program, cur_block)
-                small_src2.move(scrap_src2)
-            scrap_src2.move(small_src2)
+                small_src.move(scrap_src)
+            scrap_src.move(small_src)
             running.raw("[")
         Jump(self.label).evaluate(program, cur_block)
         running.change(-1)
         running.raw("]]]]]]]]")
+        concater.debug()
 
 
 @dataclass
@@ -147,7 +187,9 @@ def is_block_boundary(self):
         (
             LabelDefine,
             Jump,
+            BranchIfEqual,
             BranchIfLessThanUnsigned,
+            BranchIfEqualToZero,
             BranchIfNotEqualToZero,
         ),
     )
