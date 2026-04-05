@@ -88,24 +88,55 @@ class BranchIfLessThanUnsigned(Instruction):
 
 
 @dataclass
+class BranchIfEqualToZero(Instruction):
+    src: Register
+    label: Label
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"beqz {self.src} {self.label}", comments)
+        if self.src == ZERO:
+            Jump(self.label).evaluate(program, cur_block)
+            return
+
+        running = scraps[0]
+        running.change(1)
+        for i in range(8):
+            small_src2 = self.src.get_cell(i)
+            scrap_src2 = scraps[2]
+            with small_src2.loop():
+                running.change(-1)
+                JumpRelative(Immediate(1)).evaluate(program, cur_block)
+                small_src2.move(scrap_src2)
+            scrap_src2.move(small_src2)
+            running.raw("[")
+        Jump(self.label).evaluate(program, cur_block)
+        running.change(-1)
+        running.raw("]]]]]]]]")
+
+
+@dataclass
 class BranchIfNotEqualToZero(Instruction):
     src: Register
     label: Label
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"bnez {self.src} {self.label}", comments)
+        if self.src == ZERO:
+            JumpRelative(Immediate(1)).evaluate(program, cur_block)
+            return
+
         running = scraps[0]
         running.change(1)
-        JumpRelative(Immediate(1)).evaluate(program, cur_block)
         for i in range(8):
             small_src = self.src.get_cell(i)
             scrap_src = scraps[2]
             with small_src.loop():
                 running.change(-1)
-                Jump(self.label).evaluate(program, cur_block, clear=True)
+                Jump(self.label).evaluate(program, cur_block)
                 small_src.move(scrap_src)
             scrap_src.move(small_src)
             running.raw("[")
+        JumpRelative(Immediate(1)).evaluate(program, cur_block)
         running.change(-1)
         running.raw("]]]]]]]]")
 

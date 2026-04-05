@@ -22,7 +22,7 @@ for i in range(1, 101):
 li x1, 0x{num1text:x}
 li x2, 0x{num2text:x}
 li x3, 0
-bnez x1, less
+beqz x1, less
 j final
 less:
 li x3, 1
@@ -54,7 +54,7 @@ out x3
     except UnicodeDecodeError:
         predict = predict_byte
 
-    num3 = 1 if num1 != 0 else 0
+    num3 = 1 if num1 == 0 else 0
 
     num3 &= 0xFFFFFFFF
     num3_str = f"{num3:08X}"

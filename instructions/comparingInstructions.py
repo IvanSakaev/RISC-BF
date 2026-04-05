@@ -198,6 +198,11 @@ class SetNotEqualToZero(Instruction):
             move_to_dst: bool = True,
     ):
         concater.rem(f"snez {self.dst} {self.src}", comments)
+        if self.dst == ZERO:
+            return
+        if self.src == ZERO:
+            self.dst.clear_big()
+            return
         running = scraps[0]
         running.change(1)
         output = scraps[1]
