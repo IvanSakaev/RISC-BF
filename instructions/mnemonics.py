@@ -133,6 +133,8 @@ MNEMONICS["beq"] = BranchIfEqual
 MNEMONICS["bne"] = BranchIfNotEqual
 MNEMONICS["blt"] = BranchIfLessThan
 MNEMONICS["bltu"] = BranchIfLessThanUnsigned
+MNEMONICS["bge"] = BranchIfGreaterThanOrEqual
+MNEMONICS["bgeu"] = BranchIfGreaterThanOrEqualUnsigned
 MNEMONICS["beqz"] = BranchIfEqualToZero
 MNEMONICS["bnez"] = BranchIfNotEqualToZero
 

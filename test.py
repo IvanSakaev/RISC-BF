@@ -3,13 +3,13 @@ import subprocess
 
 for i in range(1, 101):
     # num1 = 0
-    num2 = 0
+    # num2 = 0
     # num1 = random.randrange(-127, 128)
     # num2 = random.randrange(-127, 128)
     # num1 = random.randrange(256)
     # num2 = random.randrange(256)
     num1 = random.randint(-2**31, 2**31)
-    # num2 = random.randint(-2**31, 2**31)
+    num2 = random.randint(-2**31, 2**31)
     # num1 = random.randrange(2 ** 32)
     # num2 = random.randrange(2 ** 32)
 
@@ -27,7 +27,7 @@ for i in range(1, 101):
 li x1, 0x{num1text:x}
 li x2, 0x{num2text:x}
 li x3, 0
-blt x1, x0, less
+bge x1, x2, less
 j final
 less:
 li x3, 1
@@ -59,7 +59,7 @@ out x3
     except UnicodeDecodeError:
         predict = predict_byte
 
-    num3 = 1 if num1 < num2 else 0
+    num3 = 1 if num1 >= num2 else 0
 
     num3 &= 0xFFFFFFFF
     num3_str = f"{num3:08X}"

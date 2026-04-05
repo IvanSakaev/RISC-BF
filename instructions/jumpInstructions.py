@@ -122,38 +122,53 @@ class BranchIfLessThan(Instruction):
     src2: Register
     label: Label
 
-    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False, invert_output: bool = False):
         concater.rem(f"blt {self.src1} {self.src2} {self.label}", comments)
         if self.src1 == self.src2:
-            JumpRelative(Immediate(1)).evaluate(program, cur_block)
+            if not invert_output:
+                JumpRelative(Immediate(1)).evaluate(program, cur_block)
+            else:
+                Jump(self.label).evaluate(program, cur_block)
             return
-        invert = False
+        pos_inverted = False
 
         if self.src2 == ZERO:
             self.src2 = self.src1
             self.src1 = ZERO
-            invert = True
+            pos_inverted = True
         if self.src1 == ZERO:
             sign = scraps[0]
             mod = scraps[1]
-            if not invert:
+            if not pos_inverted:
                 self.src2.get_cell(7).div_imm(8, mod, sign, invert_output=True)
                 mod.move(self.src2.get_cell(7))
                 self.src2.get_cell(7).change(8)
                 sign.change(1)
-                JumpRelative(Immediate(1)).evaluate(program, cur_block)
+                if not invert_output:
+                    JumpRelative(Immediate(1)).evaluate(program, cur_block)
+                else:
+                    Jump(self.label).evaluate(program, cur_block)
                 with sign.loop():
                     sign.change(-1)
                     self.src2.get_cell(7).change(-8)
-                    BranchIfNotEqualToZero(self.src2, self.label).evaluate(program, cur_block, jumped_relative=True)
+                    if not invert_output:
+                        BranchIfNotEqualToZero(self.src2, self.label).evaluate(program, cur_block, jumped_relative=True)
+                    else:
+                        BranchIfEqualToZero(self.src2, self.label).evaluate(program, cur_block, jumped_absolute=True)
             else:
                 self.src2.get_cell(7).div_imm(8, mod, sign)
                 mod.move(self.src2.get_cell(7))
-                JumpRelative(Immediate(1)).evaluate(program, cur_block)
+                if not invert_output:
+                    JumpRelative(Immediate(1)).evaluate(program, cur_block)
+                else:
+                    Jump(self.label).evaluate(program, cur_block)
                 with sign.loop():
                     sign.change(-1)
                     self.src2.get_cell(7).change(8)
-                    Jump(self.label).evaluate(program, cur_block, clear=True)
+                    if not invert_output:
+                        Jump(self.label).evaluate(program, cur_block)
+                    else:
+                        JumpRelative(Immediate(1)).evaluate(program, cur_block)
             concater.debug()
             return
 
@@ -165,7 +180,8 @@ class BranchIfLessThan(Instruction):
         self.src2.get_cell(7).div_imm(16, mod, None)
         mod.move(self.src2.get_cell(7))
 
-        BranchIfLessThanUnsigned(self.src1, self.src2, self.label).evaluate(program, cur_block)
+        BranchIfLessThanUnsigned(self.src1, self.src2, self.label).evaluate(program, cur_block,
+                                                                            invert_output=invert_output)
 
         self.src1.get_cell(7).change(8)
         self.src1.get_cell(7).div_imm(16, mod, None)
@@ -181,18 +197,27 @@ class BranchIfLessThanUnsigned(Instruction):
     src2: Register
     label: Label
 
-    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False, invert_output: bool = False):
         concater.rem(f"bltu {self.src1} {self.src2} {self.label}", comments)
         if self.src1 == self.src2 or self.src2 == ZERO:
-            JumpRelative(Immediate(1)).evaluate(program, cur_block)
+            if not invert_output:
+                JumpRelative(Immediate(1)).evaluate(program, cur_block)
+            else:
+                Jump(self.label).evaluate(program, cur_block)
             return
         if self.src1 == ZERO:
-            BranchIfNotEqualToZero(self.src2, self.label).evaluate(program, cur_block)
+            if not invert_output:
+                BranchIfNotEqualToZero(self.src2, self.label).evaluate(program, cur_block)
+            else:
+                BranchIfEqualToZero(self.src2, self.label).evaluate(program, cur_block)
             return
 
         running = scraps[0]
         running.change(1)
-        JumpRelative(Immediate(1)).evaluate(program, cur_block)
+        if not invert_output:
+            JumpRelative(Immediate(1)).evaluate(program, cur_block)
+        else:
+            Jump(self.label).evaluate(program, cur_block)
         for i in range(7, -1, -1):
             small_src1 = self.src1.get_cell(i)
             small_src2 = self.src2.get_cell(i)
@@ -216,7 +241,10 @@ class BranchIfLessThanUnsigned(Instruction):
                 scrap_src1.change(-1)
             with scrap_src2.loop():  # <
                 running.change(-1)
-                Jump(self.label).evaluate(program, cur_block, clear=True)
+                if not invert_output:
+                    Jump(self.label).evaluate(program, cur_block, clear=True)
+                else:
+                    JumpRelative(Immediate(1)).evaluate(program, cur_block, clear=True)
                 scrap_src2.move(small_src2)
             running.raw("[")
         running.change(-1)
@@ -224,14 +252,37 @@ class BranchIfLessThanUnsigned(Instruction):
 
 
 @dataclass
+class BranchIfGreaterThanOrEqual(Instruction):
+    src1: Register
+    src2: Register
+    label: Label
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"bge {self.src1} {self.src2} {self.label}", comments)
+        BranchIfLessThan(self.src1, self.src2, self.label).evaluate(program, cur_block, invert_output=True)
+
+
+@dataclass
+class BranchIfGreaterThanOrEqualUnsigned(Instruction):
+    src1: Register
+    src2: Register
+    label: Label
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"bgeu {self.src1} {self.src2} {self.label}", comments)
+        BranchIfLessThanUnsigned(self.src1, self.src2, self.label).evaluate(program, cur_block, invert_output=True)
+
+
+@dataclass
 class BranchIfEqualToZero(Instruction):
     src: Register
     label: Label
 
-    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False, jumped_absolute: bool = False):
         concater.rem(f"beqz {self.src} {self.label}", comments)
         if self.src == ZERO:
-            Jump(self.label).evaluate(program, cur_block)
+            if not jumped_absolute:
+                Jump(self.label).evaluate(program, cur_block)
             return
 
         running = scraps[0]
@@ -241,11 +292,12 @@ class BranchIfEqualToZero(Instruction):
             scrap_src = scraps[1]
             with small_src.loop():
                 running.change(-1)
-                JumpRelative(Immediate(1)).evaluate(program, cur_block)
+                JumpRelative(Immediate(1)).evaluate(program, cur_block, clear=jumped_absolute)
                 small_src.move(scrap_src)
             scrap_src.move(small_src)
             running.raw("[")
-        Jump(self.label).evaluate(program, cur_block)
+        if not jumped_absolute:
+            Jump(self.label).evaluate(program, cur_block)
         running.change(-1)
         running.raw("]]]]]]]]")
         concater.debug()
@@ -290,6 +342,8 @@ def is_block_boundary(self):
             BranchIfNotEqual,
             BranchIfLessThan,
             BranchIfLessThanUnsigned,
+            BranchIfGreaterThanOrEqual,
+            BranchIfGreaterThanOrEqualUnsigned,
             BranchIfEqualToZero,
             BranchIfNotEqualToZero,
         ),
