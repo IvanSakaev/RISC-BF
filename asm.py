@@ -28,7 +28,7 @@ def split_program_into_blocks(instrs):
             cur_block.append(i)
             if not is_block_boundary(i):
                 cur_block.append(instructions.mnemonics.JumpRelative(Immediate(1)))
-    
+
             blocks.append(
                 Block(
                     0, KiloBlock(0, []), block_name, cur_block
@@ -43,13 +43,13 @@ def split_blocks_into_kiloblocks(blocks: list[Block]):
     kiloblocks = [KiloBlock(1, [])]
     i = 0
     for block in blocks:
-        i += 1
-        if i > config.BLOCKS_IN_KILOBLOCK:
-            i = 1
+        if i >= config.BLOCKS_IN_KILOBLOCK:
+            i = 0
             kiloblocks.append(KiloBlock(len(kiloblocks) + 1, []))
         block.myid = i
         block.kiloblock = kiloblocks[-1]
         kiloblocks[-1].blocks.append(block)
+        i += 1
     return kiloblocks
 
 
@@ -71,17 +71,17 @@ class Program:
         i = block.kiloblock.myid
         j = block.myid
         j += 1
-        if j > config.BLOCKS_IN_KILOBLOCK:
-            j = 1
+        if j >= config.BLOCKS_IN_KILOBLOCK:
+            j = 0
             i += 1
             assert i < config.MAX_KILOBLOCK_COUNT
         return i, j
 
     def program_prologue(self):
-        return "+>+<[[>>+<<-]>[>>+<<-]>>"
+        return ">+[<[>>+<<-]>[>>+<<-]>>"
 
     def program_epilogue(self):
-        out = "\n-" + "]" * len(self.kiloblocks) + "<<<"
+        out = "\n-" + "]" * len(self.kiloblocks) + "<<"
         if config.BREAKPOINT_EVERY_CYCLE:
             out += "#"
         out += "]"
@@ -100,8 +100,11 @@ class Program:
         if name is None:
             name = f"block_{block.myid}"
         name_line = f"{concater.sanitize(name)}:"
-
-        return f"\n{name_line}\n->+<[>-]>[>]<[-"
+        out = f"\n{name_line}\n"
+        if block.kiloblock.blocks.index(block) != 0:
+            out += "-"
+        out += ">+<[>-]>[>]<[-"  # TODO: improve ifnot
+        return out
 
     def block_epilogue(self):
         return "\n]<["
