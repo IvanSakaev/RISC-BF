@@ -7,93 +7,87 @@ from typing import Union, get_args, get_origin, get_type_hints
 import config
 import instructions.mnemonics
 from cell import concater
-from config import REGISTER_COUNT, MEMORY_SCRAPS_COUNT
+from config import REGISTER_COUNT, MEMORY_SCRAPS_COUNT, BLOCK_COUNT
+from instructions.baseInstructions import Instruction, Block
 from instructions.mnemonics import (
     MNEMONICS,
     is_block_boundary,
     Block,
-    KiloBlock,
 )
 from registers import SCRAP_COUNT, Immediate, Register, regs, OffsetRegister
 
 
-def split_program_into_blocks(instrs):
-    blocks = []
-    cur_block = []
+def split_program_into_blocks(instrs: list[Instruction]):
+    root_block = Block(0, [], None, "root_block")
     block_name = None
-    for i in instrs:
-        if isinstance(i, instructions.mnemonics.LabelDefine):
-            block_name = i.name
+    instr_id = 0
+    for instr in instrs:
+        if isinstance(instr, instructions.mnemonics.LabelDefine):
+            block_name = instr.name
         else:
-            cur_block.append(i)
-            if not is_block_boundary(i):
-                cur_block.append(instructions.mnemonics.JumpRelative(Immediate(1)))
+            mother_block = root_block
+            for i in range(3, -1, -1):
+                val = instr_id // (BLOCK_COUNT ** i)
+                if i == 0:
+                    assert val < (BLOCK_COUNT - 1)
 
-            blocks.append(
-                Block(
-                    0, KiloBlock(0, []), block_name, cur_block
-                )
-            )
-            cur_block = []
+                if len(mother_block.daughter_blocks) <= val:
+                    assert len(mother_block.daughter_blocks) == val
+                    mother_block.daughter_blocks.append(Block(val, [], mother_block, block_name if i == 0 else None))
+                mother_block = mother_block.daughter_blocks[val]
+
+            mother_block.daughter_blocks.append(instr)
+            if not is_block_boundary(instr):
+                mother_block.daughter_blocks.append(instructions.mnemonics.JumpRelative(Immediate(1)))
+
             block_name = None
-    return blocks
-
-
-def split_blocks_into_kiloblocks(blocks: list[Block]):
-    kiloblocks = [KiloBlock(1, [])]
-    i = 0
-    for block in blocks:
-        if i >= config.BLOCKS_IN_KILOBLOCK:
-            i = 0
-            kiloblocks.append(KiloBlock(len(kiloblocks) + 1, []))
-        block.myid = i
-        block.kiloblock = kiloblocks[-1]
-        kiloblocks[-1].blocks.append(block)
-        i += 1
-    return kiloblocks
+            instr_id += 1
+    return root_block
 
 
 class Program:
     def __init__(self, instrs):
-        blocks = split_program_into_blocks(instrs)
-        self.kiloblocks = split_blocks_into_kiloblocks(blocks)
+        self.kiloblock = split_program_into_blocks(instrs)
+        print(self.find_block("less"))
 
-    def find_block(self, name):
-        for kiloblock in self.kiloblocks:
-            for block in kiloblock.blocks:
-                if block.name == name:
-                    i = kiloblock.myid
-                    j = block.myid
-                    return i, j
-        raise ValueError(f"Block not found: {name}")
+    def find_block(self, name: Block | str, root_block=None):
+        if root_block is None:
+            root_block = self.kiloblock
+        for block in root_block.daughter_blocks:
+            if isinstance(block.daughter_blocks[0], Instruction):
+                if (isinstance(name, Block) and name == block) or \
+                        (isinstance(name, str) and block.name == name):
+                    return [block.myid]
+            else:
+                out = self.find_block(name, block)
+                if out is not None:
+                    out.insert(0, block.myid)
+                    return out
+        if root_block == self.kiloblock:
+            raise ValueError(f"Block {name} not found")
+        return None
 
     def find_next_block(self, block: Block):
-        i = block.kiloblock.myid
-        j = block.myid
-        j += 1
-        if j >= config.BLOCKS_IN_KILOBLOCK:
-            j = 0
-            i += 1
-            assert i < config.MAX_KILOBLOCK_COUNT
-        return i, j
-
-    def program_prologue(self):
-        return ">+[<[>>+<<-]>[>>+<<-]>>"
-
-    def program_epilogue(self):
-        out = "\n-" + "]" * len(self.kiloblocks) + "<<"
-        if config.BREAKPOINT_EVERY_CYCLE:
-            out += "#"
-        out += "]"
+        out = self.find_block(block)
+        out[-1] += 1
+        for i in range(3, -1, -1):
+            if out[i] >= BLOCK_COUNT:
+                out[i] = 0
+                if i == 0:
+                    raise ValueError("You tried to use find_next_block() on last block")
+                out[i - 1] += 1
         return out
 
-    def kiloblock_prologue(self, kiloblock: KiloBlock):
-        name = f"kiloblock_{kiloblock.myid}"
-        name_line = f"{concater.sanitize(name)}:"
-        return f"\n{name_line}\n->+<[>-]>[>]<[-<<[>+<-]>\n"
+    def program_prologue(self):
+        return ">>>+[-<<<[>>>>+<<<<-]>[>>>>+<<<<-]>[>>>>+<<<<-]>[>>>>+<<<<-]>>>>#"
 
-    def kiloblock_epilogue(self, kiloblock: KiloBlock):
-        return "\nend_kiloblock -" + "]" * len(kiloblock.blocks) + " >]<["
+    def program_epilogue(self):
+        # out = "\n-" + "]" * len(self.kiloblock) + "<<"
+        out = "<<<<"
+        if config.BREAKPOINT_EVERY_CYCLE:
+            out += "#"
+        out += "+]"
+        return out
 
     def block_prologue(self, block: Block):
         name = block.name
@@ -101,39 +95,34 @@ class Program:
             name = f"block_{block.myid}"
         name_line = f"{concater.sanitize(name)}:"
         out = f"\n{name_line}\n"
-        if block.kiloblock.blocks.index(block) != 0:
+        if block.mother_block.daughter_blocks.index(block) != 0:
             out += "-"
         out += ">+<[>-]>[>]<[-"  # TODO: improve ifnot
         return out
 
     def block_epilogue(self):
-        return "\n]<["
+        return "\n]<"  # TODO: add skipping [
 
     def assemble_block(self, block: Block):
-        concater.init_block()
-        for inst in block.insts:
-            inst.evaluate(self, block, True)
-        return (
-                self.block_prologue(block)
-                + concater.get_block_code()
-                + self.block_epilogue()
-        )
-
-    def assemble_kiloblock(self, kiloblock: KiloBlock):
-        return (
-                self.kiloblock_prologue(kiloblock)
-                + "\n".join([self.assemble_block(block) for block in kiloblock.blocks])
-                + self.kiloblock_epilogue(kiloblock)
-        )
+        if isinstance(block.daughter_blocks[-1], Instruction):
+            concater.init_block()
+            for inst in block.daughter_blocks:
+                inst.evaluate(self, block, True)
+            return (
+                    self.block_prologue(block)
+                    + concater.get_block_code()
+                    + self.block_epilogue()
+            )
+        else:
+            return "".join([self.assemble_block(bl) for bl in block.daughter_blocks])
 
     def assemble(self):
-        return (
-                self.program_prologue()
-                + "\n".join(
-            [self.assemble_kiloblock(kiloblock) for kiloblock in self.kiloblocks]
+        out = self.program_prologue()
+        out += "\n".join(
+            [self.assemble_block(block) for block in self.kiloblock.daughter_blocks]
         )
-                + self.program_epilogue()
-        )
+        out += self.program_epilogue()
+        return out
 
 
 def parse_arg(arg_s: str, expected_type: type):

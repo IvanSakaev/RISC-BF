@@ -24,12 +24,6 @@ class Instruction:
 @dataclass
 class Block:
     myid: int
-    kiloblock: "KiloBlock"
+    daughter_blocks: list[Block] | list[Instruction]
+    mother_block: Block | None
     name: str | None
-    insts: list[Instruction]
-
-
-@dataclass
-class KiloBlock:
-    myid: int
-    blocks: list[Block]
