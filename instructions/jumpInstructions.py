@@ -16,13 +16,11 @@ class Jump(Instruction):
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False, clear: bool = False):
         concater.rem(f"j {self.target}", comments)
-        _, _, i, j = program.find_block(self.target)
-        if clear:
-            next1.clear()
-        next1.change(i)
-        if clear:
-            next2.clear()
-        next2.change(j)
+        new_nexts = program.find_block(self.target)
+        for next_, new_next in zip(nexts, new_nexts):
+            if clear:
+                next_.clear()
+            next_.change(new_next)
 
 
 @dataclass
@@ -33,13 +31,13 @@ class JumpRelative(Instruction):  # It isn't an instruction to use in your asm-c
         concater.rem(f"jmr {self.offset}", comments)
         if self.offset != 1:
             raise NotImplementedError
-        _, _, next_i, next_j = program.find_next_block(cur_block)
-        if clear:
-            next1.clear()
-        next1.change(next_i)
-        if clear:
-            next2.clear()
-        next2.change(next_j)
+        new_nexts = program.find_next_block(cur_block)
+        concater.debug()
+        for next_, new_next in zip(nexts, new_nexts):
+            if clear:
+                next_.clear()
+            next_.change(new_next)
+            concater.debug()
 
 
 @dataclass

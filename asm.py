@@ -89,32 +89,52 @@ class Program:
         out += "+]"
         return out
 
-    def block_prologue(self, block: Block):
+    def block_prologue(self, block: Block, deep: int):  # TODO: use concater
+        assert deep < 4
+        deep = 3 - deep
         name = block.name
         if name is None:
             name = f"block_{block.myid}"
         name_line = f"{concater.sanitize(name)}:"
         out = f"\n{name_line}\n"
+        if deep > 0:
+            out += "<" * deep
+            out += "["
+            out += ">" * deep
+            out += "+"
+            out += "<" * deep
+            out += "-"
+            out += "]"
+            out += ">" * deep
         if block.mother_block.daughter_blocks.index(block) != 0:
             out += "-"
-        out += ">+<[>-]>[>]<[-"  # TODO: improve ifnot
+        out += ">+<[>-]>[-"
+        if deep != 0:
+            out += "<"
         return out
 
-    def block_epilogue(self):
-        return "\n]<"  # TODO: add skipping [
+    def block_epilogue(self, deep: int):
+        assert deep < 4
+        deep = 3 - deep
+        out = "\n"
+        if deep != 0:
+            out += ">"
+        out += ">]<<"  # TODO: add skipping [
+        return out
 
-    def assemble_block(self, block: Block):
+    def assemble_block(self, block: Block, deep: int = 0):
         if isinstance(block.daughter_blocks[-1], Instruction):
             concater.init_block()
             for inst in block.daughter_blocks:
                 inst.evaluate(self, block, True)
-            return (
-                    self.block_prologue(block)
-                    + concater.get_block_code()
-                    + self.block_epilogue()
-            )
+            inside = concater.get_block_code()
         else:
-            return "".join([self.assemble_block(bl) for bl in block.daughter_blocks])
+            inside = "".join([self.assemble_block(bl, deep + 1) for bl in block.daughter_blocks])
+        return (
+                self.block_prologue(block, deep)
+                + inside
+                + self.block_epilogue(deep)
+        )
 
     def assemble(self):
         out = self.program_prologue()
@@ -238,12 +258,12 @@ if __name__ == "__main__":
 
     # Generate addrmap
     with open(sys.argv[2] + ".addr", "w") as f:
-        f.write("a0[2] next\n")
-        f.write("a2[2] current\n")
-        f.write(f"a2[{SCRAP_COUNT - MEMORY_SCRAPS_COUNT:x}] scraps\n")
+        f.write("a0[4] next\n")
+        f.write("a4[4] current\n")
+        f.write(f"a4[{SCRAP_COUNT - MEMORY_SCRAPS_COUNT:x}] scraps\n")
         for i in range(4):  # TODO: Replace with REGISTER_COUNT
-            f.write(f"a{i * 8 + SCRAP_COUNT - MEMORY_SCRAPS_COUNT + 2:x}[8] x{i + 1}\n")
+            f.write(f"a{i * 8 + SCRAP_COUNT - MEMORY_SCRAPS_COUNT + 4:x}[8] x{i + 1}\n")
         f.write(
-            f"a{REGISTER_COUNT * 8 + SCRAP_COUNT - MEMORY_SCRAPS_COUNT + 2:x}[{MEMORY_SCRAPS_COUNT :x}] mem_scraps\n")
+            f"a{REGISTER_COUNT * 8 + SCRAP_COUNT - MEMORY_SCRAPS_COUNT + 4:x}[{MEMORY_SCRAPS_COUNT :x}] mem_scraps\n")
         f.write(
-            f"a{REGISTER_COUNT * 8 + SCRAP_COUNT - MEMORY_SCRAPS_COUNT + 2 + MEMORY_SCRAPS_COUNT:x}[{256:x}] memory\n")
+            f"a{REGISTER_COUNT * 8 + SCRAP_COUNT - MEMORY_SCRAPS_COUNT + 4 + MEMORY_SCRAPS_COUNT:x}[{256:x}] memory\n")

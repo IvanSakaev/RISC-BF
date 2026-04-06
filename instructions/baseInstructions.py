@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from cell import Cell, scraps, concater, next1, next2, memory_scraps
+from cell import Cell, scraps, concater, nexts, memory_scraps
 from registers import (
     ZERO,
     Cell,
