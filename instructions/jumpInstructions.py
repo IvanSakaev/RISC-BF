@@ -33,12 +33,10 @@ class JumpRelative(Instruction):  # It isn't an instruction to use in your asm-c
         if self.offset != 1:
             raise NotImplementedError
         new_nexts = program.find_next_block(cur_block)
-        concater.debug()
         for next_, new_next in zip(nexts, new_nexts):
             if clear:
                 next_.clear()
             next_.change(new_next)
-            concater.debug()
 
 
 @dataclass
@@ -168,7 +166,6 @@ class BranchIfLessThan(Instruction):
                         Jump(self.label).evaluate(program, cur_block, clear=True)
                     else:
                         JumpRelative(Immediate(1)).evaluate(program, cur_block, clear=True)
-            concater.debug()
             return
 
         mod = scraps[0]
@@ -299,7 +296,6 @@ class BranchIfEqualToZero(Instruction):
             Jump(self.label).evaluate(program, cur_block)
         running.change(-1)
         running.raw("]]]]]]]]")
-        concater.debug()
 
 
 @dataclass

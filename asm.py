@@ -82,7 +82,7 @@ class Program:
         return ">>>+[-<<<[>>>>+<<<<-]>[>>>>+<<<<-]>[>>>>+<<<<-]>[>>>>+<<<<-]>>>>"
 
     def program_epilogue(self):
-        # out = "\n-" + "]" * len(self.kiloblock) + "<<"
+        # TODO: Make program not cycling if not found block
         out = "<<<<"
         if config.BREAKPOINT_EVERY_CYCLE:
             out += "#"
@@ -96,7 +96,12 @@ class Program:
             name = f"block_{block.myid}"
         name_line = f"{concater.sanitize(name)}:"
         out = f"\n{name_line}\n"
-        if deep > 0:
+        if block.mother_block.daughter_blocks.index(block) != 0:
+            out += "-"
+        out += ">+<[>-]>[-"
+        if deep != 3:
+            deep += 1
+            out += "<"
             out += "<" * deep
             out += "["
             out += ">" * deep
@@ -105,11 +110,6 @@ class Program:
             out += "-"
             out += "]"
             out += ">" * deep
-        if block.mother_block.daughter_blocks.index(block) != 0:
-            out += "-"
-        out += ">+<[>-]>[-"
-        if deep != 3:
-            out += "<"
         return out
 
     def block_epilogue(self, deep: int):
@@ -117,8 +117,8 @@ class Program:
         out = "\n"
         if deep != 3:
             out += ">"
-        out += ">]<<"  # TODO: add skipping [
-        return out
+        out += "<[-]>>]<<"  # clearing address value
+        return out  # TODO: add skipping by [
 
     def assemble_block(self, block: Block, deep: int = 0):
         if isinstance(block.daughter_blocks[-1], Instruction):
