@@ -61,7 +61,7 @@ class Program:
             else:
                 out = self.find_block(name, block)
                 if out is not None:
-                    out.insert(0, block.myid)
+                    out.append(block.myid)
                     return out
         if root_block == self.kiloblock:
             raise ValueError(f"Block {name} not found")
@@ -69,17 +69,17 @@ class Program:
 
     def find_next_block(self, block: Block):
         out = self.find_block(block)
-        out[-1] += 1
-        for i in range(3, -1, -1):
+        out[0] += 1
+        for i in range(4):
+            if i == 0:
+                assert out[i] < (BLOCK_COUNT - 1)
             if out[i] >= BLOCK_COUNT:
                 out[i] = 0
-                if i == 0:
-                    raise ValueError("You tried to use find_next_block() on last block")
                 out[i - 1] += 1
         return out
 
     def program_prologue(self):
-        return ">>>+[-<<<[>>>>+<<<<-]>[>>>>+<<<<-]>[>>>>+<<<<-]>[>>>>+<<<<-]>>>>#"
+        return ">>>+[-<<<[>>>>+<<<<-]>[>>>>+<<<<-]>[>>>>+<<<<-]>[>>>>+<<<<-]>>>>"
 
     def program_epilogue(self):
         # out = "\n-" + "]" * len(self.kiloblock) + "<<"
@@ -91,7 +91,6 @@ class Program:
 
     def block_prologue(self, block: Block, deep: int):  # TODO: use concater
         assert deep < 4
-        deep = 3 - deep
         name = block.name
         if name is None:
             name = f"block_{block.myid}"
@@ -109,15 +108,14 @@ class Program:
         if block.mother_block.daughter_blocks.index(block) != 0:
             out += "-"
         out += ">+<[>-]>[-"
-        if deep != 0:
+        if deep != 3:
             out += "<"
         return out
 
     def block_epilogue(self, deep: int):
         assert deep < 4
-        deep = 3 - deep
         out = "\n"
-        if deep != 0:
+        if deep != 3:
             out += ">"
         out += ">]<<"  # TODO: add skipping [
         return out

@@ -41,10 +41,14 @@ class _Concater:
     def debug(self):
         self.raw("#")
 
+    def assert_pos(self):
+        self.raw(f"@{self.current_pos.addr:x}")
+
     def init_block(self):
         self.current_pos = self.root
         self.current_program = ""
 
     def get_block_code(self):
         self.root.to()
+        self.assert_pos()
         return self.current_program

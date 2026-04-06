@@ -28,6 +28,7 @@ class JumpRelative(Instruction):  # It isn't an instruction to use in your asm-c
     offset: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False, clear: bool = False):
+        # TODO: maybe modify current block address instead of next block address?
         concater.rem(f"jmr {self.offset}", comments)
         if self.offset != 1:
             raise NotImplementedError
