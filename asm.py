@@ -6,9 +6,9 @@ from typing import Union, get_args, get_origin, get_type_hints
 
 import config
 import instructions.mnemonics
-from cell import concater
+from cell import concater, nexts, currents
 from config import REGISTER_COUNT, MEMORY_SCRAPS_COUNT, BLOCK_COUNT
-from instructions.baseInstructions import Instruction, Block
+from instructions.baseInstructions import Instruction
 from instructions.mnemonics import (
     MNEMONICS,
     is_block_boundary,
@@ -75,71 +75,54 @@ class Program:
         return out
 
     def program_prologue(self):
-        return ">>>+[<<<[>>>>+<<<<-]>[>>>>+<<<<-]>[>>>>+<<<<-]>[>>>>+<<<<-]>>>>"
+        nexts[-1].change(1)
+        nexts[-1].raw("[")
+        for i in range(4):
+            nexts[i].move(currents[i])
 
     def program_epilogue(self):
-        # TODO: Make program not cycling if not found block
-        out = "<<<<"
         if config.BREAKPOINT_EVERY_CYCLE:
-            out += "#"
-        out += "]"
-        return out
+            concater.debug()
+        nexts[-1].raw("]")
 
-    def block_prologue(self, block: Block, deep: int):  # TODO: use concater
+    def block_prologue(self, block: Block, deep: int):
         assert deep < 4
         name = block.name
         if name is None:
             name = f"block_{block.myid}"
         name_line = f"{concater.sanitize(name)}:"
-        out = "\n"
-        out += "  " * deep
-        out += f"{name_line}\n"
-        out += "  " * deep
+        concater.raw("\n")
+        concater.raw(f"{name_line}\n")
         if block.myid != 0:
-            out += "-"
-        out += ">+<[>-]>[-"
+            currents[-1].change(-1)
+        currents[-1].raw(">+<[>-]>[-", pos_offset=1)
         if deep != 3:
-            deep += 1
-            out += "<"
-            out += "<" * deep
-            out += "["
-            out += ">" * deep
-            out += "+"
-            out += "<" * deep
-            out += "-"
-            out += "]"
-            out += ">" * deep
-        return out
+            currents[-2 - deep].move(currents[-1])
 
     def block_epilogue(self, deep: int):
         assert deep < 4
-        out = "\n"
-        out += "  " * deep
-        if deep != 3:
-            out += ">"
-        out += "<[-]>>]<<"  # clearing address value
-        return out  # TODO: add skipping by [
+        concater.raw("\n")
+        currents[-1].clear()
+        currents[-1].cell_rel(2).raw("]")  # TODO: add skipping by [
 
     def assemble_block(self, block: Block, deep: int = 0):
+        self.block_prologue(block, deep)
         if isinstance(block.daughter_blocks[-1], Instruction):
-            concater.init_block()
             for inst in block.daughter_blocks:
                 inst.evaluate(self, block, True)
-            inside = concater.get_block_code()
+                concater.assert_pos()
         else:
-            inside = "".join([self.assemble_block(bl, deep + 1) for bl in block.daughter_blocks])
-        return (
-                self.block_prologue(block, deep)
-                + inside
-                + self.block_epilogue(deep)
-        )
+            for bl in block.daughter_blocks:
+                self.assemble_block(bl, deep + 1)
+        self.block_epilogue(deep)
 
-    def assemble(self):
-        out = self.program_prologue()
-        out += "\n".join(
-            [self.assemble_block(block) for block in self.kiloblock.daughter_blocks]
-        )
-        out += self.program_epilogue()
+    def assemble_program(self):
+        self.program_prologue()
+        for block in self.kiloblock.daughter_blocks:
+            self.assemble_block(block)
+        self.program_epilogue()
+        out = concater.get_code()
+        concater.reset_code()
         return out
 
 
@@ -248,7 +231,7 @@ if __name__ == "__main__":
 
     instrs = parse(in_contents)
     prog = Program(instrs)
-    out_contents = prog.assemble()
+    out_contents = prog.assemble_program()
 
     with open(sys.argv[2], "w") as f:
         f.write(out_contents)

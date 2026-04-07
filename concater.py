@@ -10,8 +10,7 @@ if TYPE_CHECKING:
 
 class _Concater:
     def __init__(self, root: Cell):
-        self.root = root
-        self.current_pos = self.root
+        self.current_pos = root
         self.current_program = ""
 
     @classmethod
@@ -44,11 +43,10 @@ class _Concater:
     def assert_pos(self):
         self.raw(f"@{self.current_pos.addr:x}")
 
-    def init_block(self):
-        self.current_pos = self.root
-        self.current_program = ""
-
-    def get_block_code(self):
-        self.root.to()
-        self.assert_pos()
+    def get_code(self):
         return self.current_program
+
+    def reset_code(self, new_pos: Cell | None = None):
+        self.current_program = ""
+        if new_pos is not None:
+            self.current_pos = new_pos

@@ -151,11 +151,12 @@ class Cell:
         return self.addr == other.addr
 
 
+concater = _Concater(Cell(0))
+
 nexts = [Cell(i) for i in range(4)]  # next block number
 currents = [Cell(i + 4) for i in range(4)]
 
 ROOT = Cell(8)  # Every block starts and ends here
-concater = _Concater(ROOT)
 
 # Safe to modify in blocks, equal zero in blocks, after modifying must stay zero
 scraps = [Cell(i + 4) for i in range(SCRAP_COUNT - MEMORY_SCRAPS_COUNT)]
