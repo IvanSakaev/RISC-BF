@@ -28,6 +28,7 @@ def split_program_into_blocks(instrs: list[Instruction]):
             mother_block = root_block
             for i in range(3, -1, -1):
                 val = instr_id // (BLOCK_COUNT ** i)
+                val %= BLOCK_COUNT
                 idx = (val + 1) if i == 3 else val
                 if len(mother_block.daughter_blocks) <= val:
                     assert len(mother_block.daughter_blocks) == val
@@ -68,15 +69,13 @@ class Program:
         out = self.find_block(block)
         out[0] += 1
         for i in range(4):
-            if i == 0:
-                assert out[i] < (BLOCK_COUNT - 1)
             if out[i] >= BLOCK_COUNT:
                 out[i] = 0
-                out[i - 1] += 1
+                out[i + 1] += 1
         return out
 
     def program_prologue(self):
-        return ">>>+[<<<[>>>>+<<<<-]>[>>>>+<<<<-]>[>>>>+<<<<-]>[>>>>+<<<<-]>>>>#"
+        return ">>>+[<<<[>>>>+<<<<-]>[>>>>+<<<<-]>[>>>>+<<<<-]>[>>>>+<<<<-]>>>>"
 
     def program_epilogue(self):
         # TODO: Make program not cycling if not found block
@@ -92,7 +91,10 @@ class Program:
         if name is None:
             name = f"block_{block.myid}"
         name_line = f"{concater.sanitize(name)}:"
-        out = f"\n{name_line}\n"
+        out = "\n"
+        out += "  " * deep
+        out += f"{name_line}\n"
+        out += "  " * deep
         if block.myid != 0:
             out += "-"
         out += ">+<[>-]>[-"
@@ -112,6 +114,7 @@ class Program:
     def block_epilogue(self, deep: int):
         assert deep < 4
         out = "\n"
+        out += "  " * deep
         if deep != 3:
             out += ">"
         out += "<[-]>>]<<"  # clearing address value

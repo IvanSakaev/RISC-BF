@@ -36,7 +36,7 @@ class _Concater:
     def rem(self, text: str, comments: bool):
         if comments:
             bp = " #" if config.BREAKPOINT_EVERY_INSTRUCTION else ""
-            self.current_program += "\n  " + self.sanitize(text) + bp + "\n    "
+            self.current_program += "\n        " + self.sanitize(text) + bp + "\n          "
 
     def debug(self):
         self.raw("#")
