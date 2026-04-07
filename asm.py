@@ -28,12 +28,10 @@ def split_program_into_blocks(instrs: list[Instruction]):
             mother_block = root_block
             for i in range(3, -1, -1):
                 val = instr_id // (BLOCK_COUNT ** i)
-                if i == 0:
-                    assert val < (BLOCK_COUNT - 1)
-
+                idx = (val + 1) if i == 3 else val
                 if len(mother_block.daughter_blocks) <= val:
                     assert len(mother_block.daughter_blocks) == val
-                    mother_block.daughter_blocks.append(Block(val, [], mother_block, block_name if i == 0 else None))
+                    mother_block.daughter_blocks.append(Block(idx, [], mother_block, block_name if i == 0 else None))
                 mother_block = mother_block.daughter_blocks[val]
 
             mother_block.daughter_blocks.append(instr)
@@ -48,7 +46,6 @@ def split_program_into_blocks(instrs: list[Instruction]):
 class Program:
     def __init__(self, instrs):
         self.kiloblock = split_program_into_blocks(instrs)
-        print(self.find_block("less"))
 
     def find_block(self, name: Block | str, root_block=None):
         if root_block is None:
@@ -79,14 +76,14 @@ class Program:
         return out
 
     def program_prologue(self):
-        return ">>>+[-<<<[>>>>+<<<<-]>[>>>>+<<<<-]>[>>>>+<<<<-]>[>>>>+<<<<-]>>>>"
+        return ">>>+[<<<[>>>>+<<<<-]>[>>>>+<<<<-]>[>>>>+<<<<-]>[>>>>+<<<<-]>>>>#"
 
     def program_epilogue(self):
         # TODO: Make program not cycling if not found block
         out = "<<<<"
         if config.BREAKPOINT_EVERY_CYCLE:
             out += "#"
-        out += "+]"
+        out += "]"
         return out
 
     def block_prologue(self, block: Block, deep: int):  # TODO: use concater
@@ -96,7 +93,7 @@ class Program:
             name = f"block_{block.myid}"
         name_line = f"{concater.sanitize(name)}:"
         out = f"\n{name_line}\n"
-        if block.mother_block.daughter_blocks.index(block) != 0:
+        if block.myid != 0:
             out += "-"
         out += ">+<[>-]>[-"
         if deep != 3:
