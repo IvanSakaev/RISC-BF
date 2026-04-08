@@ -81,6 +81,7 @@ class Program:
             nexts[i].move(currents[i])
 
     def program_epilogue(self):
+        currents[-1].raw("-]")
         if config.BREAKPOINT_EVERY_CYCLE:
             concater.debug()
         nexts[-1].raw("]")
@@ -99,11 +100,14 @@ class Program:
         if deep != 3:
             currents[-2 - deep].move(currents[-1])
 
-    def block_epilogue(self, deep: int):
+    def block_epilogue(self, block: Block, deep: int):
         assert deep < 4
         concater.raw("\n")
-        currents[-1].clear()
-        currents[-1].cell_rel(2).raw("]")  # TODO: add skipping by [
+        if len(block.daughter_blocks) > 0 and deep != 3:
+            currents[-1].change(-1)
+            currents[-1].raw("]" * len(block.daughter_blocks))
+        currents[-1].cell_rel(2).raw("]")
+        currents[-1].raw("[")
 
     def assemble_block(self, block: Block, deep: int = 0):
         self.block_prologue(block, deep)
@@ -114,7 +118,7 @@ class Program:
         else:
             for bl in block.daughter_blocks:
                 self.assemble_block(bl, deep + 1)
-        self.block_epilogue(deep)
+        self.block_epilogue(block, deep)
 
     def assemble_program(self):
         self.program_prologue()
