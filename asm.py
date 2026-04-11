@@ -7,7 +7,7 @@ from typing import Union, get_args, get_origin, get_type_hints
 import config
 import instructions.mnemonics
 from cell import concater, nexts, currents
-from config import REGISTER_COUNT, MEMORY_SCRAPS_COUNT, BLOCK_COUNT
+from config import REGISTER_COUNT, MEMORY_SCRAPS_COUNT, BLOCK_SIZE
 from instructions.baseInstructions import Instruction
 from instructions.mnemonics import (
     MNEMONICS,
@@ -27,9 +27,17 @@ def split_program_into_blocks(instrs: list[Instruction]):
         else:
             mother_block = root_block
             for i in range(3, -1, -1):
-                val = instr_id // (BLOCK_COUNT ** i)
-                val %= BLOCK_COUNT
-                idx = (val + 1) if i == 3 else val
+                if i == 0:
+                    val = instr_id % (BLOCK_SIZE // 4)
+                else:
+                    val = instr_id // (BLOCK_SIZE ** (i - 1)) // (BLOCK_SIZE // 4)
+                    val %= BLOCK_SIZE
+
+                idx = val
+                if i == 3:
+                    idx += 1
+                elif i == 0:
+                    idx *= 4
                 if len(mother_block.daughter_blocks) <= val:
                     assert len(mother_block.daughter_blocks) == val
                     mother_block.daughter_blocks.append(Block(idx, [], mother_block, block_name if i == 0 else None))
@@ -48,7 +56,7 @@ class Program:
     def __init__(self, instrs):
         self.kiloblock = split_program_into_blocks(instrs)
 
-    def find_block(self, name: Block | str, root_block=None):
+    def find_block(self, name: Block | str, root_block=None):  # TODO: optimize finding by block obj
         if root_block is None:
             root_block = self.kiloblock
         for block in root_block.daughter_blocks:
@@ -67,9 +75,9 @@ class Program:
 
     def find_next_block(self, block: Block):
         out = self.find_block(block)
-        out[0] += 1
+        out[0] += 4
         for i in range(4):
-            if out[i] >= BLOCK_COUNT:
+            if out[i] >= BLOCK_SIZE:
                 if i == 3:
                     raise RuntimeError("Too many blocks")
                 out[i] = 0
@@ -97,7 +105,7 @@ class Program:
         concater.raw("\n")
         concater.raw(f"{name_line}\n")
         if block.myid != 0:
-            currents[-1].change(-1)
+            currents[-1].change(-4 if deep == 3 else -1)
         currents[-1].raw(">+<[>-]>[-", pos_offset=1)
         if deep != 3:
             currents[-2 - deep].move(currents[-1])
@@ -155,7 +163,7 @@ def parse_arg(arg_s: str, expected_type: type):
         raise ValueError(f"Unknown expected type: {expected_type}")
 
 
-def parse(s: str):
+def parse(s: str):  # TODO: Make `label: addi x1, x2, 1` work
     if not hasattr(parse, "_instruction_arg_types"):
         parse._instruction_arg_types = {}
         for mnem, op in MNEMONICS.items():

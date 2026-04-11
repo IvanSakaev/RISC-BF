@@ -1,3 +1,4 @@
+from config import BLOCK_SIZE
 from instructions.baseInstructions import *
 from dataclasses import dataclass
 
@@ -37,6 +38,38 @@ class JumpRelative(Instruction):  # It isn't an instruction to use in your asm-c
             if clear:
                 next_.clear()
             next_.change(new_next)
+
+
+@dataclass
+class JumpRegister(Instruction):
+    reg: Register
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"jr {self.reg}", comments)
+        if self.reg == ZERO:
+            new_nexts = [1, 0, 0, 0]
+            for next_, new_next in zip(nexts, new_nexts):
+                next_.change(new_next)
+            return
+        for i in range(8):
+            small_reg = self.reg.get_cell(i)
+            small_reg.copy(nexts[i // 2], multiplier=16 ** (i % 2))
+
+
+@dataclass
+class JumpAndLink(Instruction):
+    src: Register
+    label: Label  # TODO: add parsing immediate values
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"jal {self.src} {self.label}", comments)
+        if self.src != ZERO:
+            new_nexts = program.find_next_block(cur_block)
+            new_next_num = 0
+            for i, new_next in enumerate(new_nexts):
+                new_next_num += new_next * (BLOCK_SIZE ** i)
+            self.src.change_big(new_next_num, clear=True)
+        Jump(self.label).evaluate(program, cur_block)
 
 
 @dataclass
@@ -409,33 +442,3 @@ class BranchIfLessThanOrEqualUnsigned(Instruction):
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"bleu {self.src1} {self.src2} {self.label}", comments)
         BranchIfGreaterThanOrEqualUnsigned(self.src2, self.src1, self.label).evaluate(program, cur_block)
-
-
-def is_block_boundary(instr):
-    return isinstance(
-        instr,
-        (
-            LabelDefine,
-            Jump,
-
-            # branches
-            BranchIfEqual,
-            BranchIfNotEqual,
-            BranchIfLessThan,
-            BranchIfLessThanUnsigned,
-            BranchIfGreaterThanOrEqual,
-            BranchIfGreaterThanOrEqualUnsigned,
-            BranchIfEqualToZero,
-            BranchIfNotEqualToZero,
-
-            # pseudo-instructions
-            BranchIfLessThanOrEqualToZero,
-            BranchIfGreaterThanOrEqualToZero,
-            BranchIfLessThanZero,
-            BranchIfGreaterThanZero,
-            BranchIfGreaterThan,
-            BranchIfLessThanOrEqual,
-            BranchIfGreaterThanUnsigned,
-            BranchIfLessThanOrEqualUnsigned,
-        ),
-    )

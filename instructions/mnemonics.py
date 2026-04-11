@@ -129,6 +129,9 @@ MNEMONICS["sw"] = StoreWord
 
 # jump
 MNEMONICS["j"] = Jump
+MNEMONICS["jr"] = JumpRegister
+MNEMONICS["jal"] = JumpAndLink
+# conditional jump
 MNEMONICS["beq"] = BranchIfEqual
 MNEMONICS["bne"] = BranchIfNotEqual
 MNEMONICS["blt"] = BranchIfLessThan
@@ -137,7 +140,7 @@ MNEMONICS["bge"] = BranchIfGreaterThanOrEqual
 MNEMONICS["bgeu"] = BranchIfGreaterThanOrEqualUnsigned
 MNEMONICS["beqz"] = BranchIfEqualToZero
 MNEMONICS["bnez"] = BranchIfNotEqualToZero
-# jump pseudo-instructions
+# conditional jump pseudo-instructions
 MNEMONICS["blez"] = BranchIfLessThanOrEqualToZero
 MNEMONICS["bgez"] = BranchIfGreaterThanOrEqualToZero
 MNEMONICS["bltz"] = BranchIfLessThanZero
@@ -150,3 +153,35 @@ MNEMONICS["bleu"] = BranchIfLessThanOrEqualUnsigned
 # special
 MNEMONICS["ebreak"] = Debug
 MNEMONICS["out"] = Output
+
+
+def is_block_boundary(instr):
+    return isinstance(
+        instr,
+        (
+            LabelDefine,
+            Jump,
+            JumpRegister,
+            JumpAndLink,
+
+            # branches
+            BranchIfEqual,
+            BranchIfNotEqual,
+            BranchIfLessThan,
+            BranchIfLessThanUnsigned,
+            BranchIfGreaterThanOrEqual,
+            BranchIfGreaterThanOrEqualUnsigned,
+            BranchIfEqualToZero,
+            BranchIfNotEqualToZero,
+
+            # pseudo-instructions
+            BranchIfLessThanOrEqualToZero,
+            BranchIfGreaterThanOrEqualToZero,
+            BranchIfLessThanZero,
+            BranchIfGreaterThanZero,
+            BranchIfGreaterThan,
+            BranchIfLessThanOrEqual,
+            BranchIfGreaterThanUnsigned,
+            BranchIfLessThanOrEqualUnsigned,
+        ),
+    )
