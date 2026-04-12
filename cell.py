@@ -110,7 +110,7 @@ class Cell:
             invert_output: bool = False,
     ):
         """
-        It divides cell by constant number. Result and reminder are stored. (Result isn't stored if need_output=False)'
+        It divides cell by constant number. Result and reminder are stored. (Result isn't stored if output=None)'
 
         Register will be cleared.
 

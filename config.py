@@ -10,6 +10,6 @@ REGISTER_COUNT = 32
 SCRAP_COUNT = 32  # TODO: reduce scrap count
 
 # TODO: Make 3-bytes addressing, not 2.5-bytes
-MEMORY_ADDRESS_HALFBYTES = 5  # Memory cell count will be 16^MEMORY_ADDRESS_HALFBYTES
+MEMORY_ADDRESS_HALFBYTES = 4  # Memory cell count will be 16^MEMORY_ADDRESS_HALFBYTES
 
 MEMORY_SCRAPS_COUNT = 6 + MEMORY_ADDRESS_HALFBYTES  # Don't change!

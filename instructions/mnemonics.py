@@ -126,6 +126,7 @@ MNEMONICS["sgtz"] = SetGreaterThanZero
 
 # store/load
 MNEMONICS["sw"] = StoreWord
+MNEMONICS["lw"] = LoadWord
 
 # jump
 MNEMONICS["j"] = Jump

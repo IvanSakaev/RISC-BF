@@ -12,7 +12,7 @@ from instructions.baseInstructions import Instruction
 from instructions.mnemonics import (
     MNEMONICS,
     is_block_boundary,
-    Block,
+    Block, LoadI,
 )
 from registers import SCRAP_COUNT, Immediate, Register, regs, OffsetRegister
 
@@ -131,6 +131,7 @@ class Program:
         self.block_epilogue(block, deep)
 
     def assemble_program(self):
+        LoadI(regs["sp"], Immediate(0xFFFFFFFF))
         self.program_prologue()
         for block in self.kiloblock.daughter_blocks:
             self.assemble_block(block)
