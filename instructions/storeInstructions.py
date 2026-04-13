@@ -11,13 +11,17 @@ class StoreWord(Instruction):
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"sw {self.src} {self.addr.offset}({self.addr.register})", comments)
 
-        if self.addr.register == ZERO:  # TODO: src may be ZERO
+        if self.addr.register == ZERO:
             assert self.addr.offset >= 0
             dst = memory_scraps[-1].cell_rel(1 + self.addr.offset)
-            for i in range(8):
-                small_src = self.src.get_cell(i)
-                small_dst = dst.cell_rel(i // 2)
-                small_src.copy(small_dst, scrap=memory_scraps[0], multiplier=(16 if i % 2 == 0 else 1))
+            for i in range(4):
+                small_dst = dst.cell_rel(i)
+                small_dst.clear()
+            if self.src != ZERO:
+                for i in range(8):
+                    small_src = self.src.get_cell(i)
+                    small_dst = dst.cell_rel(i // 2)
+                    small_src.copy(small_dst, scrap=memory_scraps[0], multiplier=(16 if i % 2 == 0 else 1))
             return
         if self.addr.offset != 0:
             raise NotImplementedError
