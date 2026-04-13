@@ -82,8 +82,6 @@ class LoadWord(Instruction):
                 small_src2.move(small_src1, small_dst, multiplier=[1, 16])
                 memory_scraps[0].move(small_src2, small_dst)
             return
-        if self.addr.offset != 0:
-            raise NotImplementedError  # TODO:
 
         zero_scrap = memory_scraps[0]
         addr_cell = memory_scraps[1: MEMORY_ADDRESS_HALFBYTES + 1]
@@ -91,14 +89,23 @@ class LoadWord(Instruction):
         data_cell = memory_scraps[MEMORY_ADDRESS_HALFBYTES + 2:]
         first_mem_cell = data_cell[-1].cell_rel(1)
 
+        if self.addr.offset >= 0:
+            need_mem_cell = first_mem_cell.cell_rel(self.addr.offset)
+        else:
+            need_mem_cell = first_mem_cell
+            AddI(self.addr.register, self.addr.register, self.addr.offset).evaluate(program, cur_block)
+
         for i in range(MEMORY_ADDRESS_HALFBYTES):
             self.addr.register.get_cell(i).copy(addr_cell[i], scrap=zero_scrap)
+
+        if self.addr.offset < 0:
+            AddI(self.addr.register, self.addr.register, -self.addr.offset).evaluate(program, cur_block)
 
         _go_to_addr()
 
         # WARNING: You don't know your actual position now. It's impossible to use cells before zero_scrap
         for i in range(4):
-            first_mem_cell.cell_rel(i).copy(data_cell[i], scrap=zero_scrap)
+            need_mem_cell.cell_rel(i).copy(data_cell[i], scrap=zero_scrap)
 
         # Moving back
         _go_from_addr()
