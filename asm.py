@@ -18,7 +18,7 @@ from registers import SCRAP_COUNT, Immediate, Register, regs, OffsetRegister
 
 
 def split_program_into_blocks(instrs: list[Instruction]):
-    root_block = Block(0, [], None, "root_block")
+    root_block = Block(None, [], None, "root_block")
     block_name = None
     instr_id = 0
     for instr in instrs:
@@ -56,13 +56,21 @@ class Program:
     def __init__(self, instrs):
         self.kiloblock = split_program_into_blocks(instrs)
 
-    def find_block(self, name: Block | str, root_block=None):  # TODO: optimize finding by block obj
+    def get_block_full_id(self, block: Block):
+        myid = []
+        cur_block = block
+        for i in range(4):
+            assert cur_block is not None
+            myid.append(cur_block.myid)
+            cur_block = cur_block.mother_block
+        return myid
+
+    def find_block(self, name: str, root_block=None):
         if root_block is None:
             root_block = self.kiloblock
         for block in root_block.daughter_blocks:
             if isinstance(block.daughter_blocks[0], Instruction):
-                if (isinstance(name, Block) and name == block) or \
-                        (isinstance(name, str) and block.name == name):
+                if isinstance(name, str) and block.name == name:
                     return [block.myid]
             else:
                 out = self.find_block(name, block)
@@ -74,7 +82,7 @@ class Program:
         return None
 
     def find_next_block(self, block: Block):
-        out = self.find_block(block)
+        out = self.get_block_full_id(block)
         out[0] += 4
         for i in range(4):
             if out[i] >= BLOCK_SIZE:

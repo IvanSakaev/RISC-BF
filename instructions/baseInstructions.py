@@ -23,7 +23,7 @@ class Instruction:
 
 @dataclass
 class Block:
-    myid: int
+    myid: int | None
     daughter_blocks: list[Block] | list[Instruction]
     mother_block: Block | None
     name: str | None
