@@ -1,4 +1,5 @@
 from config import MEMORY_ADDRESS_HALFBYTES
+from instructions.arithmeticInstructions import AddI
 from instructions.baseInstructions import *
 from dataclasses import dataclass
 
@@ -23,14 +24,17 @@ class StoreWord(Instruction):
                     small_dst = dst.cell_rel(i // 2)
                     small_src.copy(small_dst, scrap=memory_scraps[0], multiplier=(16 if i % 2 == 0 else 1))
             return
-        if self.addr.offset != 0:
-            raise NotImplementedError
 
         zero_scrap = memory_scraps[0]
         addr_cell = memory_scraps[1: MEMORY_ADDRESS_HALFBYTES + 1]
         addr_scrap = memory_scraps[MEMORY_ADDRESS_HALFBYTES + 1]
         data_cell = memory_scraps[MEMORY_ADDRESS_HALFBYTES + 2:]
         first_mem_cell = data_cell[-1].cell_rel(1)
+        if self.addr.offset >= 0:
+            need_mem_cell = first_mem_cell.cell_rel(self.addr.offset)
+        else:
+            need_mem_cell = first_mem_cell
+            AddI(self.addr.register, self.addr.register, self.addr.offset).evaluate(program, cur_block)
 
         if self.src != ZERO:
             for i in range(8):  # Move src to data
@@ -39,14 +43,17 @@ class StoreWord(Instruction):
         for i in range(MEMORY_ADDRESS_HALFBYTES):
             self.addr.register.get_cell(i).copy(addr_cell[i], scrap=zero_scrap)
 
+        if self.addr.offset < 0:
+            AddI(self.addr.register, self.addr.register, -self.addr.offset).evaluate(program, cur_block)
+
         _go_to_addr()
 
         # WARNING: You don't know your actual position now. It's impossible to use cells before zero_scrap
         for i in range(4):
-            first_mem_cell.cell_rel(i).clear()
+            need_mem_cell.cell_rel(i).clear()
         if self.src != ZERO:
             for i in range(4):
-                data_cell[i].move(first_mem_cell.cell_rel(i))
+                data_cell[i].move(need_mem_cell.cell_rel(i))
 
         # Moving back
         _go_from_addr()
@@ -76,7 +83,7 @@ class LoadWord(Instruction):
                 memory_scraps[0].move(small_src2, small_dst)
             return
         if self.addr.offset != 0:
-            raise NotImplementedError
+            raise NotImplementedError  # TODO:
 
         zero_scrap = memory_scraps[0]
         addr_cell = memory_scraps[1: MEMORY_ADDRESS_HALFBYTES + 1]
@@ -97,7 +104,7 @@ class LoadWord(Instruction):
         _go_from_addr()
 
         self.src.clear_big()
-        for i in range(4):  # Move src to data
+        for i in range(4):  # Move data to src
             small_src1 = self.src.get_cell(i * 2)
             small_src2 = self.src.get_cell(i * 2 + 1)
             small_dst = data_cell[i]
