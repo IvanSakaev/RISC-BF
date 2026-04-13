@@ -14,6 +14,7 @@ from registers import (
 )
 
 if TYPE_CHECKING:
+    from instructions.jumpInstructions import LabelDefine
     from asm import Program
 
 
@@ -26,4 +27,4 @@ class Block:
     myid: int | None
     daughter_blocks: list[Block] | list[Instruction]
     mother_block: Block | None
-    name: str | None
+    labels: list[str]

@@ -9,6 +9,7 @@ import instructions.mnemonics
 from cell import concater, nexts, currents
 from config import REGISTER_COUNT, MEMORY_SCRAPS_COUNT, BLOCK_SIZE
 from instructions.baseInstructions import Instruction
+from instructions.jumpInstructions import LabelDefine
 from instructions.mnemonics import (
     MNEMONICS,
     is_block_boundary,
@@ -18,12 +19,12 @@ from registers import SCRAP_COUNT, Immediate, Register, regs, OffsetRegister
 
 
 def split_program_into_blocks(instrs: list[Instruction]):
-    root_block = Block(None, [], None, "root_block")
-    block_name = None
+    root_block = Block(None, [], None, [])
+    labels = []
     instr_id = 0
     for instr in instrs:
         if isinstance(instr, instructions.mnemonics.LabelDefine):
-            block_name = instr.name
+            labels.append(instr.name)
         else:
             mother_block = root_block
             for i in range(3, -1, -1):
@@ -40,14 +41,14 @@ def split_program_into_blocks(instrs: list[Instruction]):
                     idx *= 4
                 if len(mother_block.daughter_blocks) <= val:
                     assert len(mother_block.daughter_blocks) == val
-                    mother_block.daughter_blocks.append(Block(idx, [], mother_block, block_name if i == 0 else None))
+                    mother_block.daughter_blocks.append(Block(idx, [], mother_block, labels))
                 mother_block = mother_block.daughter_blocks[val]
 
             mother_block.daughter_blocks.append(instr)
             if not is_block_boundary(instr):
                 mother_block.daughter_blocks.append(instructions.mnemonics.JumpRelative(Immediate(1)))
 
-            block_name = None
+            labels = []
             instr_id += 1
     return root_block
 
@@ -65,20 +66,20 @@ class Program:
             cur_block = cur_block.mother_block
         return myid
 
-    def find_block(self, name: str, root_block=None):
+    def find_block(self, label: str, root_block=None):
         if root_block is None:
             root_block = self.kiloblock
         for block in root_block.daughter_blocks:
             if isinstance(block.daughter_blocks[0], Instruction):
-                if isinstance(name, str) and block.name == name:
+                if label in block.labels:
                     return [block.myid]
             else:
-                out = self.find_block(name, block)
+                out = self.find_block(label, block)
                 if out is not None:
                     out.append(block.myid)
                     return out
         if root_block == self.kiloblock:
-            raise ValueError(f"Block {name} not found")
+            raise ValueError(f"Block {label} not found")
         return None
 
     def find_next_block(self, block: Block):
@@ -106,8 +107,11 @@ class Program:
 
     def block_prologue(self, block: Block, deep: int):
         assert deep < 4
-        name = block.name
-        if name is None:
+        name = ""
+        for label in block.labels:
+            name += label
+            name += ": "
+        if name == "":
             name = f"block_{block.myid}"
         name_line = f"{concater.sanitize(name)}:"
         concater.raw("\n")
@@ -172,7 +176,7 @@ def parse_arg(arg_s: str, expected_type: type):
         raise ValueError(f"Unknown expected type: {expected_type}")
 
 
-def parse(s: str):  # TODO: Make `label: addi x1, x2, 1` work
+def parse(s: str):
     if not hasattr(parse, "_instruction_arg_types"):
         parse._instruction_arg_types = {}
         for mnem, op in MNEMONICS.items():
@@ -197,8 +201,13 @@ def parse(s: str):  # TODO: Make `label: addi x1, x2, 1` work
         line = line.strip()
         if not line:
             continue
-        if line.endswith(":"):
-            insts.append(instructions.mnemonics.LabelDefine(line[:-1]))
+        if ":" in line:
+            labels = line.split(":")
+            instr = labels.pop()
+            for label in labels:
+                insts.append(instructions.mnemonics.LabelDefine(label.strip()))
+            line = instr.strip()
+        if not line:
             continue
 
         if " " not in line:

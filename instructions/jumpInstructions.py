@@ -3,7 +3,9 @@ from instructions.baseInstructions import *
 from dataclasses import dataclass
 
 
-class Label(str): ...
+@dataclass
+class Label(str):
+    name: str
 
 
 @dataclass
@@ -17,7 +19,7 @@ class Jump(Instruction):
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False, clear: bool = False):
         concater.rem(f"j {self.target}", comments)
-        new_nexts = program.find_block(self.target)
+        new_nexts = program.find_block(self.target.name)
         for next_, new_next in zip(nexts, new_nexts):
             if clear:
                 next_.clear()
