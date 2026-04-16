@@ -131,6 +131,7 @@ MNEMONICS["lw"] = LoadWord
 # jump
 MNEMONICS["j"] = Jump
 MNEMONICS["jr"] = JumpRegister
+MNEMONICS["ret"] = Ret
 MNEMONICS["jal"] = JumpAndLink
 # conditional jump
 MNEMONICS["beq"] = BranchIfEqual

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import types
+from math import inf
 from typing import Union, get_args, get_origin, get_type_hints
 
 import config
@@ -210,12 +211,13 @@ def parse(s: str):
         if not line:
             continue
 
-        if " " not in line:
+        sep = min(line.find(" "), line.find("\t"), key=lambda v: inf if v == -1 else v)
+        if sep == -1:
             mnemonic = line
             args_str = ""
         else:
-            mnemonic = line[: line.find(" ")]
-            args_str = line[line.find(" "):].strip(" ")
+            mnemonic = line[: sep]
+            args_str = line[sep:].strip(" ")
 
         mnemonic = mnemonic.lower()
         if mnemonic not in MNEMONICS:

@@ -2,6 +2,8 @@ from config import BLOCK_SIZE
 from instructions.baseInstructions import *
 from dataclasses import dataclass
 
+from registers import regs
+
 
 @dataclass
 class Label(str):
@@ -56,6 +58,13 @@ class JumpRegister(Instruction):
         for i in range(8):
             small_reg = self.reg.get_cell(i)
             small_reg.copy(nexts[i // 2], multiplier=16 ** (i % 2))
+
+
+@dataclass
+class Ret(Instruction):
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem("ret", comments)
+        JumpRegister(regs["ra"]).evaluate(program, cur_block)
 
 
 @dataclass
