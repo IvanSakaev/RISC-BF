@@ -1,4 +1,5 @@
 from config import BLOCK_SIZE
+from instructions.arithmeticInstructions import AddI
 from instructions.baseInstructions import *
 from dataclasses import dataclass
 
@@ -48,7 +49,7 @@ class JumpRelative(Instruction):  # It isn't an instruction to use in your asm-c
 class JumpRegister(Instruction):
     reg: Register
 
-    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):  # TODO: Make mod operation to reg
         concater.rem(f"jr {self.reg}", comments)
         if self.reg == ZERO:
             new_nexts = [1, 0, 0, 0]
@@ -81,6 +82,32 @@ class JumpAndLink(Instruction):
                 new_next_num += new_next * (BLOCK_SIZE ** i)
             self.src.change_big(new_next_num, clear=True)
         Jump(self.label).evaluate(program, cur_block)
+
+
+@dataclass
+class JumpAndLinkRegister(Instruction):
+    src: Register
+    reg: OffsetRegister
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"jalr {self.src} {self.reg.offset}({self.reg.register})", comments)
+        if self.src != ZERO:
+            new_nexts = program.find_next_block(cur_block)
+            new_next_num = 0
+            for i, new_next in enumerate(new_nexts):
+                new_next_num += new_next * (BLOCK_SIZE ** i)
+            self.src.change_big(new_next_num, clear=True)
+        if self.reg.register == ZERO:
+            new_nexts = [1, 0, 0, 0]
+            offset_ = self.reg.offset
+            assert offset_ >= 0
+            for next_, new_next in zip(nexts, new_nexts):
+                next_.change(new_next + (offset_ % 256))
+                offset_ //= 256
+        else:
+            AddI(self.reg.register, self.reg.register, self.reg.offset).evaluate(program, cur_block)
+            JumpRegister(self.reg.register).evaluate(program, cur_block)
+            AddI(self.reg.register, self.reg.register, -self.reg.offset).evaluate(program, cur_block)
 
 
 @dataclass

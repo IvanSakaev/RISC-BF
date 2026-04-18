@@ -133,6 +133,7 @@ MNEMONICS["j"] = Jump
 MNEMONICS["jr"] = JumpRegister
 MNEMONICS["ret"] = Ret
 MNEMONICS["jal"] = JumpAndLink
+MNEMONICS["jalr"] = JumpAndLinkRegister
 # conditional jump
 MNEMONICS["beq"] = BranchIfEqual
 MNEMONICS["bne"] = BranchIfNotEqual
@@ -165,6 +166,7 @@ def is_block_boundary(instr):
             Jump,
             JumpRegister,
             JumpAndLink,
+            JumpAndLinkRegister,
 
             # branches
             BranchIfEqual,

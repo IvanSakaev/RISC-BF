@@ -175,7 +175,7 @@ ZERO = Register(
 # Variable is only the first cell of register. 7 cells after that are register too.
 # Register cells SHOULD BE only 4 bits (values between 0 and 15)
 # Operations with registers should be little-endian
-regs = {f"x{i + 1}": Register(i * 8 + SCRAP_COUNT - MEMORY_SCRAPS_COUNT + 4) for i in range(REGISTER_COUNT)}
+regs = {f"x{i + 1}": Register(i * 8 + SCRAP_COUNT - MEMORY_SCRAPS_COUNT + 4) for i in range(REGISTER_COUNT - 1)}
 regs["x0"] = ZERO
 
 regs["zero"] = regs["x0"]
