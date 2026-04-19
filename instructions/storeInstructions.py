@@ -9,17 +9,17 @@ class StoreWord(Instruction):
     src: Register
     addr: OffsetRegister
 
-    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False, byte_count: int = 4):
         concater.rem(f"sw {self.src} {self.addr.offset}({self.addr.register})", comments)
 
         if self.addr.register == ZERO:
             assert self.addr.offset >= 0
             dst = memory_scraps[-1].cell_rel(1 + self.addr.offset)
-            for i in range(4):
+            for i in range(byte_count):
                 small_dst = dst.cell_rel(i)
                 small_dst.clear()
             if self.src != ZERO:
-                for i in range(8):
+                for i in range(byte_count * 2):
                     small_src = self.src.get_cell(i)
                     small_dst = dst.cell_rel(i // 2)
                     small_src.copy(small_dst, scrap=memory_scraps[0], multiplier=(16 if i % 2 == 0 else 1))
@@ -37,7 +37,7 @@ class StoreWord(Instruction):
             AddI(self.addr.register, self.addr.register, self.addr.offset).evaluate(program, cur_block)
 
         if self.src != ZERO:
-            for i in range(8):  # Move src to data
+            for i in range(byte_count * 2):  # Move src to data
                 small_src = self.src.get_cell(i)
                 small_src.copy(data_cell[i // 2], scrap=zero_scrap, multiplier=(16 if i % 2 == 0 else 1))
         for i in range(MEMORY_ADDRESS_HALFBYTES):
@@ -49,10 +49,10 @@ class StoreWord(Instruction):
         _go_to_addr()
 
         # WARNING: You don't know your actual position now. It's impossible to use cells before zero_scrap
-        for i in range(4):
+        for i in range(byte_count):
             need_mem_cell.cell_rel(i).clear()
         if self.src != ZERO:
-            for i in range(4):
+            for i in range(byte_count):
                 data_cell[i].move(need_mem_cell.cell_rel(i))
 
         # Moving back
@@ -60,11 +60,21 @@ class StoreWord(Instruction):
 
 
 @dataclass
-class LoadWord(Instruction):
+class StoreHalfword(Instruction):
     src: Register
     addr: OffsetRegister
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"sh {self.src} {self.addr.offset}({self.addr.register})", comments)
+        StoreWord(self.src, self.addr).evaluate(program, cur_block, byte_count=2)
+
+
+@dataclass
+class LoadWord(Instruction):
+    src: Register
+    addr: OffsetRegister
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False, byte_count: int = 4):
         concater.rem(f"lw {self.src} {self.addr.offset}({self.addr.register})", comments)
 
         if self.src == ZERO:
@@ -74,7 +84,7 @@ class LoadWord(Instruction):
             assert self.addr.offset >= 0
             dst = memory_scraps[-1].cell_rel(1 + self.addr.offset)
             self.src.clear_big()
-            for i in range(4):
+            for i in range(byte_count):
                 small_src1 = self.src.get_cell(i * 2)
                 small_src2 = self.src.get_cell(i * 2 + 1)
                 small_dst = dst.cell_rel(i)
@@ -104,19 +114,29 @@ class LoadWord(Instruction):
         _go_to_addr()
 
         # WARNING: You don't know your actual position now. It's impossible to use cells before zero_scrap
-        for i in range(4):
+        for i in range(byte_count):
             need_mem_cell.cell_rel(i).copy(data_cell[i], scrap=zero_scrap)
 
         # Moving back
         _go_from_addr()
 
         self.src.clear_big()
-        for i in range(4):  # Move data to src
+        for i in range(byte_count):  # Move data to src
             small_src1 = self.src.get_cell(i * 2)
             small_src2 = self.src.get_cell(i * 2 + 1)
             small_dst = data_cell[i]
             small_dst.div_imm(16, memory_scraps[0], small_src1)
             memory_scraps[0].move(small_src2)
+
+
+@dataclass
+class LoadHalfwordUnsigned(Instruction):
+    src: Register
+    addr: OffsetRegister
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"lhu {self.src} {self.addr.offset}({self.addr.register})", comments)
+        LoadWord(self.src, self.addr).evaluate(program, cur_block, byte_count=2)
 
 
 def _go_to_addr():

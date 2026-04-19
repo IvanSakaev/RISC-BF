@@ -53,7 +53,7 @@ class Nop(Instruction):
 @dataclass
 class Debug(Instruction):
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        concater.rem("dbg", comments)
+        concater.rem("ebreak", comments)
         concater.debug()
 
 
@@ -106,7 +106,7 @@ MNEMONICS["mul"] = Mul
 MNEMONICS["mulhu"] = MulHighUnsigned
 
 # bitwise
-MNEMONICS["sll"] = instructions.bitwiseInstructions.ShiftLeft
+MNEMONICS["sll"] = instructions.bitwiseInstructions.ShiftLeft  # TODO
 MNEMONICS["slli"] = instructions.bitwiseInstructions.ShiftLeftI
 MNEMONICS["or"] = instructions.bitwiseInstructions.Or
 MNEMONICS["and"] = instructions.bitwiseInstructions.And
@@ -128,7 +128,9 @@ MNEMONICS["sgtz"] = SetGreaterThanZero
 
 # store/load
 MNEMONICS["sw"] = StoreWord
+MNEMONICS["sh"] = StoreHalfword
 MNEMONICS["lw"] = LoadWord
+MNEMONICS["lhu"] = LoadHalfwordUnsigned
 
 # jump
 MNEMONICS["j"] = Jump
