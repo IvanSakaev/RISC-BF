@@ -118,6 +118,7 @@ MNEMONICS["xori"] = instructions.bitwiseInstructions.XorI
 
 # comparing
 MNEMONICS["slt"] = SetLessThan
+MNEMONICS["slti"] = SetLessThanI
 MNEMONICS["sltu"] = SetLessThanUnsigned
 MNEMONICS["seqz"] = SetEqualToZero
 MNEMONICS["snez"] = SetNotEqualToZero

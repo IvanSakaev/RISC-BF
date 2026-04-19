@@ -9,7 +9,7 @@ class SetLessThan(Instruction):
     src2: Register
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        concater.rem(f"sltu {self.dst} {self.src1} {self.src2}", comments)
+        concater.rem(f"slt {self.dst} {self.src1} {self.src2}", comments)
         if self.dst == ZERO:
             return
         if self.src1 == self.src2:
@@ -75,6 +75,22 @@ class SetLessThan(Instruction):
             self.src2.get_cell(7).change(8)
             self.src2.get_cell(7).div_imm(16, mod, None)
             mod.move(self.src2.get_cell(7))
+
+
+@dataclass
+class SetLessThanI(Instruction):
+    dst: Register
+    src1: Register
+    src2: Immediate
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):  # TODO: optimize?
+        concater.rem(f"slti {self.dst} {self.src1} {self.src2}", comments)
+        if self.dst == ZERO:
+            return
+        src2_reg = Register(scraps[6])
+        src2_reg.change_big(self.src2)
+        SetLessThan(self.dst, self.src1, src2_reg).evaluate(program, cur_block)
+        src2_reg.clear_big()
 
 
 @dataclass

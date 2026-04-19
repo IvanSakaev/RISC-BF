@@ -52,19 +52,15 @@ class Register:
         for cell in self.get_cells():
             cell.clear()
 
-    def change_big(self, a: int, b: int | None = None, clear=False):
-        assert 0 <= a < 2 ** 32
-        if b is None:
-            b = a
-            a = 0
-        val = b - a
-        if val < 0:
-            val = 2 ** 32 - val
+    def change_big(self, a: int, clear=False):
+        assert 0 <= a < (2 ** 32)
+        if a < 0:
+            a = 2 ** 32 - a
         for cell in self.get_cells():
             if clear:
                 cell.clear()
-            cell.change(val % 16)
-            val //= 16
+            cell.change(a % 16)
+            a //= 16
 
     def normalize_big(self):
         """
