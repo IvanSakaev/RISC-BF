@@ -129,8 +129,10 @@ MNEMONICS["sgtz"] = SetGreaterThanZero
 # store/load
 MNEMONICS["sw"] = StoreWord
 MNEMONICS["sh"] = StoreHalfword
+MNEMONICS["sb"] = StoreByte
 MNEMONICS["lw"] = LoadWord
 MNEMONICS["lhu"] = LoadHalfwordUnsigned
+MNEMONICS["lbu"] = LoadByteUnsigned
 
 # jump
 MNEMONICS["j"] = Jump

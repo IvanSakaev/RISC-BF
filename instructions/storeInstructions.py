@@ -70,6 +70,16 @@ class StoreHalfword(Instruction):
 
 
 @dataclass
+class StoreByte(Instruction):
+    src: Register
+    addr: OffsetRegister
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"sb {self.src} {self.addr.offset}({self.addr.register})", comments)
+        StoreWord(self.src, self.addr).evaluate(program, cur_block, byte_count=1)
+
+
+@dataclass
 class LoadWord(Instruction):
     src: Register
     addr: OffsetRegister
@@ -137,6 +147,16 @@ class LoadHalfwordUnsigned(Instruction):
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"lhu {self.src} {self.addr.offset}({self.addr.register})", comments)
         LoadWord(self.src, self.addr).evaluate(program, cur_block, byte_count=2)
+
+
+@dataclass
+class LoadByteUnsigned(Instruction):
+    src: Register
+    addr: OffsetRegister
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"lbu {self.src} {self.addr.offset}({self.addr.register})", comments)
+        LoadWord(self.src, self.addr).evaluate(program, cur_block, byte_count=1)
 
 
 def _go_to_addr():
