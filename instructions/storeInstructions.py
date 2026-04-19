@@ -140,6 +140,22 @@ class LoadWord(Instruction):
 
 
 @dataclass
+class LoadHalfword(Instruction):
+    src: Register
+    addr: OffsetRegister
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"lh {self.src} {self.addr.offset}({self.addr.register})", comments)
+        LoadWord(self.src, self.addr).evaluate(program, cur_block, byte_count=2)
+        mod = scraps[0]
+        out = scraps[3]
+        self.src.get_cell(3).div_imm(8, mod, out)
+        mod.move(self.src.get_cell(3))
+        out.debug()
+        out.move(*[self.src.get_cell(i) for i in range(3, 8)], multiplier=[(8 if i == 3 else 15) for i in range(3, 8)])
+
+
+@dataclass
 class LoadHalfwordUnsigned(Instruction):
     src: Register
     addr: OffsetRegister
@@ -147,6 +163,22 @@ class LoadHalfwordUnsigned(Instruction):
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"lhu {self.src} {self.addr.offset}({self.addr.register})", comments)
         LoadWord(self.src, self.addr).evaluate(program, cur_block, byte_count=2)
+
+
+@dataclass
+class LoadByte(Instruction):
+    src: Register
+    addr: OffsetRegister
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"lb {self.src} {self.addr.offset}({self.addr.register})", comments)
+        LoadWord(self.src, self.addr).evaluate(program, cur_block, byte_count=1)
+        mod = scraps[0]
+        out = scraps[3]
+        self.src.get_cell(1).div_imm(8, mod, out)
+        mod.move(self.src.get_cell(1))
+        out.debug()
+        out.move(*[self.src.get_cell(i) for i in range(1, 8)], multiplier=[(8 if i == 1 else 15) for i in range(1, 8)])
 
 
 @dataclass

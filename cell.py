@@ -112,7 +112,7 @@ class Cell:
         """
         It divides cell by constant number. Result and reminder are stored. (Result isn't stored if output=None)'
 
-        Register will be cleared.
+        Cell will be cleared.
 
         Reminder is stored in "mod" (scraps[0] by default).
 

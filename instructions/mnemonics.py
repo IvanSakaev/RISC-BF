@@ -131,7 +131,9 @@ MNEMONICS["sw"] = StoreWord
 MNEMONICS["sh"] = StoreHalfword
 MNEMONICS["sb"] = StoreByte
 MNEMONICS["lw"] = LoadWord
+MNEMONICS["lh"] = LoadHalfword
 MNEMONICS["lhu"] = LoadHalfwordUnsigned
+MNEMONICS["lb"] = LoadByte
 MNEMONICS["lbu"] = LoadByteUnsigned
 
 # jump
