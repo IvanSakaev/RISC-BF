@@ -139,9 +139,10 @@ MNEMONICS["lbu"] = LoadByteUnsigned
 # jump
 MNEMONICS["j"] = Jump
 MNEMONICS["jr"] = JumpRegister
-MNEMONICS["ret"] = Ret
 MNEMONICS["jal"] = JumpAndLink
 MNEMONICS["jalr"] = JumpAndLinkRegister
+MNEMONICS["call"] = Call
+MNEMONICS["ret"] = Ret
 # conditional jump
 MNEMONICS["beq"] = BranchIfEqual
 MNEMONICS["bne"] = BranchIfNotEqual
@@ -175,6 +176,8 @@ def is_block_boundary(instr):
             JumpRegister,
             JumpAndLink,
             JumpAndLinkRegister,
+            Call,
+            Ret,
 
             # branches
             BranchIfEqual,

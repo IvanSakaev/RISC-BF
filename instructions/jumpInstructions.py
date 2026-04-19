@@ -62,6 +62,14 @@ class JumpRegister(Instruction):
 
 
 @dataclass
+class Call(Instruction):
+    label: Label
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"call {self.label}", comments)
+        JumpAndLink(regs["ra"], self.label).evaluate(program, cur_block)
+
+
+@dataclass
 class Ret(Instruction):
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem("ret", comments)
