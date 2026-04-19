@@ -8,10 +8,10 @@ for i in range(1, 101):
     # num2 = random.randrange(-127, 128)
     # num1 = random.randrange(256)
     # num2 = random.randrange(256)
-    num1 = random.randint(-2**31, 2**31)
-    num2 = random.randint(-2**31, 2**31)
-    # num1 = random.randrange(2 ** 32)
-    # num2 = random.randrange(2 ** 32)
+    # num1 = random.randint(-2**31, 2**31)
+    # num2 = random.randint(-2**31, 2**31)
+    num1 = random.randrange(2 ** 32)
+    num2 = random.randrange(2 ** 32)
 
     # if random.randint(0, 1) == 0:
     #     num1 = num2
@@ -27,7 +27,7 @@ for i in range(1, 101):
 li x1, 0x{num1text:x}
 li x2, 0x{num2text:x}
 li x3, 0
-slti x3, x1, 0x{num2text:x}
+sltiu x3, x1, 0x{num2text:x}
 out x3
 """.lstrip()
         )

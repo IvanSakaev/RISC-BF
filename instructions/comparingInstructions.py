@@ -167,6 +167,22 @@ class SetLessThanUnsigned(Instruction):
 
 
 @dataclass
+class SetLessThanIUnsigned(Instruction):
+    dst: Register
+    src1: Register
+    src2: Immediate
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):  # TODO: optimize?
+        concater.rem(f"sltiu {self.dst} {self.src1} {self.src2}", comments)
+        if self.dst == ZERO:
+            return
+        src2_reg = Register(scraps[6])
+        src2_reg.change_big(self.src2)
+        SetLessThanUnsigned(self.dst, self.src1, src2_reg).evaluate(program, cur_block)
+        src2_reg.clear_big()
+
+
+@dataclass
 class SetEqualToZero(Instruction):
     dst: Register
     src: Register

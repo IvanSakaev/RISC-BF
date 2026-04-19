@@ -120,6 +120,7 @@ MNEMONICS["xori"] = instructions.bitwiseInstructions.XorI
 MNEMONICS["slt"] = SetLessThan
 MNEMONICS["slti"] = SetLessThanI
 MNEMONICS["sltu"] = SetLessThanUnsigned
+MNEMONICS["sltiu"] = SetLessThanIUnsigned
 MNEMONICS["seqz"] = SetEqualToZero
 MNEMONICS["snez"] = SetNotEqualToZero
 MNEMONICS["sltz"] = SetLessThanZero
