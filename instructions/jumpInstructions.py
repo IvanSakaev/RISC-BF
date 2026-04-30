@@ -11,6 +11,8 @@ class Jump(Instruction):
     target: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False, clear: bool = False):
+        # TODO: maybe modify current block address instead of next block address?
+        # if current block is in the same kiloblock as the target block
         concater.rem(f"j {self.target}", comments)
         assert self.target % 4 == 0
         new_nexts = program.find_block_rel(cur_block, self.target)
@@ -23,13 +25,8 @@ class Jump(Instruction):
 @dataclass
 class JumpNext(Instruction):  # It isn't an instruction to use in your asm-code
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False, clear: bool = False):
-        # TODO: maybe modify current block address instead of next block address?
         concater.rem(f"jmr", comments)
-        new_nexts = program.find_block_rel(cur_block, 4)
-        for next_, new_next in zip(nexts, new_nexts):
-            if clear:
-                next_.clear()
-            next_.change(new_next)
+        Jump(Immediate(4)).evaluate(program, cur_block)
 
 
 @dataclass
