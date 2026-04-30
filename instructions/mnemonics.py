@@ -89,6 +89,14 @@ class Output(Instruction):
         mod.clear()
 
 
+@dataclass
+class Ecall(Instruction):
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):  # TODO
+        concater.rem("ecall", comments)
+        print("Warning: you use ecall that is temporary just output a0 register")
+        Output(regs["a0"]).evaluate(program, cur_block)
+
+
 MNEMONICS: dict[str, type[Instruction]] = dict()
 
 # Pseudo-instructions
@@ -165,13 +173,13 @@ MNEMONICS["bleu"] = BranchIfLessThanOrEqualUnsigned
 # special
 MNEMONICS["ebreak"] = Debug
 MNEMONICS["out"] = Output
+MNEMONICS["ecall"] = Ecall
 
 
 def is_block_boundary(instr):
     return isinstance(
         instr,
         (
-            LabelDefine,
             Jump,
             JumpRegister,
             JumpAndLink,

@@ -27,4 +27,3 @@ class Block:
     myid: int | None
     daughter_blocks: list[Block] | list[Instruction]
     mother_block: Block | None
-    labels: list[str]

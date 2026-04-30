@@ -7,22 +7,13 @@ from registers import regs
 
 
 @dataclass
-class Label(str):
-    name: str
-
-
-@dataclass
-class LabelDefine(Instruction):
-    name: str
-
-
-@dataclass
 class Jump(Instruction):
-    target: Label
+    target: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False, clear: bool = False):
         concater.rem(f"j {self.target}", comments)
-        new_nexts = program.find_block(self.target.name)
+        assert self.target % 4 == 0
+        new_nexts = program.find_block_rel(cur_block, self.target)
         for next_, new_next in zip(nexts, new_nexts):
             if clear:
                 next_.clear()
@@ -30,15 +21,11 @@ class Jump(Instruction):
 
 
 @dataclass
-class JumpRelative(Instruction):  # It isn't an instruction to use in your asm-code
-    offset: Immediate
-
+class JumpNext(Instruction):  # It isn't an instruction to use in your asm-code
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False, clear: bool = False):
         # TODO: maybe modify current block address instead of next block address?
-        concater.rem(f"jmr {self.offset}", comments)
-        if self.offset != 1:
-            raise NotImplementedError
-        new_nexts = program.find_next_block(cur_block)
+        concater.rem(f"jmr", comments)
+        new_nexts = program.find_block_rel(cur_block, 4)
         for next_, new_next in zip(nexts, new_nexts):
             if clear:
                 next_.clear()
@@ -63,10 +50,10 @@ class JumpRegister(Instruction):
 
 @dataclass
 class Call(Instruction):
-    label: Label
+    target: Immediate
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        concater.rem(f"call {self.label}", comments)
-        JumpAndLink(regs["ra"], self.label).evaluate(program, cur_block)
+        concater.rem(f"call {self.target}", comments)
+        JumpAndLink(regs["ra"], self.target).evaluate(program, cur_block)
 
 
 @dataclass
@@ -79,28 +66,29 @@ class Ret(Instruction):
 @dataclass
 class JumpAndLink(Instruction):
     src: Register
-    label: Label  # TODO: add parsing immediate values
+    target: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        concater.rem(f"jal {self.src} {self.label}", comments)
+        concater.rem(f"jal {self.src} {self.target}", comments)
         if self.src != ZERO:
-            new_nexts = program.find_next_block(cur_block)
+            new_nexts = program.find_block_rel(cur_block, 1)
             new_next_num = 0
             for i, new_next in enumerate(new_nexts):
                 new_next_num += new_next * (BLOCK_SIZE ** i)
             self.src.change_big(new_next_num, clear=True)
-        Jump(self.label).evaluate(program, cur_block)
+        Jump(self.target).evaluate(program, cur_block)
 
 
 @dataclass
-class JumpAndLinkRegister(Instruction):
+class JumpAndLinkRegister(Instruction):  # TODO:
     src: Register
     reg: OffsetRegister
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"jalr {self.src} {self.reg.offset}({self.reg.register})", comments)
+        raise NotImplementedError
         if self.src != ZERO:
-            new_nexts = program.find_next_block(cur_block)
+            new_nexts = program.find_block_rel(cur_block)
             new_next_num = 0
             for i, new_next in enumerate(new_nexts):
                 new_next_num += new_next * (BLOCK_SIZE ** i)
@@ -122,7 +110,7 @@ class JumpAndLinkRegister(Instruction):
 class BranchIfEqual(Instruction):
     src1: Register
     src2: Register
-    label: Label
+    label: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"beq {self.src1} {self.src2} {self.label}", comments)
@@ -147,7 +135,7 @@ class BranchIfEqual(Instruction):
             small_src2.copy(scrap, scrap=copy_scrap, multiplier=-1)
             with scrap.loop():
                 running.change(-1)
-                JumpRelative(Immediate(1)).evaluate(program, cur_block)
+                JumpNext().evaluate(program, cur_block)
                 scrap.clear()
             running.raw("[")
         Jump(self.label).evaluate(program, cur_block)
@@ -159,12 +147,12 @@ class BranchIfEqual(Instruction):
 class BranchIfNotEqual(Instruction):
     src1: Register
     src2: Register
-    label: Label
+    label: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"bne {self.src1} {self.src2} {self.label}", comments)
         if self.src1 == self.src2:
-            JumpRelative(Immediate(1)).evaluate(program, cur_block)
+            JumpNext().evaluate(program, cur_block)
             return
         if self.src1 == ZERO:
             BranchIfNotEqualToZero(self.src2, self.label).evaluate(program, cur_block)
@@ -187,7 +175,7 @@ class BranchIfNotEqual(Instruction):
                 Jump(self.label).evaluate(program, cur_block)
                 scrap.clear()
             running.raw("[")
-        JumpRelative(Immediate(1)).evaluate(program, cur_block)
+        JumpNext().evaluate(program, cur_block)
         running.change(-1)
         running.raw("]]]]]]]]")
 
@@ -196,13 +184,13 @@ class BranchIfNotEqual(Instruction):
 class BranchIfLessThan(Instruction):
     src1: Register
     src2: Register
-    label: Label
+    label: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False, invert_output: bool = False):
         concater.rem(f"blt {self.src1} {self.src2} {self.label}", comments)
         if self.src1 == self.src2:
             if not invert_output:
-                JumpRelative(Immediate(1)).evaluate(program, cur_block)
+                JumpNext().evaluate(program, cur_block)
             else:
                 Jump(self.label).evaluate(program, cur_block)
             return
@@ -221,7 +209,7 @@ class BranchIfLessThan(Instruction):
                 self.src2.get_cell(7).change(8)
                 sign.change(1)
                 if not invert_output:
-                    JumpRelative(Immediate(1)).evaluate(program, cur_block)
+                    JumpNext().evaluate(program, cur_block)
                 else:
                     Jump(self.label).evaluate(program, cur_block)
                 with sign.loop():
@@ -235,7 +223,7 @@ class BranchIfLessThan(Instruction):
                 self.src2.get_cell(7).div_imm(8, mod, sign)
                 mod.move(self.src2.get_cell(7))
                 if not invert_output:
-                    JumpRelative(Immediate(1)).evaluate(program, cur_block)
+                    JumpNext().evaluate(program, cur_block)
                 else:
                     Jump(self.label).evaluate(program, cur_block)
                 with sign.loop():
@@ -244,7 +232,7 @@ class BranchIfLessThan(Instruction):
                     if not invert_output:
                         Jump(self.label).evaluate(program, cur_block, clear=True)
                     else:
-                        JumpRelative(Immediate(1)).evaluate(program, cur_block, clear=True)
+                        JumpNext().evaluate(program, cur_block, clear=True)
             return
 
         mod = scraps[0]
@@ -270,13 +258,13 @@ class BranchIfLessThan(Instruction):
 class BranchIfLessThanUnsigned(Instruction):
     src1: Register
     src2: Register
-    label: Label
+    label: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False, invert_output: bool = False):
         concater.rem(f"bltu {self.src1} {self.src2} {self.label}", comments)
         if self.src1 == self.src2 or self.src2 == ZERO:
             if not invert_output:
-                JumpRelative(Immediate(1)).evaluate(program, cur_block)
+                JumpNext().evaluate(program, cur_block)
             else:
                 Jump(self.label).evaluate(program, cur_block)
             return
@@ -290,7 +278,7 @@ class BranchIfLessThanUnsigned(Instruction):
         running = scraps[0]
         running.change(1)
         if not invert_output:
-            JumpRelative(Immediate(1)).evaluate(program, cur_block)
+            JumpNext().evaluate(program, cur_block)
         else:
             Jump(self.label).evaluate(program, cur_block)
         for i in range(7, -1, -1):
@@ -319,7 +307,7 @@ class BranchIfLessThanUnsigned(Instruction):
                 if not invert_output:
                     Jump(self.label).evaluate(program, cur_block, clear=True)
                 else:
-                    JumpRelative(Immediate(1)).evaluate(program, cur_block, clear=True)
+                    JumpNext().evaluate(program, cur_block, clear=True)
                 scrap_src2.move(small_src2)
             running.raw("[")
         running.change(-1)
@@ -330,7 +318,7 @@ class BranchIfLessThanUnsigned(Instruction):
 class BranchIfGreaterThanOrEqual(Instruction):
     src1: Register
     src2: Register
-    label: Label
+    label: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"bge {self.src1} {self.src2} {self.label}", comments)
@@ -341,7 +329,7 @@ class BranchIfGreaterThanOrEqual(Instruction):
 class BranchIfGreaterThanOrEqualUnsigned(Instruction):
     src1: Register
     src2: Register
-    label: Label
+    label: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"bgeu {self.src1} {self.src2} {self.label}", comments)
@@ -351,7 +339,7 @@ class BranchIfGreaterThanOrEqualUnsigned(Instruction):
 @dataclass
 class BranchIfEqualToZero(Instruction):
     src: Register
-    label: Label
+    label: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False, jumped_absolute: bool = False):
         concater.rem(f"beqz {self.src} {self.label}", comments)
@@ -367,7 +355,7 @@ class BranchIfEqualToZero(Instruction):
             scrap_src = scraps[1]
             with small_src.loop():
                 running.change(-1)
-                JumpRelative(Immediate(1)).evaluate(program, cur_block, clear=jumped_absolute)
+                JumpNext().evaluate(program, cur_block, clear=jumped_absolute)
                 small_src.move(scrap_src)
             scrap_src.move(small_src)
             running.raw("[")
@@ -380,13 +368,13 @@ class BranchIfEqualToZero(Instruction):
 @dataclass
 class BranchIfNotEqualToZero(Instruction):
     src: Register
-    label: Label
+    label: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False, jumped_relative: bool = False):
         concater.rem(f"bnez {self.src} {self.label}", comments)
         if self.src == ZERO:
             if not jumped_relative:
-                JumpRelative(Immediate(1)).evaluate(program, cur_block)
+                JumpNext().evaluate(program, cur_block)
             return
 
         running = scraps[0]
@@ -401,7 +389,7 @@ class BranchIfNotEqualToZero(Instruction):
             scrap_src.move(small_src)
             running.raw("[")
         if not jumped_relative:
-            JumpRelative(Immediate(1)).evaluate(program, cur_block)
+            JumpNext().evaluate(program, cur_block)
         running.change(-1)
         running.raw("]]]]]]]]")
 
@@ -409,7 +397,7 @@ class BranchIfNotEqualToZero(Instruction):
 @dataclass
 class BranchIfLessThanOrEqualToZero(Instruction):
     src: Register
-    label: Label
+    label: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"blez {self.src} {self.label}", comments)
@@ -419,7 +407,7 @@ class BranchIfLessThanOrEqualToZero(Instruction):
 @dataclass
 class BranchIfGreaterThanOrEqualToZero(Instruction):
     src: Register
-    label: Label
+    label: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"bgez {self.src} {self.label}", comments)
@@ -429,7 +417,7 @@ class BranchIfGreaterThanOrEqualToZero(Instruction):
 @dataclass
 class BranchIfLessThanZero(Instruction):
     src: Register
-    label: Label
+    label: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"bltz {self.src} {self.label}", comments)
@@ -439,7 +427,7 @@ class BranchIfLessThanZero(Instruction):
 @dataclass
 class BranchIfGreaterThanZero(Instruction):
     src: Register
-    label: Label
+    label: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"bgtz {self.src} {self.label}", comments)
@@ -450,7 +438,7 @@ class BranchIfGreaterThanZero(Instruction):
 class BranchIfGreaterThan(Instruction):
     src1: Register
     src2: Register
-    label: Label
+    label: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"bgt {self.src1} {self.src2} {self.label}", comments)
@@ -461,7 +449,7 @@ class BranchIfGreaterThan(Instruction):
 class BranchIfLessThanOrEqual(Instruction):
     src1: Register
     src2: Register
-    label: Label
+    label: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"ble {self.src1} {self.src2} {self.label}", comments)
@@ -472,7 +460,7 @@ class BranchIfLessThanOrEqual(Instruction):
 class BranchIfGreaterThanUnsigned(Instruction):
     src1: Register
     src2: Register
-    label: Label
+    label: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"bgtu {self.src1} {self.src2} {self.label}", comments)
@@ -483,7 +471,7 @@ class BranchIfGreaterThanUnsigned(Instruction):
 class BranchIfLessThanOrEqualUnsigned(Instruction):
     src1: Register
     src2: Register
-    label: Label
+    label: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"bleu {self.src1} {self.src2} {self.label}", comments)

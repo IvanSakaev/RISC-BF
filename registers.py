@@ -140,23 +140,6 @@ class Immediate(int):
     def copy(self, *dsts: Cell, multiplier: int | list = 1):
         self.move(*dsts, multiplier=multiplier)
 
-    @classmethod
-    def from_text(cls, text: str):
-        sign = 1
-        if text.startswith("-"):
-            sign = -1
-            text = text[1:]
-        text = text.lower()
-        if text.startswith("0x"):
-            imm = int(text[2:], 16)
-        elif text.startswith("0b"):
-            imm = int(text[2:], 2)
-        elif text.startswith("0") and len(text) > 1:
-            imm = int(text[1:], 8)
-        else:
-            imm = int(text)
-        return Immediate(sign * imm)
-
 
 class OffsetRegister:
     def __init__(self, register, offset):
