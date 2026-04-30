@@ -19,7 +19,7 @@ class Cell:
         if self.addr > concater.current_pos.addr:
             concater.raw(">" * (self.addr - concater.current_pos.addr))
         elif self.addr < concater.current_pos.addr:
-            concater.current_program += "<" * (concater.current_pos.addr - self.addr)
+            concater.raw("<" * (concater.current_pos.addr - self.addr))
         concater.current_pos = self
 
     def raw(self, text: str, pos_offset: int = 0):
