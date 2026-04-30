@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Compile riscV to BF and run" type="CompoundRunConfigurationType">
+    <toRun name="Compile riscV to BF" type="PythonConfigurationType" />
+    <toRun name="Run BF" type="ShConfigurationType" />
+    <method v="2" />
+  </configuration>
+</component>

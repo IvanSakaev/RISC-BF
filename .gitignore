@@ -8,4 +8,6 @@ ibf
 bcci
 tests
 examples/test.s
-.idea
+
+test.elf
+test.o

@@ -1,0 +1,33 @@
+<component name="ProjectDictionaryState">
+  <dictionary name="project">
+    <words>
+      <w>addi</w>
+      <w>addrmap</w>
+      <w>beqz</w>
+      <w>bgeu</w>
+      <w>bgtu</w>
+      <w>bgtz</w>
+      <w>blez</w>
+      <w>bltu</w>
+      <w>bltz</w>
+      <w>bnez</w>
+      <w>concater</w>
+      <w>ebreak</w>
+      <w>ecall</w>
+      <w>halfbytes</w>
+      <w>ifnot</w>
+      <w>jalr</w>
+      <w>kiloblock</w>
+      <w>kiloblocks</w>
+      <w>mulhu</w>
+      <w>nexts</w>
+      <w>seqz</w>
+      <w>sgtz</w>
+      <w>slli</w>
+      <w>sltu</w>
+      <w>sltz</w>
+      <w>snez</w>
+      <w>xori</w>
+    </words>
+  </dictionary>
+</component>
