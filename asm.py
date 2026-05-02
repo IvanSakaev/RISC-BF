@@ -11,7 +11,7 @@ from config import REGISTER_COUNT, MEMORY_SCRAPS_COUNT, BLOCK_SIZE
 from instructions.baseInstructions import Instruction
 from instructions.mnemonics import (
     MNEMONICS,
-    is_block_boundary,
+    is_jump_instruction,
     Block, LoadI,
 )
 from registers import SCRAP_COUNT, Immediate, Register, regs, OffsetRegister
@@ -23,6 +23,7 @@ from capstone.riscv import RISCVOp
 def split_program_into_blocks(instrs: list[Instruction]):
     root_block = Block(None, [], None)
     instr_id = 0
+    entry_point_block = None
     for instr in instrs:
         mother_block = root_block
         for i in range(3, -1, -1):
@@ -43,16 +44,24 @@ def split_program_into_blocks(instrs: list[Instruction]):
             mother_block = mother_block.daughter_blocks[val]
 
         mother_block.daughter_blocks.append(instr)
-        if not is_block_boundary(instr):
+        if hasattr(instr, "is_entry_point") and instr.is_entry_point:
+            if entry_point_block is not None:
+                raise RuntimeError("Two entry points found")
+            entry_point_block = mother_block
+        if not is_jump_instruction(instr):
             mother_block.daughter_blocks.append(instructions.mnemonics.JumpNext())
 
         instr_id += 1
-    return root_block
+
+    if entry_point_block is None:
+        raise RuntimeError("No entry point found")
+    return root_block, entry_point_block
 
 
 class Program:
     def __init__(self, instrs):
-        self.kiloblock = split_program_into_blocks(instrs)
+        self.kiloblock, self.entry_point_block = split_program_into_blocks(instrs)
+        print("Entry block id:", self.get_block_full_id(self.entry_point_block))
 
     def get_block_full_id(self, block: Block):
         myid = []
@@ -91,7 +100,9 @@ class Program:
         return out
 
     def program_prologue(self):
-        nexts[-1].change(1)
+        entry_point_block_id = self.get_block_full_id(self.entry_point_block)
+        for next_, new_next in zip(nexts, entry_point_block_id):
+            next_.change(new_next)
         nexts[-1].raw("[")
         for i in range(4):
             nexts[i].move(currents[i])
@@ -198,9 +209,13 @@ def parse_elf(path: str):
         code = text.data()
         base = text['sh_addr']
 
+        entry_point_addr = elf.header['e_entry']
+        print(f"0x{entry_point_addr:x} - ENTRY_POINT\n")
+
     md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV32)
     md.detail = True
     instrs = []
+    entry_point_found = False
     for instr in md.disasm(code, base):
         mnemonic = MNEMONICS[instr.mnemonic]
         print(f"0x{instr.address:x}:\t{instr.mnemonic}\t{instr.op_str}")
@@ -221,7 +236,17 @@ def parse_elf(path: str):
                 args[i] = parse_arg(instr, args[i], types_[i])
             except ValueError as e:
                 raise ValueError(mnemonic, args, e)
-        instrs.append(mnemonic(*args))
+
+        is_entry_point = (instr.address == entry_point_addr)
+        if is_entry_point:
+            if entry_point_found:
+                raise ValueError("Two instructions are entry points")
+            entry_point_found = True
+        instruction_obj = mnemonic(*args)
+        instruction_obj.is_entry_point = is_entry_point
+        instrs.append(instruction_obj)
+    if not entry_point_found:
+        raise ValueError(f"Can't find entry point: No instruction on address 0x{entry_point_addr:x}")
     return instrs, memory
 
 
@@ -233,7 +258,7 @@ if __name__ == "__main__":
         exit(1)
 
     instrs, memory = parse_elf(sys.argv[1])
-    print(memory)
+    # print(memory)
     prog = Program(instrs)
     out_contents = prog.assemble_program()
 

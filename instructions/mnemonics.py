@@ -176,7 +176,7 @@ MNEMONICS["out"] = Output
 MNEMONICS["ecall"] = Ecall
 
 
-def is_block_boundary(instr):
+def is_jump_instruction(instr):
     return isinstance(
         instr,
         (

@@ -25,7 +25,7 @@ class Jump(Instruction):
 @dataclass
 class JumpNext(Instruction):  # It isn't an instruction to use in your asm-code
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False, clear: bool = False):
-        concater.rem(f"jmr", comments)
+        # concater.rem(f"jmr", comments)
         Jump(Immediate(4)).evaluate(program, cur_block)
 
 
