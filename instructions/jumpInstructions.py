@@ -14,7 +14,6 @@ class Jump(Instruction):
         # TODO: maybe modify current block address instead of next block address?
         # if current block is in the same kiloblock as the target block
         concater.rem(f"j {self.target}", comments)
-        assert self.target % 4 == 0
         new_nexts = program.find_block_rel(cur_block, self.target)
         for next_, new_next in zip(nexts, new_nexts):
             if clear:
@@ -68,7 +67,7 @@ class JumpAndLink(Instruction):
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"jal {self.src} {self.target}", comments)
         if self.src != ZERO:
-            new_nexts = program.find_block_rel(cur_block, 1)
+            new_nexts = program.find_block_rel(cur_block, 4)
             new_next_num = 0
             for i, new_next in enumerate(new_nexts):
                 new_next_num += new_next * (BLOCK_SIZE ** i)

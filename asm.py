@@ -89,6 +89,7 @@ class Program:
         return None
 
     def find_block_rel(self, block: Block, offset):
+        assert offset % 4 == 0
         out = self.get_block_full_id(block)
         out[0] += offset
         for i in range(4):
@@ -158,20 +159,25 @@ class Program:
         return out
 
 
-def parse_arg(instr: CsInsn, arg: RISCVOp, expected_type: type):
+def parse_arg(arg: str, expected_type: type):
     """Parse a single argument string to the expected type."""
+    arg = arg.strip()
     if expected_type == Register:
-        reg_name = instr.reg_name(arg.reg)
-        if reg_name in regs:
-            return regs[reg_name]
-        raise ValueError(f"Register {reg_name} is unavailable")
+        if arg in regs:
+            return regs[arg]
+        raise ValueError(f"Register {arg} is unavailable")
     elif expected_type == Immediate:
-        return Immediate(arg.imm)
+        return Immediate.from_str(arg)
     elif expected_type == OffsetRegister:
-        reg_name = instr.reg_name(arg.reg)
-        if reg_name in regs:
-            return OffsetRegister(regs[reg_name], arg.imm)
-        raise ValueError(f"Register {reg_name} is unavailable")
+        imm, reg = arg.split("(")
+        imm = Immediate.from_str(imm)
+        assert reg.endswith(")")
+        reg = reg[:-1]
+        if reg in regs:
+            reg = regs[reg]
+        else:
+            raise ValueError(f"Register {arg} is unavailable")
+        return OffsetRegister(reg, imm)
     else:
         raise ValueError(f"Unknown expected type: {expected_type}")
 
@@ -213,27 +219,29 @@ def parse_elf(path: str):
         print(f"0x{entry_point_addr:x} - ENTRY_POINT\n")
 
     md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV32)
-    md.detail = True
     instrs = []
     entry_point_found = False
     for instr in md.disasm(code, base):
         mnemonic = MNEMONICS[instr.mnemonic]
         print(f"0x{instr.address:x}:\t{instr.mnemonic}\t{instr.op_str}")
-        args = instr.operands
+        args = instr.op_str
+        if args == "":
+            args = []
+        else:
+            args = args.split(",")
         types_ = get_instruction_types(mnemonic)
 
         # Remove prettify from some instructions
         if instr.mnemonic == "jal" and len(args) == 1:
-            args.insert(0, regs["ra"])
+            args.insert(0, "ra")
 
         if len(args) != len(types_):
             raise ValueError(
                 f"Incorrect number of arguments for {mnemonic}. Got {len(args)}, expected {len(types_)}.\nGot {args}")
         for i in range(len(args)):
-            if isinstance(args[i], Register) or isinstance(args[i], Immediate) or isinstance(args[i], OffsetRegister):
-                continue
             try:
-                args[i] = parse_arg(instr, args[i], types_[i])
+                args[i] = parse_arg(args[i], types_[i])
+                print(f"\t{args[i]}")
             except ValueError as e:
                 raise ValueError(mnemonic, args, e)
 
@@ -271,7 +279,7 @@ if __name__ == "__main__":
         f.write("a0[4] next\n")
         f.write("a4[4] current\n")
         f.write(f"a4[{SCRAP_COUNT - MEMORY_SCRAPS_COUNT:x}] scraps\n")
-        for j in range(4):  # TODO: Replace with REGISTER_COUNT
+        for j in range(REGISTER_COUNT):  # TODO: Replace with REGISTER_COUNT
             f.write(f"a{j * 8 + SCRAP_COUNT - MEMORY_SCRAPS_COUNT + 4:x}[8] x{j + 1}\n")
         f.write(
             f"a{REGISTER_COUNT * 8 + SCRAP_COUNT - MEMORY_SCRAPS_COUNT + 4:x}[{MEMORY_SCRAPS_COUNT :x}] mem_scraps\n")
