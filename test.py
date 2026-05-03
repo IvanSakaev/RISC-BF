@@ -4,19 +4,21 @@ import subprocess
 for i in range(1, 101):
     # num1 = 0
     # num2 = 0
+    # num1 = random.randint(0, 32)
+    num2 = random.randint(0, 32)
     # num1 = random.randrange(-127, 128)
     # num2 = random.randrange(-127, 128)
     # num1 = random.randrange(256)
     # num2 = random.randrange(256)
-    # num1 = random.randint(-2**31, 2**31)
+    num1 = random.randint(-2**31, 2**31)
     # num2 = random.randint(-2**31, 2**31)
-    num1 = random.randrange(2 ** 32)
-    num2 = random.randrange(2 ** 32)
+    # num1 = random.randrange(2 ** 32)
+    # num2 = random.randrange(2 ** 32)
 
     # if random.randint(0, 1) == 0:
     #     num1 = num2
-    if random.randint(0, 50) == 0:
-        num2 = num1
+    # if random.randint(0, 50) == 0:
+    #     num2 = num1
 
     num1text = num1 & 0xFFFFFFFF
     num2text = num2 & 0xFFFFFFFF
@@ -27,8 +29,8 @@ for i in range(1, 101):
 li x1, 0x{num1text:x}
 li x2, 0x{num2text:x}
 li x3, 0
-sltiu x3, x1, 0x{num2text:x}
-out x3
+slli x1, x1, 0x{num2text:x}
+out x1
 """.lstrip()
         )
 
@@ -55,7 +57,7 @@ out x3
     except UnicodeDecodeError:
         predict = predict_byte
 
-    num3 = 1 if num1 < num2 else 0
+    num3 = num1 << num2
 
     num3 &= 0xFFFFFFFF
     num3_str = f"{num3:08X}"
