@@ -104,7 +104,6 @@ class Sub(Instruction):
             self.dst.change_big(1)
             self.dst.normalize_big_fast()
         elif self.src1 == self.dst:
-            self.dst.clear_big()
             Not.invert_big(self.src2, self.dst, clear=False)
             self.dst.change_big(1)
             self.dst.normalize_big()
