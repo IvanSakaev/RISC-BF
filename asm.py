@@ -241,7 +241,6 @@ def parse_elf(path: str):
         for i in range(len(args)):
             try:
                 args[i] = parse_arg(args[i], types_[i])
-                print(f"\t{args[i]}")
             except ValueError as e:
                 raise ValueError(mnemonic, args, e)
 
