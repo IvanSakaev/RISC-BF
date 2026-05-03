@@ -278,7 +278,7 @@ if __name__ == "__main__":
         f.write("a0[4] next\n")
         f.write("a4[4] current\n")
         f.write(f"a4[{SCRAP_COUNT - MEMORY_SCRAPS_COUNT:x}] scraps\n")
-        for j in range(REGISTER_COUNT):  # TODO: Replace with REGISTER_COUNT
+        for j in range(4):  # TODO: Replace with REGISTER_COUNT
             f.write(f"a{j * 8 + SCRAP_COUNT - MEMORY_SCRAPS_COUNT + 4:x}[8] x{j + 1}\n")
         f.write(
             f"a{REGISTER_COUNT * 8 + SCRAP_COUNT - MEMORY_SCRAPS_COUNT + 4:x}[{MEMORY_SCRAPS_COUNT :x}] mem_scraps\n")
