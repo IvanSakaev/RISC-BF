@@ -91,13 +91,13 @@ class Program:
     def find_block_rel(self, block: Block, offset):
         assert offset % 4 == 0
         out = self.get_block_full_id(block)
-        out[0] += offset
+        number = 0
         for i in range(4):
-            if out[i] >= BLOCK_SIZE:
-                if i == 3:
-                    raise RuntimeError("Too many blocks")
-                out[i] = 0
-                out[i + 1] += 1
+            number += out[i] * (BLOCK_SIZE ** i)
+        number += offset
+        assert number >= 0
+        for i in range(4):
+            out[i] = (number // (BLOCK_SIZE ** i)) % BLOCK_SIZE
         return out
 
     def program_prologue(self):
