@@ -6,7 +6,7 @@ from typing import Union, get_args, get_origin, get_type_hints
 
 import config
 import instructions.mnemonics
-from cell import concater, nexts, currents
+from cell import concater, nexts, currents, memory_scraps
 from config import REGISTER_COUNT, MEMORY_SCRAPS_COUNT, BLOCK_SIZE, MEMORY_ADDRESS_HALFBYTES
 from instructions.baseInstructions import Instruction
 from instructions.mnemonics import (
@@ -62,8 +62,18 @@ class Program:
         self.kiloblock, self.entry_point_block = split_program_into_blocks(instrs)
         print("Entry block id:", self.entry_point_block.get_full_id())
         self.memory = memory
+    
+    def preload_memory(self):
+        LoadI(regs["sp"], Immediate(16 ** MEMORY_ADDRESS_HALFBYTES - 1))
+        first_mem_cell = memory_scraps[-1].cell_rel(1)
+        for addr, value in self.memory.items():
+            if value == 0:
+                pass
+            first_mem_cell.cell_rel(addr).change(value)
 
     def program_prologue(self):
+        self.preload_memory()
+
         entry_point_block_id = self.entry_point_block.get_full_id()
         for next_, new_next in zip(nexts, entry_point_block_id):
             next_.change(new_next)
@@ -112,7 +122,6 @@ class Program:
         self.block_epilogue(block, deep)
 
     def assemble_program(self):
-        LoadI(regs["sp"], Immediate(16 ** MEMORY_ADDRESS_HALFBYTES - 1))
         self.program_prologue()
         for block in self.kiloblock.daughter_blocks:
             self.assemble_block(block)
