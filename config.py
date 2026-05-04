@@ -14,4 +14,7 @@ SCRAP_COUNT = 32  # TODO: reduce scrap count
 # Big values may not work properly with most interpretators
 MEMORY_ADDRESS_HALFBYTES = 5  # Memory cell count will be 16^MEMORY_ADDRESS_HALFBYTES
 
+PRELOAD_MEMORY = False
+
+
 MEMORY_SCRAPS_COUNT = 6 + MEMORY_ADDRESS_HALFBYTES  # Don't change!
