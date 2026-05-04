@@ -7,7 +7,7 @@ from typing import Union, get_args, get_origin, get_type_hints
 import config
 import instructions.mnemonics
 from cell import concater, nexts, currents
-from config import REGISTER_COUNT, MEMORY_SCRAPS_COUNT, BLOCK_SIZE
+from config import REGISTER_COUNT, MEMORY_SCRAPS_COUNT, BLOCK_SIZE, MEMORY_ADDRESS_HALFBYTES
 from instructions.baseInstructions import Instruction
 from instructions.mnemonics import (
     MNEMONICS,
@@ -17,7 +17,6 @@ from instructions.mnemonics import (
 from registers import SCRAP_COUNT, Immediate, Register, regs, OffsetRegister
 from elftools.elf.elffile import ELFFile
 from capstone import *
-from capstone.riscv import RISCVOp
 
 
 def split_program_into_blocks(instrs: list[Instruction]):
@@ -149,7 +148,7 @@ class Program:
         self.block_epilogue(block, deep)
 
     def assemble_program(self):
-        LoadI(regs["sp"], Immediate(0xFFFFFFFF))
+        LoadI(regs["sp"], Immediate(16 ** MEMORY_ADDRESS_HALFBYTES - 1))
         self.program_prologue()
         for block in self.kiloblock.daughter_blocks:
             self.assemble_block(block)
