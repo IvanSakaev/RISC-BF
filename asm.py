@@ -58,49 +58,13 @@ def split_program_into_blocks(instrs: list[Instruction]):
 
 
 class Program:
-    def __init__(self, instrs):
+    def __init__(self, instrs, memory):
         self.kiloblock, self.entry_point_block = split_program_into_blocks(instrs)
-        print("Entry block id:", self.get_block_full_id(self.entry_point_block))
-
-    def get_block_full_id(self, block: Block):
-        myid = []
-        cur_block = block
-        for i in range(4):
-            assert cur_block is not None
-            myid.append(cur_block.myid)
-            cur_block = cur_block.mother_block
-        return myid
-
-    def find_block(self, label: str, root_block=None):
-        if root_block is None:
-            root_block = self.kiloblock
-        for block in root_block.daughter_blocks:
-            if isinstance(block.daughter_blocks[0], Instruction):
-                if label in block.labels:
-                    return [block.myid]
-            else:
-                out = self.find_block(label, block)
-                if out is not None:
-                    out.append(block.myid)
-                    return out
-        if root_block == self.kiloblock:
-            raise ValueError(f"Block {label} not found")
-        return None
-
-    def find_block_rel(self, block: Block, offset):
-        assert offset % 4 == 0
-        out = self.get_block_full_id(block)
-        number = 0
-        for i in range(4):
-            number += out[i] * (BLOCK_SIZE ** i)
-        number += offset
-        assert number >= 0
-        for i in range(4):
-            out[i] = (number // (BLOCK_SIZE ** i)) % BLOCK_SIZE
-        return out
+        print("Entry block id:", self.entry_point_block.get_full_id())
+        self.memory = memory
 
     def program_prologue(self):
-        entry_point_block_id = self.get_block_full_id(self.entry_point_block)
+        entry_point_block_id = self.entry_point_block.get_full_id()
         for next_, new_next in zip(nexts, entry_point_block_id):
             next_.change(new_next)
         nexts[-1].raw("[")
@@ -264,8 +228,7 @@ if __name__ == "__main__":
         exit(1)
 
     instrs, memory = parse_elf(sys.argv[1])
-    # print(memory)
-    prog = Program(instrs)
+    prog = Program(instrs, memory)
     out_contents = prog.assemble_program()
 
     with open(sys.argv[2], "w") as f:
