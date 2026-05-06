@@ -98,49 +98,53 @@ class Output(Instruction):
 class Ecall(Instruction):
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem("ecall", comments)
+        with self.if_number(regs["a7"], Immediate(63)):
+            self.ecall64(",")
         with self.if_number(regs["a7"], Immediate(64)):
-            addr_reg = regs["a1"]
-            length_reg = regs["a2"]
+            self.ecall64(".")
 
-            # Output(addr_reg).evaluate(program, cur_block)
-            # Output(length_reg).evaluate(program, cur_block)
+    def ecall64(self, command):
+        # Maybe not ignore a0?
+        addr_reg = regs["a1"]
+        length_reg = regs["a2"]
 
-            mem_scraps = memory_scraps[
-                len(memory_scraps) - 2 - MEMORY_ADDRESS_HALFBYTES - (MAX_OUTPUT_LENGTH_HALFBYTES * 2):]
-            zero_scrap = mem_scraps[0]
-            addr_cells = mem_scraps[1: MEMORY_ADDRESS_HALFBYTES + 1]
-            addr_scrap = mem_scraps[MEMORY_ADDRESS_HALFBYTES + 1]
-            length_to = mem_scraps[
-                MEMORY_ADDRESS_HALFBYTES + 2: MEMORY_ADDRESS_HALFBYTES + 2 + MAX_OUTPUT_LENGTH_HALFBYTES]
-            length_copy = mem_scraps[MEMORY_ADDRESS_HALFBYTES + 2 + MAX_OUTPUT_LENGTH_HALFBYTES:]
+        mem_scraps = memory_scraps[
+            len(memory_scraps) - 2 - MEMORY_ADDRESS_HALFBYTES - (MAX_OUTPUT_LENGTH_HALFBYTES * 2):]
+        zero_scrap = mem_scraps[0]
+        addr_cells = mem_scraps[1: MEMORY_ADDRESS_HALFBYTES + 1]
+        addr_scrap = mem_scraps[MEMORY_ADDRESS_HALFBYTES + 1]
+        length_to = mem_scraps[
+            MEMORY_ADDRESS_HALFBYTES + 2: MEMORY_ADDRESS_HALFBYTES + 2 + MAX_OUTPUT_LENGTH_HALFBYTES]
+        length_copy = mem_scraps[MEMORY_ADDRESS_HALFBYTES + 2 + MAX_OUTPUT_LENGTH_HALFBYTES:]
 
-            for i in range(MEMORY_ADDRESS_HALFBYTES):
-                addr_reg.get_cell(i).copy(addr_cells[i], scrap=zero_scrap)
-            for i in range(MAX_OUTPUT_LENGTH_HALFBYTES):
-                if i < MAX_OUTPUT_LENGTH_HALFBYTES:
-                    length_reg.get_cell(i).copy(length_to[i], length_copy[i], scrap=zero_scrap)
-                else:
-                    length_reg.get_cell(i).assert_val(0)
+        for i in range(MEMORY_ADDRESS_HALFBYTES):
+            addr_reg.get_cell(i).copy(addr_cells[i], scrap=zero_scrap)
+        for i in range(MAX_OUTPUT_LENGTH_HALFBYTES):
+            if i < MAX_OUTPUT_LENGTH_HALFBYTES:
+                length_reg.get_cell(i).copy(length_to[i], length_copy[i], scrap=zero_scrap)
+            else:
+                length_reg.get_cell(i).assert_val(0)
 
-            _go_to_addr(mem_scraps, zero_scrap, addr_cells, addr_scrap)
+        _go_to_addr(mem_scraps, zero_scrap, addr_cells, addr_scrap)
 
-            # Move zero_scrap to right
-            for small_addr_cell in addr_cells:
-                small_addr_cell.move(small_addr_cell.cell_rel(-1))
-            addr_cells = mem_scraps[0: MEMORY_ADDRESS_HALFBYTES]
-            zero_scrap = mem_scraps[MEMORY_ADDRESS_HALFBYTES]
+        # Move zero_scrap to right
+        for small_addr_cell in addr_cells:
+            small_addr_cell.move(small_addr_cell.cell_rel(-1))
+        addr_cells = mem_scraps[0: MEMORY_ADDRESS_HALFBYTES]
+        zero_scrap = mem_scraps[MEMORY_ADDRESS_HALFBYTES]
 
-            self._write_str(zero_scrap, addr_scrap, length_to, length_copy)
+        self._write_str(zero_scrap, addr_scrap, length_to, length_copy, command)
 
-            # Move zero_scrap back
-            for small_addr_cell in reversed(addr_cells):
-                small_addr_cell.move(small_addr_cell.cell_rel(1))
-            addr_cells = mem_scraps[1: MEMORY_ADDRESS_HALFBYTES + 1]
-            zero_scrap = mem_scraps[0]
+        # Move zero_scrap back
+        for small_addr_cell in reversed(addr_cells):
+            small_addr_cell.move(small_addr_cell.cell_rel(1))
+        addr_cells = mem_scraps[1: MEMORY_ADDRESS_HALFBYTES + 1]
+        zero_scrap = mem_scraps[0]
 
-            _go_from_addr(mem_scraps, zero_scrap, addr_cells)
+        _go_from_addr(mem_scraps, zero_scrap, addr_cells)
 
-    def _write_str(self, zero_scrap: Cell, addr_scrap: Cell, length_to: list[Cell], length_copy: list[Cell]):
+    def _write_str(self, zero_scrap: Cell, addr_scrap: Cell, length_to: list[Cell], length_copy: list[Cell],
+                   command: str = "."):
         assert zero_scrap.cell_rel(1) == addr_scrap
         assert addr_scrap.cell_rel(1) == length_to[0]
         assert length_to[-1].cell_rel(1) == length_copy[0]
@@ -152,7 +156,7 @@ class Ecall(Instruction):
         zero_scrap.change(1)  # It can be -1 before this command
         with zero_scrap.loop():
             zero_scrap.change(-1)
-            first_mem_cell.raw(".")
+            first_mem_cell.raw(command)
             first_mem_cell.move(zero_scrap)
             for i in range(len(mem_scraps) - 1, 0, -1):
                 mem_scraps[i].move(mem_scraps[i].cell_rel(1))
