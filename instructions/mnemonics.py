@@ -160,7 +160,6 @@ class Ecall(Instruction):
 
             self._sub_length(length_to, zero_scrap, zero_scrap, addr_scrap)
             zero_scrap.change(1)  # It can be -1 before this command
-            concater.debug()
 
         for small_length_to in length_to:
             small_length_to.clear()
@@ -178,7 +177,6 @@ class Ecall(Instruction):
 
             self._sub_length(length_to, zero_scrap, zero_scrap, addr_scrap)
             zero_scrap.change(1)  # It can be -1 before this command
-            concater.debug()
 
         for small_length_to in length_to:
             small_length_to.clear()
