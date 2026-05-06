@@ -45,6 +45,9 @@ class _Concater:
     def assert_pos(self):
         self.raw(f"@{self.current_pos.addr:x}")
 
+    def assert_val(self, value: int):
+        self.raw(f"!{value:x}")
+
     def get_code(self):
         return "".join(self.current_program)
 

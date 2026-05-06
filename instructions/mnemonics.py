@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
+
+from config import MAX_OUTPUT_LENGTH_HALFBYTES
 from instructions.arithmeticInstructions import *
 import instructions.bitwiseInstructions
 from instructions.comparingInstructions import *
@@ -8,6 +11,8 @@ from instructions.storeInstructions import *
 
 from instructions.baseInstructions import Instruction, Block
 from dataclasses import dataclass
+
+from instructions.storeInstructions import _go_to_addr, _go_from_addr
 
 if TYPE_CHECKING:
     from asm import Program
@@ -91,10 +96,55 @@ class Output(Instruction):
 
 @dataclass
 class Ecall(Instruction):
-    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):  # TODO
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem("ecall", comments)
-        print("Warning: you use ecall that is temporary just output a0 register")
-        Output(regs["a0"]).evaluate(program, cur_block)
+        with self.if_number(regs["a7"], Immediate(64)):
+            addr_reg = regs["a1"]
+            length_reg = regs["a2"]
+
+            Output(addr_reg).evaluate(program, cur_block)
+            Output(length_reg).evaluate(program, cur_block)
+
+            mem_scraps = memory_scraps[
+                len(memory_scraps) - 2 - MEMORY_ADDRESS_HALFBYTES - (MAX_OUTPUT_LENGTH_HALFBYTES * 2):]
+            zero_scrap = mem_scraps[0]
+            addr_cells = mem_scraps[1: MEMORY_ADDRESS_HALFBYTES + 1]
+            addr_scrap = mem_scraps[MEMORY_ADDRESS_HALFBYTES + 1]
+            length_to = mem_scraps[MEMORY_ADDRESS_HALFBYTES + 2: MEMORY_ADDRESS_HALFBYTES + 2 + MAX_OUTPUT_LENGTH_HALFBYTES]
+            length_copy = mem_scraps[MEMORY_ADDRESS_HALFBYTES + 2 + MAX_OUTPUT_LENGTH_HALFBYTES:]
+            first_mem_cell = mem_scraps[-1].cell_rel(1)
+
+            for i in range(MEMORY_ADDRESS_HALFBYTES):
+                addr_reg.get_cell(i).copy(addr_cells[i], scrap=zero_scrap)
+            for i in range(MAX_OUTPUT_LENGTH_HALFBYTES):
+                if i < MAX_OUTPUT_LENGTH_HALFBYTES:
+                    length_reg.get_cell(i).move(length_to[i], length_copy[i])
+                else:
+                    length_reg.get_cell(i).assert_val(0)
+            _go_to_addr(mem_scraps, zero_scrap, addr_cells, addr_scrap)
+            concater.debug()
+            first_mem_cell.raw(".")
+            _go_from_addr(mem_scraps, zero_scrap, addr_cells)
+
+    @contextmanager
+    def if_number(self, reg: Register, num: Immediate):
+        scrap = scraps[0]
+        result = scraps[1]
+        result.change(1)
+
+        for i in range(8):
+            small_reg = reg.get_cell(i)
+            small_num = num // (16 ** i) % 16
+            small_reg.change(-small_num)
+            small_reg.move(scrap)
+            with scrap.loop():
+                result.change(-1)
+                scrap.move(small_reg)
+            small_reg.change(small_num)
+            result.raw("[")
+        result.change(-1)
+        yield
+        result.raw("]" * 8)
 
 
 MNEMONICS: dict[str, type[Instruction]] = dict()

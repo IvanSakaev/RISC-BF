@@ -30,6 +30,10 @@ class Cell:
         self.to()
         concater.debug()
 
+    def assert_val(self, value: int):
+        self.to()
+        concater.assert_val(value)
+
     @contextmanager
     def loop(self):
         self.raw("[")
