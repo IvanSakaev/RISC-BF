@@ -102,17 +102,17 @@ class Ecall(Instruction):
             addr_reg = regs["a1"]
             length_reg = regs["a2"]
 
-            Output(addr_reg).evaluate(program, cur_block)
-            Output(length_reg).evaluate(program, cur_block)
+            # Output(addr_reg).evaluate(program, cur_block)
+            # Output(length_reg).evaluate(program, cur_block)
 
             mem_scraps = memory_scraps[
                 len(memory_scraps) - 2 - MEMORY_ADDRESS_HALFBYTES - (MAX_OUTPUT_LENGTH_HALFBYTES * 2):]
             zero_scrap = mem_scraps[0]
             addr_cells = mem_scraps[1: MEMORY_ADDRESS_HALFBYTES + 1]
             addr_scrap = mem_scraps[MEMORY_ADDRESS_HALFBYTES + 1]
-            length_to = mem_scraps[MEMORY_ADDRESS_HALFBYTES + 2: MEMORY_ADDRESS_HALFBYTES + 2 + MAX_OUTPUT_LENGTH_HALFBYTES]
+            length_to = mem_scraps[
+                MEMORY_ADDRESS_HALFBYTES + 2: MEMORY_ADDRESS_HALFBYTES + 2 + MAX_OUTPUT_LENGTH_HALFBYTES]
             length_copy = mem_scraps[MEMORY_ADDRESS_HALFBYTES + 2 + MAX_OUTPUT_LENGTH_HALFBYTES:]
-            first_mem_cell = mem_scraps[-1].cell_rel(1)
 
             for i in range(MEMORY_ADDRESS_HALFBYTES):
                 addr_reg.get_cell(i).copy(addr_cells[i], scrap=zero_scrap)
@@ -122,9 +122,67 @@ class Ecall(Instruction):
                 else:
                     length_reg.get_cell(i).assert_val(0)
             _go_to_addr(mem_scraps, zero_scrap, addr_cells, addr_scrap)
+
+            for small_addr_cell in addr_cells:
+                small_addr_cell.move(small_addr_cell.cell_rel(-1))
+            addr_cells = mem_scraps[0: MEMORY_ADDRESS_HALFBYTES]
+            zero_scrap = mem_scraps[MEMORY_ADDRESS_HALFBYTES]
+
+            self._write_str(zero_scrap, addr_scrap, length_to, length_copy)
+
+            for small_addr_cell in reversed(addr_cells):
+                small_addr_cell.move(small_addr_cell.cell_rel(1))
+            addr_cells = mem_scraps[1: MEMORY_ADDRESS_HALFBYTES + 1]
+            zero_scrap = mem_scraps[0]
             concater.debug()
-            first_mem_cell.raw(".")
+            concater.debug()
+            concater.debug()  # TODO: come back
+            concater.debug()
+            concater.debug()
             _go_from_addr(mem_scraps, zero_scrap, addr_cells)
+
+    def _write_str(self, zero_scrap: Cell, addr_scrap: Cell, length_to: list[Cell], length_copy: list[Cell]):
+        assert zero_scrap.cell_rel(1) == addr_scrap
+        assert addr_scrap.cell_rel(1) == length_to[0]
+        assert length_to[-1].cell_rel(1) == length_copy[0]
+        mem_scraps = [zero_scrap, addr_scrap, *length_to, *length_copy]
+        first_mem_cell = mem_scraps[-1].cell_rel(1)
+
+        self._sub_length(length_to, None, zero_scrap, addr_scrap)
+        zero_scrap.change(1)  # It can be -1 before this command
+        with zero_scrap.loop():
+            zero_scrap.change(-1)
+            first_mem_cell.raw(".")
+            first_mem_cell.move(zero_scrap)
+            for i in range(len(mem_scraps) - 1, 0, -1):
+                mem_scraps[i].move(mem_scraps[i].cell_rel(1))
+            concater.raw("", -1)
+
+            self._sub_length(length_to, zero_scrap, zero_scrap, addr_scrap)
+            zero_scrap.change(1)  # It can be -1 before this command
+            concater.debug()
+
+        for small_length_to in length_to:
+            small_length_to.clear()
+
+    def _sub_length(self, length: list[Cell], output: Cell | None, scrap1: Cell, scrap2: Cell):
+        """
+        Output and scrap1 can be the same. Output can be None.
+        """
+        scrap2.change(1)
+        with length[0].loop():
+            length[0].move(scrap1)
+            scrap2.change(-1)
+        scrap1.move(length[0])
+        with scrap2.loop():
+            scrap2.change(-1)
+            if len(length) == 1:
+                if output is not None:
+                    output.change(-1)
+            else:
+                self._sub_length(length[1:], output, scrap1, scrap2)
+            length[0].change(16)
+        length[0].change(-1)
 
     @contextmanager
     def if_number(self, reg: Register, num: Immediate):
