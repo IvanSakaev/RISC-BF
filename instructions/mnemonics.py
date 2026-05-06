@@ -118,11 +118,13 @@ class Ecall(Instruction):
                 addr_reg.get_cell(i).copy(addr_cells[i], scrap=zero_scrap)
             for i in range(MAX_OUTPUT_LENGTH_HALFBYTES):
                 if i < MAX_OUTPUT_LENGTH_HALFBYTES:
-                    length_reg.get_cell(i).move(length_to[i], length_copy[i])
+                    length_reg.get_cell(i).copy(length_to[i], length_copy[i], scrap=zero_scrap)
                 else:
                     length_reg.get_cell(i).assert_val(0)
+
             _go_to_addr(mem_scraps, zero_scrap, addr_cells, addr_scrap)
 
+            # Move zero_scrap to right
             for small_addr_cell in addr_cells:
                 small_addr_cell.move(small_addr_cell.cell_rel(-1))
             addr_cells = mem_scraps[0: MEMORY_ADDRESS_HALFBYTES]
@@ -130,15 +132,12 @@ class Ecall(Instruction):
 
             self._write_str(zero_scrap, addr_scrap, length_to, length_copy)
 
+            # Move zero_scrap back
             for small_addr_cell in reversed(addr_cells):
                 small_addr_cell.move(small_addr_cell.cell_rel(1))
             addr_cells = mem_scraps[1: MEMORY_ADDRESS_HALFBYTES + 1]
             zero_scrap = mem_scraps[0]
-            concater.debug()
-            concater.debug()
-            concater.debug()  # TODO: come back
-            concater.debug()
-            concater.debug()
+
             _go_from_addr(mem_scraps, zero_scrap, addr_cells)
 
     def _write_str(self, zero_scrap: Cell, addr_scrap: Cell, length_to: list[Cell], length_copy: list[Cell]):
@@ -148,6 +147,7 @@ class Ecall(Instruction):
         mem_scraps = [zero_scrap, addr_scrap, *length_to, *length_copy]
         first_mem_cell = mem_scraps[-1].cell_rel(1)
 
+        # Coming right and printing
         self._sub_length(length_to, None, zero_scrap, addr_scrap)
         zero_scrap.change(1)  # It can be -1 before this command
         with zero_scrap.loop():
@@ -157,6 +157,24 @@ class Ecall(Instruction):
             for i in range(len(mem_scraps) - 1, 0, -1):
                 mem_scraps[i].move(mem_scraps[i].cell_rel(1))
             concater.raw("", -1)
+
+            self._sub_length(length_to, zero_scrap, zero_scrap, addr_scrap)
+            zero_scrap.change(1)  # It can be -1 before this command
+            concater.debug()
+
+        for small_length_to in length_to:
+            small_length_to.clear()
+        length_to = length_copy
+
+        # Coming back
+        self._sub_length(length_to, None, zero_scrap, addr_scrap)
+        zero_scrap.change(1)  # It can be -1 before this command
+        with zero_scrap.loop():
+            zero_scrap.change(-1)
+            for i in range(1, len(mem_scraps)):
+                mem_scraps[i].move(mem_scraps[i].cell_rel(-1))
+            zero_scrap.cell_rel(-1).move(mem_scraps[-1])
+            concater.raw("", 1)
 
             self._sub_length(length_to, zero_scrap, zero_scrap, addr_scrap)
             zero_scrap.change(1)  # It can be -1 before this command
