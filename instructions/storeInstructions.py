@@ -26,7 +26,7 @@ class StoreWord(Instruction):
             return
 
         zero_scrap = memory_scraps[0]
-        addr_cell = memory_scraps[1: MEMORY_ADDRESS_HALFBYTES + 1]
+        addr_cells = memory_scraps[1: MEMORY_ADDRESS_HALFBYTES + 1]
         addr_scrap = memory_scraps[MEMORY_ADDRESS_HALFBYTES + 1]
         data_cell = memory_scraps[MEMORY_ADDRESS_HALFBYTES + 2:]
         first_mem_cell = data_cell[-1].cell_rel(1)
@@ -41,12 +41,12 @@ class StoreWord(Instruction):
                 small_src = self.src.get_cell(i)
                 small_src.copy(data_cell[i // 2], scrap=zero_scrap, multiplier=(1 if i % 2 == 0 else 16))
         for i in range(MEMORY_ADDRESS_HALFBYTES):
-            self.addr.register.get_cell(i).copy(addr_cell[i], scrap=zero_scrap)
+            self.addr.register.get_cell(i).copy(addr_cells[i], scrap=zero_scrap)
 
         if self.addr.offset < 0:
             AddI(self.addr.register, self.addr.register, -self.addr.offset).evaluate(program, cur_block)
 
-        _go_to_addr()
+        _go_to_addr(memory_scraps, zero_scrap, addr_cells, addr_scrap)
 
         # WARNING: You don't know your actual position now. It's impossible to use cells before zero_scrap
         for i in range(byte_count):
@@ -56,7 +56,7 @@ class StoreWord(Instruction):
                 data_cell[i].move(need_mem_cell.cell_rel(i))
 
         # Moving back
-        _go_from_addr()
+        _go_from_addr(memory_scraps, zero_scrap, addr_cells)
 
 
 @dataclass
@@ -104,7 +104,7 @@ class LoadWord(Instruction):
             return
 
         zero_scrap = memory_scraps[0]
-        addr_cell = memory_scraps[1: MEMORY_ADDRESS_HALFBYTES + 1]
+        addr_cells = memory_scraps[1: MEMORY_ADDRESS_HALFBYTES + 1]
         addr_scrap = memory_scraps[MEMORY_ADDRESS_HALFBYTES + 1]
         data_cell = memory_scraps[MEMORY_ADDRESS_HALFBYTES + 2:]
         first_mem_cell = data_cell[-1].cell_rel(1)
@@ -116,19 +116,19 @@ class LoadWord(Instruction):
             AddI(self.addr.register, self.addr.register, self.addr.offset).evaluate(program, cur_block)
 
         for i in range(MEMORY_ADDRESS_HALFBYTES):
-            self.addr.register.get_cell(i).copy(addr_cell[i], scrap=zero_scrap)
+            self.addr.register.get_cell(i).copy(addr_cells[i], scrap=zero_scrap)
 
         if self.addr.offset < 0:
             AddI(self.addr.register, self.addr.register, -self.addr.offset).evaluate(program, cur_block)
 
-        _go_to_addr()
+        _go_to_addr(memory_scraps, zero_scrap, addr_cells, addr_scrap)
 
         # WARNING: You don't know your actual position now. It's impossible to use cells before zero_scrap
         for i in range(byte_count):
             need_mem_cell.cell_rel(i).copy(data_cell[i], scrap=zero_scrap)
 
         # Moving back
-        _go_from_addr()
+        _go_from_addr(memory_scraps, zero_scrap, addr_cells)
 
         self.src.clear_big()
         for i in range(byte_count):  # Move data to src
@@ -191,48 +191,42 @@ class LoadByteUnsigned(Instruction):
         LoadWord(self.src, self.addr).evaluate(program, cur_block, byte_count=1)
 
 
-def _go_to_addr():
-    zero_scrap = memory_scraps[0]
-    addr_cell = memory_scraps[1: MEMORY_ADDRESS_HALFBYTES + 1]
-    addr_scrap = memory_scraps[MEMORY_ADDRESS_HALFBYTES + 1]
-
+def _go_to_addr(mem_scraps: list[Cell], zero_scrap: Cell, addr_cells: list[Cell], addr_scrap: Cell):
     for i in range(MEMORY_ADDRESS_HALFBYTES):
-        with addr_cell[i].loop():
+        with addr_cells[i].loop():
             if i == 0:
-                memory_scraps[-1].cell_rel(1).move(zero_scrap)
-                for j in range(len(memory_scraps) - 1, 0, -1):
-                    memory_scraps[j].move(memory_scraps[j].cell_rel(1))
+                mem_scraps[-1].cell_rel(1).move(zero_scrap)
+                for j in range(len(mem_scraps) - 1, 0, -1):
+                    mem_scraps[j].move(mem_scraps[j].cell_rel(1))
                 concater.raw("", pos_offset=-1)
             else:
                 first_swap_cell = zero_scrap.cell_rel(16 ** i)
                 first_swap_cell.move(zero_scrap)
                 zero_swap_cell = first_swap_cell
-                for j in range(1, len(memory_scraps)):
-                    memory_scraps[j].move(zero_swap_cell)
-                    first_swap_cell.cell_rel(j).move(memory_scraps[j])
+                for j in range(1, len(mem_scraps)):
+                    mem_scraps[j].move(zero_swap_cell)
+                    first_swap_cell.cell_rel(j).move(mem_scraps[j])
                     zero_swap_cell.move(first_swap_cell.cell_rel(j))
                 concater.raw("", pos_offset=-(16 ** i))
             addr_scrap.change(1)
-            addr_cell[i].change(-1)
-        addr_scrap.move(addr_cell[i])
+            addr_cells[i].change(-1)
+        addr_scrap.move(addr_cells[i])
 
 
-def _go_from_addr():
-    zero_scrap = memory_scraps[0]
-    addr_cell = memory_scraps[1: MEMORY_ADDRESS_HALFBYTES + 1]
+def _go_from_addr(mem_scraps: list[Cell], zero_scrap: Cell, addr_cells: list[Cell]):
     for i in range(MEMORY_ADDRESS_HALFBYTES - 1, -1, -1):
-        with addr_cell[i].loop():
+        with addr_cells[i].loop():
             if i == 0:
-                for j in range(1, len(memory_scraps)):
-                    memory_scraps[j].move(memory_scraps[j].cell_rel(-1))
-                memory_scraps[0].cell_rel(-1).move(memory_scraps[-1])
+                for j in range(1, len(mem_scraps)):
+                    mem_scraps[j].move(mem_scraps[j].cell_rel(-1))
+                mem_scraps[0].cell_rel(-1).move(mem_scraps[-1])
                 concater.raw("", pos_offset=1)
             else:
                 first_swap_cell = zero_scrap.cell_rel(-(16 ** i))
                 first_swap_cell.move(zero_scrap)
-                for j in range(1, len(memory_scraps)):
-                    memory_scraps[j].move(first_swap_cell)
-                    first_swap_cell.cell_rel(j).move(memory_scraps[j])
+                for j in range(1, len(mem_scraps)):
+                    mem_scraps[j].move(first_swap_cell)
+                    first_swap_cell.cell_rel(j).move(mem_scraps[j])
                     first_swap_cell.move(first_swap_cell.cell_rel(j))
                 concater.raw("", pos_offset=16 ** i)
-            addr_cell[i].change(-1)
+            addr_cells[i].change(-1)
