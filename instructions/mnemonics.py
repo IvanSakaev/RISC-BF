@@ -99,12 +99,13 @@ class Ecall(Instruction):
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem("ecall", comments)
         with self.if_number(regs["a7"], Immediate(63)):
-            self.ecall64(",")
+            self.ecall63_64(",")
         with self.if_number(regs["a7"], Immediate(64)):
-            self.ecall64(".")
+            self.ecall63_64(".")
 
-    def ecall64(self, command):
+    def ecall63_64(self, command):
         # Maybe not ignore a0?
+        output_reg = regs["a0"]
         addr_reg = regs["a1"]
         length_reg = regs["a2"]
 
@@ -117,11 +118,12 @@ class Ecall(Instruction):
             MEMORY_ADDRESS_HALFBYTES + 2: MEMORY_ADDRESS_HALFBYTES + 2 + MAX_OUTPUT_LENGTH_HALFBYTES]
         length_copy = mem_scraps[MEMORY_ADDRESS_HALFBYTES + 2 + MAX_OUTPUT_LENGTH_HALFBYTES:]
 
+        output_reg.clear_big()
         for i in range(MEMORY_ADDRESS_HALFBYTES):
             addr_reg.get_cell(i).copy(addr_cells[i], scrap=zero_scrap)
         for i in range(MAX_OUTPUT_LENGTH_HALFBYTES):
             if i < MAX_OUTPUT_LENGTH_HALFBYTES:
-                length_reg.get_cell(i).copy(length_to[i], length_copy[i], scrap=zero_scrap)
+                length_reg.get_cell(i).move(output_reg.get_cell(i), length_to[i], length_copy[i])
             else:
                 length_reg.get_cell(i).assert_val(0)
 
