@@ -12,6 +12,7 @@
       <w>bltz</w>
       <w>bnez</w>
       <w>concater</w>
+      <w>divu</w>
       <w>ebreak</w>
       <w>ecall</w>
       <w>halfbytes</w>
@@ -19,14 +20,20 @@
       <w>jalr</w>
       <w>kiloblock</w>
       <w>kiloblocks</w>
+      <w>mulh</w>
+      <w>mulhsu</w>
       <w>mulhu</w>
       <w>nexts</w>
       <w>seqz</w>
       <w>sgtz</w>
       <w>slli</w>
+      <w>slti</w>
+      <w>sltiu</w>
       <w>sltu</w>
       <w>sltz</w>
       <w>snez</w>
+      <w>srai</w>
+      <w>srli</w>
       <w>xori</w>
     </words>
   </dictionary>

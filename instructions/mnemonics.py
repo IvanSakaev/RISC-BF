@@ -4,7 +4,7 @@ from contextlib import contextmanager
 
 from config import MAX_OUTPUT_LENGTH_HALFBYTES
 from instructions.arithmeticInstructions import *
-import instructions.bitwiseInstructions
+from instructions.bitwiseInstructions import *
 from instructions.comparingInstructions import *
 from instructions.jumpInstructions import *
 from instructions.storeInstructions import *
@@ -147,7 +147,6 @@ class Ecall(Instruction):
         output_reg.clear_big()
         for small_length_copy, small_output in zip(length_copy, output_reg.get_cells()):
             small_length_copy.move(small_output)
-        concater.debug()
 
     def _write_str(self, zero_scrap: Cell, addr_scrap: Cell, length_to: list[Cell], length_copy: list[Cell],
                    command: str = "."):
@@ -264,15 +263,15 @@ MNEMONICS["mul"] = Mul
 MNEMONICS["mulhu"] = MulHighUnsigned
 
 # bitwise
-MNEMONICS["sll"] = instructions.bitwiseInstructions.ShiftLeft  # TODO: srl
-MNEMONICS["slli"] = instructions.bitwiseInstructions.ShiftLeftI
-MNEMONICS["or"] = instructions.bitwiseInstructions.Or
-MNEMONICS["and"] = instructions.bitwiseInstructions.And
-MNEMONICS["xor"] = instructions.bitwiseInstructions.Xor
-MNEMONICS["not"] = instructions.bitwiseInstructions.Not
-MNEMONICS["ori"] = instructions.bitwiseInstructions.OrI
-MNEMONICS["andi"] = instructions.bitwiseInstructions.AndI
-MNEMONICS["xori"] = instructions.bitwiseInstructions.XorI
+MNEMONICS["sll"] = ShiftLeft  # TODO: srl
+MNEMONICS["slli"] = ShiftLeftI
+MNEMONICS["or"] = Or
+MNEMONICS["and"] = And
+MNEMONICS["xor"] = Xor
+MNEMONICS["not"] = Not
+MNEMONICS["ori"] = OrI
+MNEMONICS["andi"] = AndI
+MNEMONICS["xori"] = XorI
 
 # comparing
 MNEMONICS["slt"] = SetLessThan
@@ -322,7 +321,6 @@ MNEMONICS["bleu"] = BranchIfLessThanOrEqualUnsigned
 
 # special
 MNEMONICS["ebreak"] = Debug
-MNEMONICS["out"] = Output
 MNEMONICS["ecall"] = Ecall
 
 
