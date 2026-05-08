@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import config
+from config import ALLOW_DEBUG, ALLOW_ASSERTS
 
 if TYPE_CHECKING:
     from registers import Cell
@@ -40,13 +41,16 @@ class _Concater:
             self.raw("\n        " + self.sanitize(text) + bp + "\n          ")
 
     def debug(self):
-        self.raw("#")
+        if ALLOW_DEBUG:
+            self.raw("#")
 
     def assert_pos(self):
-        self.raw(f"@{self.current_pos.addr:x}")
+        if ALLOW_ASSERTS:
+            self.raw(f"@{self.current_pos.addr:x}")
 
     def assert_val(self, value: int):
-        self.raw(f"!{value:x}")
+        if ALLOW_ASSERTS:
+            self.raw(f"!{value:x}")
 
     def get_code(self):
         return "".join(self.current_program)

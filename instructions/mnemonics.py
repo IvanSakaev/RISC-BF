@@ -118,12 +118,11 @@ class Ecall(Instruction):
             MEMORY_ADDRESS_HALFBYTES + 2: MEMORY_ADDRESS_HALFBYTES + 2 + MAX_OUTPUT_LENGTH_HALFBYTES]
         length_copy = mem_scraps[MEMORY_ADDRESS_HALFBYTES + 2 + MAX_OUTPUT_LENGTH_HALFBYTES:]
 
-        output_reg.clear_big()
         for i in range(MEMORY_ADDRESS_HALFBYTES):
             addr_reg.get_cell(i).copy(addr_cells[i], scrap=zero_scrap)
         for i in range(MAX_OUTPUT_LENGTH_HALFBYTES):
             if i < MAX_OUTPUT_LENGTH_HALFBYTES:
-                length_reg.get_cell(i).move(output_reg.get_cell(i), length_to[i])
+                length_reg.get_cell(i).copy(length_to[i], scrap=zero_scrap)
             else:
                 length_reg.get_cell(i).assert_val(0)
 
@@ -145,6 +144,11 @@ class Ecall(Instruction):
 
         _go_from_addr(mem_scraps, zero_scrap, addr_cells)
 
+        output_reg.clear_big()
+        for small_length_copy, small_output in zip(length_copy, output_reg.get_cells()):
+            small_length_copy.move(small_output)
+        concater.debug()
+
     def _write_str(self, zero_scrap: Cell, addr_scrap: Cell, length_to: list[Cell], length_copy: list[Cell],
                    command: str = "."):
         assert zero_scrap.cell_rel(1) == addr_scrap
@@ -152,7 +156,7 @@ class Ecall(Instruction):
         assert length_to[-1].cell_rel(1) == length_copy[0]
         mem_scraps = [zero_scrap, addr_scrap, *length_to, *length_copy]
         first_mem_cell = mem_scraps[-1].cell_rel(1)
-        
+
         for small_length_copy in length_copy:
             small_length_copy.change(-15)
 
@@ -181,12 +185,10 @@ class Ecall(Instruction):
                 addr_scrap.move(printed_mem_cell)
                 printed_mem_cell.change(10)
 
-        for small_length_copy in length_copy:
-            small_length_copy.change(15)
-        for small_length_to in length_to:
+        for small_length_to, small_length_copy in zip(length_to, length_copy):
             small_length_to.clear()
-        length_to = length_copy
-        length_to[0].debug()
+            small_length_copy.change(15)
+            small_length_copy.copy(small_length_to, scrap=addr_scrap)
 
         # Coming back
         self._sub_length(length_to, None, zero_scrap, addr_scrap)
@@ -204,7 +206,8 @@ class Ecall(Instruction):
         for small_length_to in length_to:
             small_length_to.clear()
 
-    def _sub_length(self, length: list[Cell], output: Cell | None, scrap1: Cell, scrap2: Cell, is_negative: bool = False):
+    def _sub_length(self, length: list[Cell], output: Cell | None, scrap1: Cell, scrap2: Cell,
+                    is_negative: bool = False):
         """
         Output and scrap1 can be the same. Output can be None.
         """
@@ -261,7 +264,7 @@ MNEMONICS["mul"] = Mul
 MNEMONICS["mulhu"] = MulHighUnsigned
 
 # bitwise
-MNEMONICS["sll"] = instructions.bitwiseInstructions.ShiftLeft  # TODO
+MNEMONICS["sll"] = instructions.bitwiseInstructions.ShiftLeft  # TODO: srl
 MNEMONICS["slli"] = instructions.bitwiseInstructions.ShiftLeftI
 MNEMONICS["or"] = instructions.bitwiseInstructions.Or
 MNEMONICS["and"] = instructions.bitwiseInstructions.And

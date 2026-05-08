@@ -6,8 +6,9 @@ from typing import Union, get_args, get_origin, get_type_hints
 
 import config
 import instructions.mnemonics
-from cell import concater, nexts, currents, memory_scraps
-from config import REGISTER_COUNT, MEMORY_SCRAPS_COUNT, BLOCK_SIZE, MEMORY_ADDRESS_HALFBYTES, PRELOAD_MEMORY
+from cell import concater, nexts, currents, memory_scraps, scraps
+from config import REGISTER_COUNT, MEMORY_SCRAPS_COUNT, BLOCK_SIZE, MEMORY_ADDRESS_HALFBYTES, PRELOAD_MEMORY, \
+    WATCH_REGISTERS
 from instructions.baseInstructions import Instruction
 from instructions.mnemonics import (
     MNEMONICS,
@@ -85,7 +86,7 @@ class Program:
     def program_epilogue(self):
         currents[-1].raw("-]")
         if config.BREAKPOINT_EVERY_CYCLE:
-            concater.debug()
+            concater.raw("#")
         nexts[-1].raw("]")
 
     def block_prologue(self, block: Block, deep: int):
@@ -247,12 +248,10 @@ if __name__ == "__main__":
 
     # Generate addrmap
     with open(sys.argv[2] + ".addr", "w") as f:
-        f.write("a0[4] next\n")
-        f.write("a4[4] current\n")
-        f.write(f"a4[{SCRAP_COUNT - MEMORY_SCRAPS_COUNT:x}] scraps\n")
-        for j in range(4):  # TODO: Replace with REGISTER_COUNT
-            f.write(f"a{j * 8 + SCRAP_COUNT - MEMORY_SCRAPS_COUNT + 4:x}[8] x{j + 1}\n")
-        f.write(
-            f"a{REGISTER_COUNT * 8 + SCRAP_COUNT - MEMORY_SCRAPS_COUNT + 4:x}[{MEMORY_SCRAPS_COUNT :x}] mem_scraps\n")
-        f.write(
-            f"a{REGISTER_COUNT * 8 + SCRAP_COUNT - MEMORY_SCRAPS_COUNT + 4 + MEMORY_SCRAPS_COUNT:x}[{256:x}] memory\n")
+        f.write(f"a{nexts[0].addr:x}[{len(nexts)}] next\n")
+        f.write(f"a{currents[0].addr:x}[{len(currents)}] current\n")
+        f.write(f"a{scraps[0].addr:x}[{SCRAP_COUNT - MEMORY_SCRAPS_COUNT:x}] scraps\n")
+        for reg_name in WATCH_REGISTERS:
+            f.write(f"a{regs[reg_name].addr:x}[8] {regs[reg_name]}\n")
+        f.write(f"a{memory_scraps[0].addr:x}[{MEMORY_SCRAPS_COUNT:x}] mem_scraps\n")
+        f.write(f"a{memory_scraps[-1].cell_rel(1).addr:x}[{256:x}] memory\n")
