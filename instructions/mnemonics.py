@@ -123,7 +123,7 @@ class Ecall(Instruction):
             addr_reg.get_cell(i).copy(addr_cells[i], scrap=zero_scrap)
         for i in range(MAX_OUTPUT_LENGTH_HALFBYTES):
             if i < MAX_OUTPUT_LENGTH_HALFBYTES:
-                length_reg.get_cell(i).move(output_reg.get_cell(i), length_to[i], length_copy[i])
+                length_reg.get_cell(i).move(output_reg.get_cell(i), length_to[i])
             else:
                 length_reg.get_cell(i).assert_val(0)
 
@@ -152,6 +152,9 @@ class Ecall(Instruction):
         assert length_to[-1].cell_rel(1) == length_copy[0]
         mem_scraps = [zero_scrap, addr_scrap, *length_to, *length_copy]
         first_mem_cell = mem_scraps[-1].cell_rel(1)
+        
+        for small_length_copy in length_copy:
+            small_length_copy.change(-15)
 
         # Coming right and printing
         self._sub_length(length_to, None, zero_scrap, addr_scrap)
@@ -164,12 +167,26 @@ class Ecall(Instruction):
                 mem_scraps[i].move(mem_scraps[i].cell_rel(1))
             concater.raw("", -1)
 
-            self._sub_length(length_to, zero_scrap, zero_scrap, addr_scrap)
-            zero_scrap.change(1)  # It can be -1 before this command
+            self._sub_length(length_copy, None, zero_scrap, addr_scrap, is_negative=True)
+            if command == ".":
+                self._sub_length(length_to, zero_scrap, zero_scrap, addr_scrap)
+                zero_scrap.change(1)  # It can be -1 before this command
+            else:
+                printed_mem_cell = zero_scrap.cell_rel(-1)
+                printed_mem_cell.change(-10)  # \n
+                with printed_mem_cell.loop():
+                    self._sub_length(length_to, zero_scrap, zero_scrap, addr_scrap)
+                    zero_scrap.change(1)  # It can be -1 before this command
+                    printed_mem_cell.move(addr_scrap)
+                addr_scrap.move(printed_mem_cell)
+                printed_mem_cell.change(10)
 
+        for small_length_copy in length_copy:
+            small_length_copy.change(15)
         for small_length_to in length_to:
             small_length_to.clear()
         length_to = length_copy
+        length_to[0].debug()
 
         # Coming back
         self._sub_length(length_to, None, zero_scrap, addr_scrap)
@@ -187,7 +204,7 @@ class Ecall(Instruction):
         for small_length_to in length_to:
             small_length_to.clear()
 
-    def _sub_length(self, length: list[Cell], output: Cell | None, scrap1: Cell, scrap2: Cell):
+    def _sub_length(self, length: list[Cell], output: Cell | None, scrap1: Cell, scrap2: Cell, is_negative: bool = False):
         """
         Output and scrap1 can be the same. Output can be None.
         """
@@ -202,9 +219,9 @@ class Ecall(Instruction):
                 if output is not None:
                     output.change(-1)
             else:
-                self._sub_length(length[1:], output, scrap1, scrap2)
-            length[0].change(16)
-        length[0].change(-1)
+                self._sub_length(length[1:], output, scrap1, scrap2, is_negative=is_negative)
+            length[0].change(-16 if is_negative else 16)
+        length[0].change(1 if is_negative else -1)
 
     @contextmanager
     def if_number(self, reg: Register, num: Immediate):
