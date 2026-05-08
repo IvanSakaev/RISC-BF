@@ -3,6 +3,10 @@ __pycache__
 tmp
 bin
 out.b
+out.b.addr
 ibf
-bcci
 tests
+examples/test.s
+
+test.elf
+test.o

@@ -3,200 +3,232 @@ from __future__ import annotations
 
 import types
 from typing import Union, get_args, get_origin, get_type_hints
-from urllib.parse import unquote
 
 import config
-import instructions
-from instructions import (
+import instructions.mnemonics
+from cell import concater, nexts, currents, memory_scraps, scraps
+from config import REGISTER_COUNT, MEMORY_SCRAPS_COUNT, BLOCK_SIZE, MEMORY_ADDRESS_HALFBYTES, PRELOAD_MEMORY, \
+    WATCH_REGISTERS
+from instructions.baseInstructions import Instruction
+from instructions.mnemonics import (
     MNEMONICS,
-    is_block_boundary,
+    is_jump_instruction,
+    Block, LoadI,
 )
-from registers import (
-    Immediate,
-    concater,
-    regs,
-)
+from registers import SCRAP_COUNT, Immediate, Register, regs, OffsetRegister
+from elftools.elf.elffile import ELFFile
+from capstone import *
 
 
-def split_program_into_blocks(instrs):
-    blocks = []
-    cur_block = []
-    block_name = None
-    for i in instrs:
-        if not isinstance(i, instructions.LabelDefine):
-            cur_block.append(i)
-        if is_block_boundary(i):
-            if isinstance(i, instructions.LabelDefine):
-                cur_block.append(instructions.JumpRelative(1))
-
-            blocks.append(instructions.Block(None, None, block_name, cur_block))
-            cur_block = []
-            if isinstance(i, instructions.LabelDefine):
-                block_name = i.name
+def split_program_into_blocks(instrs: list[Instruction]):
+    root_block = Block(None, [], None)
+    instr_id = 0
+    entry_point_block = None
+    for instr in instrs:
+        mother_block = root_block
+        for i in range(3, -1, -1):
+            if i == 0:
+                val = instr_id % (BLOCK_SIZE // 4)
             else:
-                block_name = None
+                val = instr_id // (BLOCK_SIZE ** (i - 1)) // (BLOCK_SIZE // 4)
+                val %= BLOCK_SIZE
 
-    cur_block.append(instructions.JumpRelative(1))
-    blocks.append(instructions.Block(None, None, block_name, cur_block))
+            idx = val
+            if i == 3:
+                idx += 1
+            elif i == 0:
+                idx *= 4
+            if len(mother_block.daughter_blocks) <= val:
+                assert len(mother_block.daughter_blocks) == val
+                mother_block.daughter_blocks.append(Block(idx, [], mother_block))
+            mother_block = mother_block.daughter_blocks[val]
 
-    return blocks
+        mother_block.daughter_blocks.append(instr)
+        if hasattr(instr, "is_entry_point") and instr.is_entry_point:
+            if entry_point_block is not None:
+                raise RuntimeError("Two entry points found")
+            entry_point_block = mother_block
+        if not is_jump_instruction(instr):
+            mother_block.daughter_blocks.append(instructions.mnemonics.JumpNext())
 
+        instr_id += 1
 
-def split_blocks_into_kiloblocks(blocks: list[instructions.Block]):
-    kiloblocks = [instructions.KiloBlock(1, [])]
-    i = 0
-    for block in blocks:
-        i += 1
-        if i > config.BLOCKS_IN_KILOBLOCK:
-            i = 1
-            kiloblocks.append(instructions.KiloBlock(len(kiloblocks) + 1, []))
-        block.myid = i
-        block.kiloblock = kiloblocks[-1]
-        kiloblocks[-1].blocks.append(block)
-    return kiloblocks
+    if entry_point_block is None:
+        raise RuntimeError("No entry point found")
+    return root_block, entry_point_block
 
 
 class Program:
-    def __init__(self, instrs):
-        blocks = split_program_into_blocks(instrs)
-        self.kiloblocks = split_blocks_into_kiloblocks(blocks)
+    def __init__(self, instrs, memory):
+        self.kiloblock, self.entry_point_block = split_program_into_blocks(instrs)
+        print("Entry block id:", self.entry_point_block.get_full_id())
+        self.memory = memory
 
-    def find_block(self, name):
-        if name == "exit":
-            return 0, 0
-        for kiloblock in self.kiloblocks:
-            for block in kiloblock.blocks:
-                if block.name == name:
-                    i = kiloblock.myid
-                    j = block.myid
-                    return i, j
-        raise ValueError(f"Block not found: {name}")
-
-    def find_next_block(self, block: instructions.Block):
-        i = block.kiloblock.myid
-        j = block.myid
-        j += 1
-        if j > config.BLOCKS_IN_KILOBLOCK:
-            j = 1
-            i += 1
-            assert i < config.MAX_KILOBLOCK_COUNT
-        return i, j
+    def preload_memory(self):
+        first_mem_cell = memory_scraps[-1].cell_rel(1)
+        for addr, value in self.memory.items():
+            if value == 0:
+                pass
+            first_mem_cell.cell_rel(addr).change(value)
 
     def program_prologue(self):
-        return "+>+<[[>>+<<-]>[>>+<<-]>>"
+        LoadI(regs["sp"], Immediate(16 ** MEMORY_ADDRESS_HALFBYTES - 1))
+        if PRELOAD_MEMORY:
+            self.preload_memory()
+
+        entry_point_block_id = self.entry_point_block.get_full_id()
+        for next_, new_next in zip(nexts, entry_point_block_id):
+            next_.change(new_next)
+        nexts[-1].raw("[")
+        for i in range(4):
+            nexts[i].move(currents[i])
 
     def program_epilogue(self):
-        out = "\n-" + "]" * len(self.kiloblocks) + "<<<"
+        currents[-1].raw("-]")
         if config.BREAKPOINT_EVERY_CYCLE:
-            out += "#"
-        out += "]"
+            concater.raw("#")
+        nexts[-1].raw("]")
+
+    def block_prologue(self, block: Block, deep: int):
+        assert deep < 4
+        name = f"block_{block.myid}"
+        name_line = f"{concater.sanitize(name)}:"
+        concater.raw("\n")
+        concater.raw(f"{name_line}\n")
+        if block.myid != 0:
+            currents[-1].change(-4 if deep == 3 else -1)
+        currents[-1].raw(">+<[>-]>[-", pos_offset=1)
+        if deep != 3:
+            currents[-2 - deep].move(currents[-1])
+
+    def block_epilogue(self, block: Block, deep: int):
+        assert deep < 4
+        concater.raw("\n")
+        if len(block.daughter_blocks) > 0 and deep != 3:
+            currents[-1].change(-1)
+            currents[-1].raw("]" * len(block.daughter_blocks))
+        currents[-1].cell_rel(2).raw("]")
+        currents[-1].raw("[")
+
+    def assemble_block(self, block: Block, deep: int = 0):
+        self.block_prologue(block, deep)
+        if isinstance(block.daughter_blocks[-1], Instruction):
+            for inst in block.daughter_blocks:
+                inst.evaluate(self, block, True)
+                concater.assert_pos()
+            if config.BREAKPOINT_AFTER_EVERY_INSTRUCTION:
+                concater.raw("#")
+        else:
+            for bl in block.daughter_blocks:
+                self.assemble_block(bl, deep + 1)
+        self.block_epilogue(block, deep)
+
+    def assemble_program(self):
+        self.program_prologue()
+        for block in self.kiloblock.daughter_blocks:
+            self.assemble_block(block)
+        self.program_epilogue()
+        out = concater.get_code()
+        concater.reset_code()
         return out
 
-    def kiloblock_prologue(self, kiloblock: instructions.KiloBlock):
-        name = f"kiloblock_{kiloblock.myid}"
-        name_line = f"{concater.sanitize(name)}:"
-        return f"\n{name_line}\n->+<[>-]>[>]<[-<<[>+<-]>\n"
 
-    def kiloblock_epilogue(self, kiloblock: instructions.KiloBlock):
-        return "\nend_kiloblock -" + "]" * len(kiloblock.blocks) + " >]<["
-
-    def block_prologue(self, block: instructions.Block):
-        name = block.name
-        if name is None:
-            name = f"block_{block.myid}"
-        name_line = f"{concater.sanitize(name)}:"
-
-        return f"\n{name_line}\n->+<[>-]>[>]<[-"
-
-    def block_epilogue(self):
-        return "\n]<["
-
-    def assemble_block(self, block: instructions.Block):
-        concater.init_block()
-        for inst in block.insts:
-            inst.evaluate(self, block, True)
-        return (
-            self.block_prologue(block)
-            + concater.get_block_code()
-            + self.block_epilogue()
-        )
-
-    def assemble_kiloblock(self, kiloblock: instructions.KiloBlock):
-        return (
-            self.kiloblock_prologue(kiloblock)
-            + "\n".join([self.assemble_block(block) for block in kiloblock.blocks])
-            + self.kiloblock_epilogue(kiloblock)
-        )
-
-    def assemble(self):
-        return (
-            self.program_prologue()
-            + "\n".join(
-                [self.assemble_kiloblock(kiloblock) for kiloblock in self.kiloblocks]
-            )
-            + self.program_epilogue()
-        )
-
-
-def parse(s: str):
-    insts: list[instructions.Instruction | instructions.LabelDefine] = []
-    for line in s.split("\n"):
-        if ";" in line:
-            line = line[: line.find(";")]
-        if line.isspace() or not line:
-            continue
-        line = line.strip(" ")
-        line = line.strip("\t")
-        line = line.strip("\n")
-        if line.endswith(":"):
-            insts.append(instructions.LabelDefine(line[:-1]))
-            continue
-        args: list = []
-        if " " not in line:
-            mnemonic = line
+def parse_arg(arg: str, expected_type: type):
+    """Parse a single argument string to the expected type."""
+    arg = arg.strip()
+    if expected_type == Register:
+        if arg in regs:
+            return regs[arg]
+        raise ValueError(f"Register {arg} is unavailable")
+    elif expected_type == Immediate:
+        return Immediate.from_str(arg)
+    elif expected_type == OffsetRegister:
+        imm, reg = arg.split("(")
+        imm = Immediate.from_str(imm)
+        assert reg.endswith(")")
+        reg = reg[:-1]
+        if reg in regs:
+            reg = regs[reg]
         else:
-            mnemonic = line[: line.find(" ")]
-            args_str = line[line.find(" ") :].strip(" ")
-            for arg_s in args_str.split(" "):
-                arg_s = arg_s.strip()
-                if arg_s in regs:
-                    args.append(regs[arg_s])
-                elif arg_s[0] == "<" and arg_s[-1] == ">":
-                    args.append(instructions.Label(arg_s[1:-1]))
-                elif arg_s[0] == '"' and arg_s[-1] == '"':
-                    args.append(unquote(arg_s[1:-1]))
-                else:
-                    if arg_s.startswith("0x"):
-                        imm = int(arg_s[2:], 16)
-                    elif arg_s.startswith("0o"):
-                        imm = int(arg_s[2:], 8)
-                    elif arg_s.startswith("0b"):
-                        imm = int(arg_s[2:], 2)
-                    else:
-                        imm = int(arg_s)
-                    args.append(Immediate(imm))
+            raise ValueError(f"Register {arg} is unavailable")
+        return OffsetRegister(reg, imm)
+    else:
+        raise ValueError(f"Unknown expected type: {expected_type}")
 
-        op = MNEMONICS[mnemonic]
-        op_args = get_type_hints(op).values()
-        if len(args) != len(op_args):
+
+def get_instruction_types(op: type[Instruction]):
+    hints = get_type_hints(op)
+    op_args = list(hints.values())
+    arg_types = []
+    for op_arg in op_args:
+        if get_origin(op_arg) in (Union, types.UnionType):
+            arg_types.append(get_args(op_arg))
+        else:
+            arg_types.append(op_arg, )
+    return arg_types
+
+
+def parse_elf(path: str):
+    memory = {}
+
+    with open(path, "rb") as file:
+        elf = ELFFile(file)
+
+        for segment in elf.iter_segments():
+            if segment['p_type'] != 'PT_LOAD':
+                continue
+
+            vaddr = segment['p_vaddr']
+            data = segment.data()
+            # segment['p_memsz']
+
+            for i, b in enumerate(data):
+                memory[vaddr + i] = b
+
+        text = elf.get_section_by_name(".text")
+        code = text.data()
+        base = text['sh_addr']
+
+        entry_point_addr = elf.header['e_entry']
+        print(f"0x{entry_point_addr:x} - ENTRY_POINT\n")
+
+    md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV32)
+    instrs = []
+    entry_point_found = False
+    for instr in md.disasm(code, base):
+        mnemonic = MNEMONICS[instr.mnemonic]
+        print(f"0x{instr.address:x}:\t{instr.mnemonic}\t{instr.op_str}")
+        args = instr.op_str
+        if args == "":
+            args = []
+        else:
+            args = args.split(",")
+        types_ = get_instruction_types(mnemonic)
+
+        # Remove prettify from some instructions
+        if instr.mnemonic == "jal" and len(args) == 1:
+            args.insert(0, "ra")
+
+        if len(args) != len(types_):
             raise ValueError(
-                f"Wrong number of arguments for {mnemonic}, expected {len(op_args)} arguments, got {len(args)}"
-            )
+                f"Incorrect number of arguments for {mnemonic}. Got {len(args)}, expected {len(types_)}.\nGot {args}")
+        for i in range(len(args)):
+            try:
+                args[i] = parse_arg(args[i], types_[i])
+            except ValueError as e:
+                raise ValueError(mnemonic, args, e)
 
-        for arg, op_arg in zip(args, op_args):
-            if get_origin(op_arg) in (Union, types.UnionType):
-                op_arg = get_args(op_arg)
-            else:
-                op_arg = [op_arg]
-
-            if type(arg) not in op_arg:
-                expected = " or ".join(map(str, op_arg))
-                raise ValueError(
-                    f"Wrong type for argument '{arg}' of '{mnemonic}', expected: {expected}, got {type(arg)}"
-                )
-
-        insts.append(op(*args))
-    return insts
+        is_entry_point = (instr.address == entry_point_addr)
+        if is_entry_point:
+            if entry_point_found:
+                raise ValueError("Two instructions are entry points")
+            entry_point_found = True
+        instruction_obj = mnemonic(*args)
+        instruction_obj.is_entry_point = is_entry_point
+        instrs.append(instruction_obj)
+    if not entry_point_found:
+        raise ValueError(f"Can't find entry point: No instruction on address 0x{entry_point_addr:x}")
+    return instrs, memory
 
 
 if __name__ == "__main__":
@@ -206,13 +238,20 @@ if __name__ == "__main__":
         print("usage: asm in.cbf out.b", file=sys.stderr)
         exit(1)
 
-    with open(sys.argv[1]) as f:
-        in_contents = f.read()
-
-    instrs = parse(in_contents)
-    prog = Program(instrs)
-    out_contents = prog.assemble()
+    instrs, memory = parse_elf(sys.argv[1])
+    prog = Program(instrs, memory)
+    out_contents = prog.assemble_program()
 
     with open(sys.argv[2], "w") as f:
         f.write(out_contents)
         f.write("\n")
+
+    # Generate addrmap
+    with open(sys.argv[2] + ".addr", "w") as f:
+        f.write(f"a{nexts[0].addr:x}[{len(nexts)}] next\n")
+        f.write(f"a{currents[0].addr:x}[{len(currents)}] current\n")
+        f.write(f"a{scraps[0].addr:x}[{SCRAP_COUNT - MEMORY_SCRAPS_COUNT:x}] scraps\n")
+        for reg_name in WATCH_REGISTERS:
+            f.write(f"a{regs[reg_name].addr:x}[8] {regs[reg_name]}\n")
+        f.write(f"a{memory_scraps[0].addr:x}[{MEMORY_SCRAPS_COUNT:x}] mem_scraps\n")
+        f.write(f"a{memory_scraps[-1].cell_rel(1).addr:x}[{256:x}] memory\n")

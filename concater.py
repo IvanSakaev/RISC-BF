@@ -3,16 +3,18 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import config
+from config import ALLOW_DEBUG, ALLOW_ASSERTS
 
 if TYPE_CHECKING:
-    from registers import Register
+    from registers import Cell
 
 
 class _Concater:
-    def __init__(self, root: Register):
-        self.root = root
-        self.current_pos = self.root
-        self.current_program = ""
+    def __init__(self, root: Cell):
+        self.current_pos = root
+        self.current_program = []
+        # Using a list and joining it at the end is much faster than adding string every
+        # time, because `a = a + "hello"` creates a new string instead of modifying current, which is very slow.
 
     @classmethod
     def sanitize(cls, name: str):
@@ -29,18 +31,31 @@ class _Concater:
         )
         return name
 
-    def raw(self, text: str):
-        self.current_program += text
+    def raw(self, text: str, pos_offset: int = 0):
+        self.current_program.append(text)
+        self.current_pos = self.current_pos.cell_rel(pos_offset)
 
     def rem(self, text: str, comments: bool):
         if comments:
             bp = " #" if config.BREAKPOINT_EVERY_INSTRUCTION else ""
-            self.current_program += "\n  " + self.sanitize(text) + bp + "\n    "
+            self.raw("\n        " + self.sanitize(text) + bp + "\n          ")
 
-    def init_block(self):
-        self.current_pos = self.root
-        self.current_program = ""
+    def debug(self):
+        if ALLOW_DEBUG:
+            self.raw("#")
 
-    def get_block_code(self):
-        self.root.to()
-        return self.current_program
+    def assert_pos(self):
+        if ALLOW_ASSERTS:
+            self.raw(f"@{self.current_pos.addr:x}")
+
+    def assert_val(self, value: int):
+        if ALLOW_ASSERTS:
+            self.raw(f"!{value:x}")
+
+    def get_code(self):
+        return "".join(self.current_program)
+
+    def reset_code(self, new_pos: Cell | None = None):
+        self.current_program = []
+        if new_pos is not None:
+            self.current_pos = new_pos
