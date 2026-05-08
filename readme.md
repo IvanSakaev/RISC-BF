@@ -1,6 +1,8 @@
-# Risc-BF
+# RISC-BF
 
 **The RISC-V to brainfuck compiler**
+
+It compiles RISCV32IM architecture to brainfuck esoteric language
 
 ## Usage
 
@@ -39,7 +41,7 @@ use ibf interpretator
 
 ### Future plans
 
-- Add new risc-v instructions:
+- Add new risc-v instructions (I think, all remaining):
     - SRL, SRLI
     - SRA, SRAI
     - MULH, MULHSU
@@ -52,6 +54,8 @@ use ibf interpretator
 
 ### What's ready now
 
+- Reading RISC-V .elf file
+- Preloading global variables (.data section) to brainfuck memory
 - RISC-V instructions
     - Arithmetic
         - add
