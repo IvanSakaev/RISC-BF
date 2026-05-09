@@ -263,6 +263,7 @@ MNEMONICS["addi"] = AddI
 MNEMONICS["sub"] = Sub
 MNEMONICS["mul"] = Mul
 MNEMONICS["mulhu"] = MulHighUnsigned
+MNEMONICS["divu"] = DivUnsigned
 
 # bitwise
 MNEMONICS["sll"] = ShiftLeft  # TODO: srl

@@ -21,7 +21,7 @@ BREAKPOINT_AFTER_EVERY_INSTRUCTION = False
 
 # Generate .b.addr file with cells in "watch".
 GENERATE_ADDRMAP = True
-WATCH_REGISTERS = ["a0", "a1", "a2"]
+WATCH_REGISTERS = ["x1", "x2", "a0"]
 
 # Allow asserts in brainfuck by using @hex and !hex for location and value assert.
 ALLOW_ASSERTS = True

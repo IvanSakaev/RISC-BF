@@ -99,18 +99,26 @@ class SetLessThanUnsigned(Instruction):
     src1: Register
     src2: Register
 
-    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False, output_cell: Cell | None = None):
         concater.rem(f"sltu {self.dst} {self.src1} {self.src2}", comments)
-        if self.dst == ZERO:
-            return
+        if output_cell is None:
+            output_cell = self.dst.get_cell(0)
+            if self.dst == ZERO:
+                return
+        else:
+            self.dst = ZERO
         if self.src1 == self.src2:
-            self.dst.clear_big()
+            if output_cell is None:
+                self.dst.clear_big()
             return
         if self.src1 == ZERO:
+            if output_cell is not None:
+                raise NotImplementedError
             SetNotEqualToZero(self.dst, self.src2).evaluate(program, cur_block)
             return
         if self.src2 == ZERO:
-            self.dst.clear_big()
+            if output_cell is None:
+                self.dst.clear_big()
             return
 
         invert = False
@@ -121,7 +129,7 @@ class SetLessThanUnsigned(Instruction):
 
         running = scraps[0]
         running.change(1)
-        output_value = scraps[1]
+        output_value = scraps[1] if output_cell is None else output_cell
         if invert:
             output_value.change(1)
         for i in range(7, -1, -1):
@@ -162,8 +170,9 @@ class SetLessThanUnsigned(Instruction):
             running.raw("[")
         running.change(-1)
         running.raw("]]]]]]]]")
-        self.dst.clear_big()
-        output_value.move(self.dst.get_cell(0))
+        if output_cell is None:
+            self.dst.clear_big()
+            output_value.move(self.dst.get_cell(0))
 
 
 @dataclass

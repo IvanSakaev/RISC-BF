@@ -250,6 +250,6 @@ if __name__ == "__main__":
         f.write(f"a{currents[0].addr:x}[{len(currents)}] current\n")
         f.write(f"a{scraps[0].addr:x}[{SCRAP_COUNT - MEMORY_SCRAPS_COUNT:x}] scraps\n")
         for reg_name in WATCH_REGISTERS:
-            f.write(f"a{regs[reg_name].addr:x}[8] {regs[reg_name]}\n")
+            f.write(f"a{regs[reg_name].addr:x}[8] {reg_name}\n")
         f.write(f"a{memory_scraps[0].addr:x}[{MEMORY_SCRAPS_COUNT:x}] mem_scraps\n")
         f.write(f"a{memory_scraps[-1].cell_rel(1).addr:x}[{256:x}] memory\n")
