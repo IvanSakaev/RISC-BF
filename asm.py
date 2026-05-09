@@ -61,7 +61,6 @@ def split_program_into_blocks(instrs: list[Instruction]):
 class Program:
     def __init__(self, instrs, memory):
         self.kiloblock, self.entry_point_block = split_program_into_blocks(instrs)
-        print("Entry block id:", self.entry_point_block.get_full_id())
         self.memory = memory
 
     def preload_memory(self):
@@ -190,14 +189,13 @@ def parse_elf(path: str):
         base = text['sh_addr']
 
         entry_point_addr = elf.header['e_entry']
-        print(f"0x{entry_point_addr:x} - ENTRY_POINT\n")
 
     md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV32)
     instrs = []
     entry_point_found = False
     for instr in md.disasm(code, base):
         mnemonic = MNEMONICS[instr.mnemonic]
-        print(f"0x{instr.address:x}:\t{instr.mnemonic}\t{instr.op_str}")
+        # print(f"0x{instr.address:x}:\t{instr.mnemonic}\t{instr.op_str}")
         args = instr.op_str
         if args == "":
             args = []
