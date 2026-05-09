@@ -329,33 +329,57 @@ class DivUnsigned(Instruction):
         concater.rem(f"divu {self.dst} {self.src1} {self.src2}", comments)
         if self.dst == ZERO:
             return
-        if self.src1 == ZERO:
-            self.dst.clear_big()
         if self.src2 == ZERO:
             self.dst.change_big(0xffffffff, clear=True)
+            return
         if self.src1 == self.src2:
-            self.dst.clear_big()
-
-        temp_src1 = Register(scraps[7])
-        self.src1.copy_big(temp_src1)
-        if self.dst == self.src2:
-            temp_dst = Register(scraps[15])
-        else:
-            temp_dst = self.dst
-            temp_dst.clear_big()
+            self.dst.change_big(1, clear=True)
 
         output_cell = scraps[6]
-        SetLessThanUnsigned(ZERO, temp_src1, self.src2).evaluate(program, cur_block, output_cell=output_cell)
-        output_cell.change(-1)
-        with output_cell.loop():
-            output_cell.change(1)
-            AddI(temp_dst, temp_dst, Immediate(1)).evaluate(program, cur_block)
-            Sub(temp_src1, temp_src1, self.src2).evaluate(program, cur_block)
-            SetLessThanUnsigned(ZERO, temp_src1, self.src2).evaluate(program, cur_block, output_cell=output_cell)
-            output_cell.change(-1)
 
-        if self.src1 != self.dst:
-            temp_src1.clear_big()
-        if self.dst == self.src2:
-            self.dst.clear_big()
-            temp_dst.move_big(self.dst)
+        if self.src1 != ZERO:
+            SetLessThanUnsigned(ZERO, self.src1, self.src2).evaluate(program, cur_block, output_cell=output_cell)
+        output_cell.change(-1)
+
+        # Check if self.src2 is 0
+        running = scraps[0]
+        running.change(1)
+        for i in range(8):
+            small_src = self.src2.get_cell(i)
+            scrap_src = scraps[1]
+            with small_src.loop():
+                running.change(-1)
+                small_src.move(scrap_src)
+            scrap_src.move(small_src)
+            running.raw("[")
+        self.dst.change_big(0xffffffff, clear=True)
+        output_cell.clear()
+        running.change(-1)
+        running.raw("]]]]]]]]")
+
+        if self.src1 == ZERO:
+            with output_cell.loop():
+                self.dst.clear_big()
+                output_cell.change(1)
+        else:
+            with output_cell.loop():
+                temp_src1 = Register(scraps[7])
+                self.src1.copy_big(temp_src1)
+                if self.dst == self.src2:
+                    temp_dst = Register(scraps[15])
+                else:
+                    temp_dst = self.dst
+                    temp_dst.clear_big()
+
+                with output_cell.loop():
+                    output_cell.change(1)
+                    AddI(temp_dst, temp_dst, Immediate(1)).evaluate(program, cur_block)
+                    Sub(temp_src1, temp_src1, self.src2).evaluate(program, cur_block)
+                    SetLessThanUnsigned(ZERO, temp_src1, self.src2).evaluate(program, cur_block,
+                                                                             output_cell=output_cell)
+                    output_cell.change(-1)
+
+                temp_src1.clear_big()
+                if self.dst == self.src2:
+                    self.dst.clear_big()
+                    temp_dst.move_big(self.dst)

@@ -56,6 +56,7 @@ use ibf interpretator
     - MULH, MULHSU
     - DIV, DIVU, REM, REMU
     - AUIPC
+- Resolve TODOs
 - Add more ECALLs
 - Add more asserts to python and brainfuck
 - Fix left shift by 32 (should return zero)
