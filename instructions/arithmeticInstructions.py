@@ -431,8 +431,6 @@ class ReminderUnsigned(Instruction):
             scrap_src.move(small_src)
             running.raw("[")
         running.change(-1)
-        if self.dst != self.src1:
-            self.src1.copy_big(self.dst)
         output_cell.clear()
         running.raw("]]]]]]]]")
 

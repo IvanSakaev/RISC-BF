@@ -54,7 +54,7 @@ use ibf interpretator
     - SRL, SRLI
     - SRA, SRAI
     - MULH, MULHSU
-    - DIV, REM, REMU
+    - DIV, REM (signed)
     - AUIPC
 - Resolve TODOs
 - Add more ECALLs
