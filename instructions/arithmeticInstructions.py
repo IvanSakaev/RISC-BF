@@ -325,7 +325,7 @@ class DivUnsigned(Instruction):
     src1: Register
     src2: Register
 
-    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):  # TODO: fix if div zero
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"divu {self.dst} {self.src1} {self.src2}", comments)
         if self.dst == ZERO:
             return
