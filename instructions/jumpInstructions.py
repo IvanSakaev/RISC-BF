@@ -32,10 +32,10 @@ class JumpNext(Instruction):  # It isn't an instruction to use in your asm-code
 class JumpRegister(Instruction):
     reg: Register
 
-    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):  # TODO: Make mod operation to reg
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"jr {self.reg}", comments)
         if self.reg == ZERO:
-            new_nexts = [1, 0, 0, 0]
+            new_nexts = [0, 0, 0, 1]
             for next_, new_next in zip(nexts, new_nexts):
                 next_.change(new_next)
             return

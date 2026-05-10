@@ -51,18 +51,20 @@ use ibf interpretator
 ### Future plans
 
 - Add new risc-v instructions (I think, all remaining):
+    - JALR
     - SRL, SRLI
     - SRA, SRAI
     - MULH, MULHSU
     - DIV, REM (signed)
     - AUIPC
-- Resolve TODOs
+- Fix bugs, TODOs and NotImplementedErrors
 - Add more ECALLs
 - Add more asserts to python and brainfuck
-- Fix left shift by 32 (should return zero)
 - [Compile and run Doom](https://github.com/sit-itmo/DoomBF)
 
 ## Contribution
 
 The project is in an active stage of development, and
 contributions to the repository will be reviewed.
+
+If you find a bug, please create an issue or [contact me via telegram](https://t.me/sakaevx).

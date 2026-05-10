@@ -98,7 +98,7 @@ class Output(Instruction):
 class Ecall(Instruction):
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem("ecall", comments)
-        with self.if_number(regs["a7"], Immediate(1)):  # TODO: Remove
+        with self.if_number(regs["a7"], Immediate(1)):  # TODO: Remove for production
             Output(regs["a0"]).evaluate(program, cur_block)
         with self.if_number(regs["a7"], Immediate(63)):
             self.ecall63_64(",")
@@ -267,7 +267,7 @@ MNEMONICS["divu"] = DivUnsigned
 MNEMONICS["remu"] = ReminderUnsigned
 
 # bitwise
-MNEMONICS["sll"] = ShiftLeft  # TODO: srl
+MNEMONICS["sll"] = ShiftLeft
 MNEMONICS["slli"] = ShiftLeftI
 MNEMONICS["or"] = Or
 MNEMONICS["and"] = And

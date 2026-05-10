@@ -24,7 +24,7 @@ class ShiftLeft(Instruction):
                 return
 
         if self.src == self.shift:
-            raise NotImplementedError
+            raise NotImplementedError  # TODO
 
         shift_big = scraps[0]  # shift / 4
         shift_small = scraps[1]  # shift % 4
