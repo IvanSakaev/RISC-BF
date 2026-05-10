@@ -334,6 +334,7 @@ class DivUnsigned(Instruction):
             return
         if self.src1 == self.src2:
             self.dst.change_big(1, clear=True)
+            return
 
         output_cell = scraps[6]
 
@@ -389,3 +390,61 @@ class DivUnsigned(Instruction):
                 if self.dst == self.src2:
                     self.dst.clear_big()
                     temp_dst.move_big(self.dst)
+
+
+@dataclass
+class ReminderUnsigned(Instruction):
+    dst: Register
+    src1: Register
+    src2: Register
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"remu {self.dst} {self.src1} {self.src2}", comments)
+        if self.dst == ZERO:
+            return
+        if self.src1 == ZERO:
+            self.dst.clear_big()
+            return
+        if self.src2 == ZERO:
+            if self.dst != self.src1:
+                self.dst.clear_big()
+                self.src1.copy_big(self.dst)
+            return
+        if self.src1 == self.src2:
+            self.dst.clear_big()
+            return
+
+        output_cell = scraps[6]
+
+        SetLessThanUnsigned(ZERO, self.src1, self.src2).evaluate(program, cur_block, output_cell=output_cell)
+        output_cell.change(-1)
+
+        # Check if self.src2 is 0
+        running = scraps[0]
+        running.change(1)
+        for i in range(8):
+            small_src = self.src2.get_cell(i)
+            scrap_src = scraps[1]
+            with small_src.loop():
+                running.change(-1)
+                small_src.move(scrap_src)
+            scrap_src.move(small_src)
+            running.raw("[")
+        running.change(-1)
+        if self.dst != self.src1:
+            self.src1.copy_big(self.dst)
+        output_cell.clear()
+        running.raw("]]]]]]]]")
+
+        temp_src1 = Register(scraps[7])
+        self.src1.copy_big(temp_src1)
+
+        with output_cell.loop():
+            with output_cell.loop():
+                output_cell.change(1)
+                Sub(temp_src1, temp_src1, self.src2).evaluate(program, cur_block)
+                SetLessThanUnsigned(ZERO, temp_src1, self.src2).evaluate(program, cur_block, output_cell=output_cell)
+                output_cell.change(-1)
+
+        self.dst.clear_big()
+        temp_src1.move_big(self.dst)

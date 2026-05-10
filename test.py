@@ -31,7 +31,7 @@ _start:
 li x1, 0x{num1text:x}
 li x2, 0x{num2text:x}
 li a0, 0x123
-divu a0, x1, x2
+remu a0, x1, x2
 li a7, 1
 ecall
 """.lstrip()
@@ -72,7 +72,7 @@ ecall
     except UnicodeDecodeError:
         predict = predict_byte
 
-    num3 = num1 // num2
+    num3 = num1 % num2
 
     num3 &= 0xFFFFFFFF
     num3_str = f"{num3:08X}"
