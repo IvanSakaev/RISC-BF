@@ -339,6 +339,12 @@ class DivUnsigned(Instruction):
 
         if self.src1 != ZERO:
             SetLessThanUnsigned(ZERO, self.src1, self.src2).evaluate(program, cur_block, output_cell=output_cell)
+        output_scrap = scraps[0]
+        with output_cell.loop():
+            output_scrap.change(1)
+            self.dst.clear_big()
+            output_cell.change(-1)
+        output_scrap.move(output_cell)
         output_cell.change(-1)
 
         # Check if self.src2 is 0
