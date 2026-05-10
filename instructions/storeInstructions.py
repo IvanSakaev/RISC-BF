@@ -41,8 +41,12 @@ class StoreWord(Instruction):
             for i in range(byte_count * 2):  # Move src to data
                 small_src = self.src.get_cell(i)
                 small_src.copy(data_cells[i // 2], scrap=zero_scrap, multiplier=(1 if i % 2 == 0 else 16))
-        for i in range(MEMORY_ADDRESS_HALFBYTES):
-            self.addr.register.get_cell(i).copy(addr_cells[i], scrap=zero_scrap)
+        for i in range(8):
+            if i < MEMORY_ADDRESS_HALFBYTES:
+                self.addr.register.get_cell(i).copy(addr_cells[i], scrap=zero_scrap)
+            else:
+                continue
+                self.addr.register.get_cell(i).assert_val(0)
 
         if self.addr.offset < 0:
             AddI(self.addr.register, self.addr.register, -self.addr.offset).evaluate(program, cur_block)
@@ -117,8 +121,12 @@ class LoadWord(Instruction):
             need_mem_cell = first_mem_cell
             AddI(self.addr.register, self.addr.register, self.addr.offset).evaluate(program, cur_block)
 
-        for i in range(MEMORY_ADDRESS_HALFBYTES):
-            self.addr.register.get_cell(i).copy(addr_cells[i], scrap=zero_scrap)
+        for i in range(8):
+            if i < MEMORY_ADDRESS_HALFBYTES:
+                self.addr.register.get_cell(i).copy(addr_cells[i], scrap=zero_scrap)
+            else:
+                continue
+                self.addr.register.get_cell(i).assert_val(0)
 
         if self.addr.offset < 0:
             AddI(self.addr.register, self.addr.register, -self.addr.offset).evaluate(program, cur_block)

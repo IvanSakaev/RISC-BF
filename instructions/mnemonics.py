@@ -25,7 +25,7 @@ class LoadI(Instruction):
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"li {self.dst} {self.src}", comments)
-        AddI(self.dst, ZERO, self.src).evaluate(program, cur_block, False)
+        AddI(self.dst, ZERO, self.src).evaluate(program, cur_block)
 
 
 @dataclass
@@ -36,7 +36,7 @@ class LoadUpperI(Instruction):
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"li {self.dst} {self.src}", comments)
         inst = LoadI(self.dst, Immediate(self.src * (2 ** 12)))
-        inst.evaluate(program, cur_block, False)
+        inst.evaluate(program, cur_block)
 
 
 @dataclass
@@ -46,7 +46,7 @@ class Move(Instruction):
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"mv {self.dst} {self.src}", comments)
-        AddI(self.dst, self.src, Immediate(0)).evaluate(program, cur_block, False)
+        AddI(self.dst, self.src, Immediate(0)).evaluate(program, cur_block)
 
 
 @dataclass

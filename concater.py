@@ -19,7 +19,8 @@ class _Concater:
     @classmethod
     def sanitize(cls, name: str):
         name = (
-            name.replace("+", "_")
+            name
+            .replace("+", "_")
             .replace("-", "_")
             .replace("<", "_")
             .replace(">", "_")
@@ -28,6 +29,8 @@ class _Concater:
             .replace(".", "_")
             .replace(",", "_")
             .replace("#", "_")
+            .replace("@", "_")
+            .replace("!", "_")
         )
         return name
 
