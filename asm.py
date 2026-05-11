@@ -194,8 +194,8 @@ def parse_elf(path: str):
     instrs = []
     entry_point_found = False
     for instr in md.disasm(code, base):
-        mnemonic = MNEMONICS[instr.mnemonic]
         # print(f"0x{instr.address:x}:\t{instr.mnemonic}\t{instr.op_str}")
+        mnemonic = MNEMONICS[instr.mnemonic]
         args = instr.op_str
         if args == "":
             args = []
