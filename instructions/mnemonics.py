@@ -269,6 +269,7 @@ MNEMONICS["remu"] = ReminderUnsigned
 # bitwise
 MNEMONICS["sll"] = ShiftLeft
 MNEMONICS["slli"] = ShiftLeftI
+MNEMONICS["srl"] = ShiftRight
 MNEMONICS["or"] = Or
 MNEMONICS["and"] = And
 MNEMONICS["xor"] = Xor
