@@ -270,6 +270,7 @@ MNEMONICS["remu"] = ReminderUnsigned
 MNEMONICS["sll"] = ShiftLeft
 MNEMONICS["slli"] = ShiftLeftI
 MNEMONICS["srl"] = ShiftRight
+MNEMONICS["srli"] = ShiftRightI
 MNEMONICS["or"] = Or
 MNEMONICS["and"] = And
 MNEMONICS["xor"] = Xor
