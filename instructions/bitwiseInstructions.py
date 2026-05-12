@@ -165,7 +165,9 @@ class ShiftRight(Instruction):
         shift_verybig_unused.move(self.shift.get_cell(1), multiplier=2)
         scrap2.move(shift_big, self.shift.get_cell(1), multiplier=(4, 1))
 
-        self.src.copy_big(self.dst, scrap=scrap1)
+        if self.src != self.dst:
+            self.dst.clear_big()
+            self.src.copy_big(self.dst, scrap=scrap1)
 
         with shift_big.loop():
             self.dst.get_cell(0).clear()
