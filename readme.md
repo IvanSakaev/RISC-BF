@@ -6,11 +6,10 @@ It compiles RISCV32IM architecture to brainfuck esoteric language
 
 ## Usage
 
-1. Compile your C program to risc-v .elf file
-    ```bash
-    clang -O0 --target=riscv32-unknown-elf -march=rv32im -mabi=ilp32 -c test.c -o test.o
-    riscv32-elf-ld test.o -o test.elf
-    ```
+You can find example programs in `examples` folder.
+
+1. Compile your C program to risc-v .elf file:
+   Move your program to `tests/test.c` and run `compile.bash`
 2. Compile .elf file to brainfuck
    ```bash
    python asm.py test.elf out.b
