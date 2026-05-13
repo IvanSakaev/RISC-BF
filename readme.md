@@ -52,7 +52,6 @@ use ibf interpretator
 
 - Add new risc-v instructions (I think, all remaining):
     - JALR
-    - SRLI
     - SRA, SRAI
     - MULH, MULHSU
     - DIV, REM (signed)

@@ -223,23 +223,21 @@ class ShiftRightI(Instruction):
                     small_src.copy(small_dst)
 
         if small_shift != 0:
-            # normalize only changed digits
             mod = scraps[0]  # 2 scraps after MOD are used too in div_imm()
             output = scraps[3]
+            translator = scraps[4]
             for i in range(7 - big_shift, -1, -1):
                 small = self.dst.get_cell(i)
-                need_output = i != 0
-                if need_output:
-                    small.div_imm(16, mod, output)
+                small.div_imm(2 ** small_shift, mod, output)
+                output.move(small)
+                translator.move(small, multiplier=16 // (2 ** small_shift))
+                if i == 0:
+                    mod.clear()
                 else:
-                    small.div_imm(16, mod, output=None)
-                mod.move(small)
-                if need_output:
-                    small2 = small.cell_rel(-1)
-                    output.move(small2)
+                    mod.move(translator)
 
         # set small digits to zero
-        for i in range(8 - big_shift):
+        for i in range(8 - big_shift, 8):
             small_dst = self.dst.get_cell(i)
             small_dst.clear()
 
