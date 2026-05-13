@@ -184,6 +184,8 @@ class ShiftRight(Instruction):
                 scrap2.move(small_dst)
                 if i != 0:
                     scrap3.move(small_dst.cell_rel(-1), multiplier=16)
+                else:
+                    scrap3.clear()
             if self.dst != self.shift:
                 scrap1.change(1)
             shift_small.change(-1)
