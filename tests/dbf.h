@@ -1,11 +1,15 @@
 #pragma once
-#include <stdint.h>
 
 #define X86
 
+#ifdef X86
+#include <stdio.h>
+#endif
+#include <string.h>
+
 unsigned long dbf_seed = 1;
 
-void dbf_srand(const uint32_t seed)
+void dbf_srand(const unsigned long seed)
 {
     dbf_seed = seed ? seed : 1;
 }
@@ -23,7 +27,7 @@ unsigned long dbf_rand(void)
     return x;
 }
 
-long dbf_write_ecall(char *buf, int len) {
+long dbf_write_ecall(char *buf, const int len) {
 #ifdef X86
     printf("%.*s", len, buf);
     return len;
@@ -44,11 +48,34 @@ long dbf_write_ecall(char *buf, int len) {
 }
 
 unsigned long dbf_print(char *str) {
-    return dbf_write_ecall(str, sizeof(str));
+    return dbf_write_ecall(str, strlen(str));
 }
 
 unsigned long dbf_println(char *str) {
     const unsigned long ret = dbf_write_ecall(str, sizeof(str)) + 1;
     dbf_write_ecall("\n", 1);
     return ret;
+}
+
+static void dbf_print_num(long num) {
+    char buf[10];
+    int i = 0;
+
+    if (num < 0) {
+        dbf_write_ecall("-", 1);
+        num = -num;
+    }
+    if (num == 0) {
+        dbf_write_ecall("0", 1);
+        dbf_write_ecall("\n", 1);
+        return;
+    }
+    while (num > 0) {
+        buf[i++] = '0' + (char)(num % 10);
+        num /= 10;
+    }
+    while (i > 0) {
+        i--;
+        dbf_write_ecall(&buf[i], 1);
+    }
 }
