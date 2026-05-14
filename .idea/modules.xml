@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/COBFOL.iml" filepath="$PROJECT_DIR$/.idea/COBFOL.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/COBFOL.cpp.iml" filepath="$PROJECT_DIR$/.idea/COBFOL.cpp.iml" />
     </modules>
   </component>
 </project>
