@@ -6,11 +6,10 @@ It compiles RISCV32IM architecture to brainfuck esoteric language
 
 ## Usage
 
-1. Compile your C program to risc-v .elf file
-    ```bash
-    clang -O0 --target=riscv32-unknown-elf -march=rv32im -mabi=ilp32 -c test.c -o test.o
-    riscv32-elf-ld test.o -o test.elf
-    ```
+You can find example programs in `examples` folder.
+
+1. Compile your C program to risc-v .elf file:
+   Move your program to `tests/test.c` and run `compile.bash`
 2. Compile .elf file to brainfuck
    ```bash
    python asm.py test.elf out.b
@@ -39,96 +38,32 @@ use ibf interpretator
 
 ## Project status
 
-### Future plans
-
-- Add new risc-v instructions (I think, all remaining):
-    - SRL, SRLI
-    - SRA, SRAI
-    - MULH, MULHSU
-    - DIV, DIVU, REM
-    - AUIPC
-- Add more ECALLs
-- Add more asserts to python and brainfuck
-- Fix left shift by 32 (should return zero)
-- [Compile and run Doom](https://github.com/sit-itmo/DoomBF)
-
 ### What's ready now
 
 - Reading RISC-V .elf file
 - Preloading global variables (.data section) to brainfuck memory
-- RISC-V instructions
-    - Arithmetic
-        - add
-        - addi
-        - sub
-        - mul
-        - mulhu
-    - Bitwise
-        - sll
-        - slli
-        - or
-        - and
-        - xor
-        - not
-        - ori
-        - andi
-        - xori
-    - Comparing
-        - slt
-        - slti
-        - sltu
-        - sltiu
-        - seqz
-        - snez
-        - sltz
-        - sgtz
-    - Store/Load
-        - sw
-        - sh
-        - sb
-        - lw
-        - lh
-        - lhu
-        - lb
-        - lbu
-    - Jump
-        - j
-        - jr
-        - jal
-        - jalr
-        - call
-        - ret
-    - Conditional jump
-        - beq
-        - bne
-        - blt
-        - bltu
-        - bge
-        - bgeu
-        - beqz
-        - bnez
-    - Conditional jump pseudo-instructions
-        - blez
-        - bgez
-        - bltz
-        - bgtz
-        - bgt
-        - ble
-        - bgtu
-        - bleu
-    - Pseudo-instructions
-        - li
-        - lui
-        - mv
-        - neg
-        - nop
-    - Special
-        - ebreak
-        - ecall
-            - read ecall (63)
-            - write ecall (64)
+- RISC-V instructions, mentioned at the bottom of instructions/mnemonics file
+- Ecall
+    - Read ecall (63)
+    - Write ecall (64)
+
+### Future plans
+
+- Test instructions:
+    - JALR
+    - AUIPC
+- Add new risc-v instructions (I think, all remaining):
+    - SRA, SRAI
+    - MULH, MULHSU
+    - DIV, REM (signed)
+- Fix TODOs and NotImplementedErrors
+- Add more ECALLs
+- Add more asserts to python and brainfuck
+- [Compile and run Doom](https://github.com/sit-itmo/DoomBF)
 
 ## Contribution
 
 The project is in an active stage of development, and
 contributions to the repository will be reviewed.
+
+If you find a bug, please create an issue or [contact me via telegram](https://t.me/sakaevx).

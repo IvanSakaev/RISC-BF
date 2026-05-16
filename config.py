@@ -4,10 +4,14 @@ REGISTER_COUNT = 32
 SCRAP_COUNT = 32  # TODO: reduce scrap count
 
 # TODO: Make 3-bytes addressing, not 2.5-bytes
-# Big values may not work properly with most interpretators
+# Big values (> 3) may not work properly with most interpretators
+# You should change DMEM size in link.ld script if you change this value
 MEMORY_ADDRESS_HALFBYTES = 5  # Memory cell count will be 16^MEMORY_ADDRESS_HALFBYTES
+
+# Input/output ecall max length value
 MAX_OUTPUT_LENGTH_HALFBYTES = 4  # Max output length will be 16^MAX_OUTPUT_LENGTH_HALFBYTES
 
+# Preload .data section
 PRELOAD_MEMORY = True
 
 # Next constants are useful for ibf brainfuck interpretator. For other interpretators it's recommended to disable them.
@@ -21,7 +25,7 @@ BREAKPOINT_AFTER_EVERY_INSTRUCTION = False
 
 # Generate .b.addr file with cells in "watch".
 GENERATE_ADDRMAP = True
-WATCH_REGISTERS = ["a0", "a1", "a2"]
+WATCH_REGISTERS = ["x1", "x2", "a0"]
 
 # Allow asserts in brainfuck by using @hex and !hex for location and value assert.
 ALLOW_ASSERTS = True

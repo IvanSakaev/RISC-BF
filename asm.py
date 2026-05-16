@@ -61,8 +61,8 @@ def split_program_into_blocks(instrs: list[Instruction]):
 class Program:
     def __init__(self, instrs, memory):
         self.kiloblock, self.entry_point_block = split_program_into_blocks(instrs)
-        print("Entry block id:", self.entry_point_block.get_full_id())
         self.memory = memory
+        # print(self.memory)
 
     def preload_memory(self):
         first_mem_cell = memory_scraps[-1].cell_rel(1)
@@ -143,10 +143,14 @@ def parse_arg(arg: str, expected_type: type):
     elif expected_type == Immediate:
         return Immediate.from_str(arg)
     elif expected_type == OffsetRegister:
-        imm, reg = arg.split("(")
-        imm = Immediate.from_str(imm)
-        assert reg.endswith(")")
-        reg = reg[:-1]
+        if "(" in arg:
+            imm, reg = arg.split("(")
+            imm = Immediate.from_str(imm)
+            assert reg.endswith(")")
+            reg = reg[:-1]
+        else:
+            reg = arg
+            imm = 0
         if reg in regs:
             reg = regs[reg]
         else:
@@ -190,14 +194,16 @@ def parse_elf(path: str):
         base = text['sh_addr']
 
         entry_point_addr = elf.header['e_entry']
-        print(f"0x{entry_point_addr:x} - ENTRY_POINT\n")
 
     md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV32)
     instrs = []
     entry_point_found = False
+    prev_addr = None
     for instr in md.disasm(code, base):
+        # print(f"0x{instr.address:x}:\t{instr.mnemonic}\t{instr.op_str}")
+        assert prev_addr is None or instr.address - prev_addr == 4
+        prev_addr = instr.address
         mnemonic = MNEMONICS[instr.mnemonic]
-        print(f"0x{instr.address:x}:\t{instr.mnemonic}\t{instr.op_str}")
         args = instr.op_str
         if args == "":
             args = []
@@ -207,6 +213,8 @@ def parse_elf(path: str):
 
         # Remove prettify from some instructions
         if instr.mnemonic == "jal" and len(args) == 1:
+            args.insert(0, "ra")
+        if instr.mnemonic == "jalr" and len(args) == 1:
             args.insert(0, "ra")
 
         if len(args) != len(types_):
@@ -252,6 +260,6 @@ if __name__ == "__main__":
         f.write(f"a{currents[0].addr:x}[{len(currents)}] current\n")
         f.write(f"a{scraps[0].addr:x}[{SCRAP_COUNT - MEMORY_SCRAPS_COUNT:x}] scraps\n")
         for reg_name in WATCH_REGISTERS:
-            f.write(f"a{regs[reg_name].addr:x}[8] {regs[reg_name]}\n")
+            f.write(f"a{regs[reg_name].addr:x}[8] {reg_name}\n")
         f.write(f"a{memory_scraps[0].addr:x}[{MEMORY_SCRAPS_COUNT:x}] mem_scraps\n")
         f.write(f"a{memory_scraps[-1].cell_rel(1).addr:x}[{256:x}] memory\n")

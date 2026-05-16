@@ -24,7 +24,7 @@ class ShiftLeft(Instruction):
                 return
 
         if self.src == self.shift:
-            raise NotImplementedError
+            raise NotImplementedError  # TODO
 
         shift_big = scraps[0]  # shift / 4
         shift_small = scraps[1]  # shift % 4
@@ -124,6 +124,120 @@ class ShiftLeftI(Instruction):
 
         # set small digits to zero
         for i in range(big_shift):
+            small_dst = self.dst.get_cell(i)
+            small_dst.clear()
+
+
+@dataclass
+class ShiftRight(Instruction):
+    dst: Register
+    src: Register
+    shift: Register
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"srl {self.dst} {self.src} {self.shift}", comments)
+        if self.dst == ZERO:
+            return
+
+        if self.src == ZERO:
+            self.dst.clear_big()
+            return
+
+        if self.shift == ZERO:
+            if self.src != self.dst:
+                self.dst.clear_big()
+                self.src.copy_big(self.dst)
+                return
+
+        if self.src == self.shift:
+            raise NotImplementedError  # TODO
+
+        shift_big = scraps[0]  # shift / 4
+        shift_small = scraps[1]  # shift % 4
+        scrap1 = scraps[2]
+        scrap2 = scraps[3]
+        shift_verybig_unused = scrap3 = scraps[4]
+        # scraps 3 and 4 are used for div_imm()
+
+        self.shift.get_cell(0).div_imm(4, shift_small, shift_big)
+        shift_big.copy(self.shift.get_cell(0), multiplier=4, scrap=scrap1)
+        self.shift.get_cell(1).div_imm(2, scrap2, shift_verybig_unused)
+        shift_verybig_unused.move(self.shift.get_cell(1), multiplier=2)
+        scrap2.move(shift_big, self.shift.get_cell(1), multiplier=(4, 1))
+
+        if self.src != self.dst:
+            self.dst.clear_big()
+            self.src.copy_big(self.dst, scrap=scrap1)
+
+        with shift_big.loop():
+            self.dst.get_cell(0).clear()
+            for i in range(1, 8):
+                small_src = self.dst.get_cell(i)
+                small_dst = self.dst.get_cell(i - 1)
+                small_src.move(small_dst)
+            shift_big.change(-1)
+
+        with shift_small.loop():
+            for i in range(7, -1, -1):
+                small_dst = self.dst.get_cell(i)
+                small_dst.div_imm(2, scrap3, scrap2)
+                scrap2.move(small_dst)
+                if i != 0:
+                    scrap3.move(small_dst.cell_rel(-1), multiplier=16)
+                else:
+                    scrap3.clear()
+            if self.dst != self.shift:
+                scrap1.change(1)
+            shift_small.change(-1)
+
+        if self.dst != self.shift:
+            scrap1.move(self.shift.get_cell(0))
+
+
+@dataclass
+class ShiftRightI(Instruction):
+    dst: Register
+    src: Register
+    shift: Immediate
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"srli {self.dst} {self.src} {self.shift}", comments)
+        if self.dst == ZERO:
+            return
+
+        if self.src == ZERO:
+            self.dst.clear_big()
+            return
+
+        small_shift = self.shift % 4
+        big_shift = (self.shift // 4) % 8
+
+        for i in range(big_shift, 8):
+            small_src = self.src.get_cell(i)
+            small_dst = self.dst.get_cell(i - big_shift)
+            if small_src != small_dst:
+                small_dst.clear()
+                if self.src == self.dst:
+                    small_src.move(small_dst)
+                else:
+                    small_src.copy(small_dst)
+
+        if small_shift != 0:
+            mod = scraps[0]  # 2 scraps after MOD are used too in div_imm()
+            output = scraps[3]
+            translator = scraps[4]
+            for i in range(7 - big_shift, -1, -1):
+                small = self.dst.get_cell(i)
+                small.div_imm(2 ** small_shift, mod, output)
+                output.move(small)
+                translator.move(small, multiplier=16 // (2 ** small_shift))
+                if i == 0:
+                    mod.clear()
+                else:
+                    mod.move(translator)
+
+        # set small digits to zero
+        for i in range(8 - big_shift, 8):
             small_dst = self.dst.get_cell(i)
             small_dst.clear()
 

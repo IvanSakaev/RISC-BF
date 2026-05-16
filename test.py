@@ -5,7 +5,7 @@ for i in range(1, 101):
     # num1 = 0
     # num2 = 0
     # num1 = random.randint(0, 31)
-    # num2 = random.randint(0, 31)
+    num2 = random.randint(0, 31)
     # num1 = random.randrange(-127, 128)
     # num2 = random.randrange(-127, 128)
     # num1 = random.randrange(256)
@@ -13,7 +13,7 @@ for i in range(1, 101):
     # num1 = random.randint(-2**31, 2**31)
     # num2 = random.randint(-2**31, 2**31)
     num1 = random.randrange(2 ** 32)
-    num2 = random.randrange(2 ** 32)
+    # num2 = random.randrange(2 ** 32)
 
     # if random.randint(0, 1) == 0:
     #     num1 = num2
@@ -26,19 +26,34 @@ for i in range(1, 101):
     with open("tests/t.s", "w") as file:
         file.write(
             f"""
+.global _start
+_start:
+li a0, 0x123
 li x1, 0x{num1text:x}
 li x2, 0x{num2text:x}
-li x3, 0x123
-sub x1, x1, x2
-out x1
+srli a0, x1, 0x{num2text:x}
+li a7, 1
+ecall
 """.lstrip()
         )
 
+    subprocess.run([
+            "riscv32-elf-as",
+            "tests/t.s",
+            "-o",
+            "test.o",
+        ])
+    subprocess.run([
+            "riscv32-elf-ld",
+            "test.o",
+            "-o",
+            "test.elf",
+        ])
     subprocess.run(
         [
             "python",
             "asm.py",
-            "tests/t.s",
+            "test.elf",
             "out.b",
         ]
     )
@@ -57,7 +72,7 @@ out x1
     except UnicodeDecodeError:
         predict = predict_byte
 
-    num3 = num1 - num2
+    num3 = num1 >> num2
 
     num3 &= 0xFFFFFFFF
     num3_str = f"{num3:08X}"

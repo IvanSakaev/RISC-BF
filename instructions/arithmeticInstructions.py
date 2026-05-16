@@ -2,6 +2,8 @@ from instructions.baseInstructions import *
 from instructions.bitwiseInstructions import Not
 from dataclasses import dataclass
 
+from instructions.comparingInstructions import SetLessThanUnsigned
+
 
 @dataclass
 class Add(Instruction):
@@ -315,3 +317,132 @@ class MulHighUnsigned(Instruction):
 
         if self.src1 == self.dst:
             src1.clear_big()
+
+
+@dataclass
+class DivUnsigned(Instruction):
+    dst: Register
+    src1: Register
+    src2: Register
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"divu {self.dst} {self.src1} {self.src2}", comments)
+        if self.dst == ZERO:
+            return
+        if self.src2 == ZERO:
+            self.dst.change_big(0xffffffff, clear=True)
+            return
+        if self.src1 == self.src2:
+            self.dst.change_big(1, clear=True)
+            return
+
+        output_cell = scraps[6]
+
+        if self.src1 != ZERO:
+            SetLessThanUnsigned(ZERO, self.src1, self.src2).evaluate(program, cur_block, output_cell=output_cell)
+        output_scrap = scraps[0]
+        with output_cell.loop():
+            output_scrap.change(1)
+            self.dst.clear_big()
+            output_cell.change(-1)
+        output_scrap.move(output_cell)
+        output_cell.change(-1)
+
+        # Check if self.src2 is 0
+        running = scraps[0]
+        running.change(1)
+        for i in range(8):
+            small_src = self.src2.get_cell(i)
+            scrap_src = scraps[1]
+            with small_src.loop():
+                running.change(-1)
+                small_src.move(scrap_src)
+            scrap_src.move(small_src)
+            running.raw("[")
+        self.dst.change_big(0xffffffff, clear=True)
+        output_cell.clear()
+        running.change(-1)
+        running.raw("]]]]]]]]")
+
+        if self.src1 == ZERO:
+            with output_cell.loop():
+                self.dst.clear_big()
+                output_cell.change(1)
+        else:
+            with output_cell.loop():
+                temp_src1 = Register(scraps[7])
+                self.src1.copy_big(temp_src1)
+                if self.dst == self.src2:
+                    temp_dst = Register(scraps[15])
+                else:
+                    temp_dst = self.dst
+                    temp_dst.clear_big()
+
+                with output_cell.loop():
+                    output_cell.change(1)
+                    AddI(temp_dst, temp_dst, Immediate(1)).evaluate(program, cur_block)
+                    Sub(temp_src1, temp_src1, self.src2).evaluate(program, cur_block)
+                    SetLessThanUnsigned(ZERO, temp_src1, self.src2).evaluate(program, cur_block,
+                                                                             output_cell=output_cell)
+                    output_cell.change(-1)
+
+                temp_src1.clear_big()
+                if self.dst == self.src2:
+                    self.dst.clear_big()
+                    temp_dst.move_big(self.dst)
+
+
+@dataclass
+class ReminderUnsigned(Instruction):
+    dst: Register
+    src1: Register
+    src2: Register
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"remu {self.dst} {self.src1} {self.src2}", comments)
+        if self.dst == ZERO:
+            return
+        if self.src1 == ZERO:
+            self.dst.clear_big()
+            return
+        if self.src2 == ZERO:
+            if self.dst != self.src1:
+                self.dst.clear_big()
+                self.src1.copy_big(self.dst)
+            return
+        if self.src1 == self.src2:
+            self.dst.clear_big()
+            return
+
+        output_cell = scraps[6]
+
+        SetLessThanUnsigned(ZERO, self.src1, self.src2).evaluate(program, cur_block, output_cell=output_cell)
+        output_cell.change(-1)
+
+        # Check if self.src2 is 0
+        running = scraps[0]
+        running.change(1)
+        for i in range(8):
+            small_src = self.src2.get_cell(i)
+            scrap_src = scraps[1]
+            with small_src.loop():
+                running.change(-1)
+                small_src.move(scrap_src)
+            scrap_src.move(small_src)
+            running.raw("[")
+        running.change(-1)
+        output_cell.clear()
+        running.raw("]]]]]]]]")
+
+        temp_src1 = Register(scraps[7])
+        self.src1.copy_big(temp_src1)
+
+        with output_cell.loop():
+            with output_cell.loop():
+                output_cell.change(1)
+                Sub(temp_src1, temp_src1, self.src2).evaluate(program, cur_block)
+                SetLessThanUnsigned(ZERO, temp_src1, self.src2).evaluate(program, cur_block, output_cell=output_cell)
+                output_cell.change(-1)
+
+        self.dst.clear_big()
+        temp_src1.move_big(self.dst)

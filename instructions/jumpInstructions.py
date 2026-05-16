@@ -1,8 +1,8 @@
-from config import BLOCK_SIZE
 from instructions.arithmeticInstructions import AddI
 from instructions.baseInstructions import *
 from dataclasses import dataclass
 
+from instructions.specialInstructions import Output
 from registers import regs
 
 
@@ -32,10 +32,10 @@ class JumpNext(Instruction):  # It isn't an instruction to use in your asm-code
 class JumpRegister(Instruction):
     reg: Register
 
-    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):  # TODO: Make mod operation to reg
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"jr {self.reg}", comments)
         if self.reg == ZERO:
-            new_nexts = [1, 0, 0, 0]
+            new_nexts = [0, 0, 0, 1]
             for next_, new_next in zip(nexts, new_nexts):
                 next_.change(new_next)
             return
@@ -82,7 +82,7 @@ class JumpAndLinkRegister(Instruction):  # TODO:
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"jalr {self.src} {self.reg.offset}({self.reg.register})", comments)
-        raise NotImplementedError
+
         if self.src != ZERO:
             new_nexts = cur_block.find_block_rel(4)
             new_next_num = 0
@@ -90,9 +90,8 @@ class JumpAndLinkRegister(Instruction):  # TODO:
                 new_next_num += new_next * (BLOCK_SIZE ** i)
             self.src.change_big(new_next_num, clear=True)
         if self.reg.register == ZERO:
-            new_nexts = [1, 0, 0, 0]
+            new_nexts = [0, 0, 0, 1]
             offset_ = self.reg.offset
-            assert offset_ >= 0
             for next_, new_next in zip(nexts, new_nexts):
                 next_.change(new_next + (offset_ % 256))
                 offset_ //= 256
@@ -100,6 +99,18 @@ class JumpAndLinkRegister(Instruction):  # TODO:
             AddI(self.reg.register, self.reg.register, self.reg.offset).evaluate(program, cur_block)
             JumpRegister(self.reg.register).evaluate(program, cur_block)
             AddI(self.reg.register, self.reg.register, -self.reg.offset).evaluate(program, cur_block)
+
+
+@dataclass
+class AddUpperImmToPC(Instruction):
+    dst: Register
+    value: Immediate
+    
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"auipc {self.dst} {self.value}", comments)
+        if self.dst == ZERO:
+            return
+        raise NotImplementedError
 
 
 @dataclass
