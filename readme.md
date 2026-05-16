@@ -56,7 +56,6 @@ use ibf interpretator
     - SRA, SRAI
     - MULH, MULHSU
     - DIV, REM (signed)
-- Fix linker script (now JR and JALR may jump to 0x10000)
 - Fix TODOs and NotImplementedErrors
 - Add more ECALLs
 - Add more asserts to python and brainfuck

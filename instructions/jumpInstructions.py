@@ -34,7 +34,6 @@ class JumpRegister(Instruction):
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"jr {self.reg}", comments)
-        Output(self.reg).evaluate(program, cur_block)
         if self.reg == ZERO:
             new_nexts = [0, 0, 0, 1]
             for next_, new_next in zip(nexts, new_nexts):
