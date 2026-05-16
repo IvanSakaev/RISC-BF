@@ -49,13 +49,15 @@ use ibf interpretator
 
 ### Future plans
 
-- Add new risc-v instructions (I think, all remaining):
+- Test instructions:
     - JALR
+    - AUIPC
+- Add new risc-v instructions (I think, all remaining):
     - SRA, SRAI
     - MULH, MULHSU
     - DIV, REM (signed)
-    - AUIPC
-- Fix bugs, TODOs and NotImplementedErrors
+- Fix linker script (now JR and JALR may jump to 0x10000)
+- Fix TODOs and NotImplementedErrors
 - Add more ECALLs
 - Add more asserts to python and brainfuck
 - [Compile and run Doom](https://github.com/sit-itmo/DoomBF)

@@ -3,6 +3,7 @@
     <words>
       <w>addi</w>
       <w>addrmap</w>
+      <w>auipc</w>
       <w>beqz</w>
       <w>bgeu</w>
       <w>bgtu</w>

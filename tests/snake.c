@@ -94,9 +94,9 @@ void move_snake() {
 }
 
 void input() {
-    char ch;
-    ch = getchar();
-    switch (ch) {
+    char ch[2];
+    dbf_read_ecall(ch, 1);
+    switch (ch[0]) {
         case 'a':
             if (flag != 2) flag = 1;
             break; // Left, not if right
@@ -114,12 +114,13 @@ void input() {
             draw();
             break;
         case 'x':
+            dbf_println("bye");
             gameover = 1;
             break;
     }
 }
 
-int main() {
+void _start() {
     setup();
     draw();
     while (!gameover) {
@@ -128,5 +129,4 @@ int main() {
     dbf_print("Game Over! Final Score: ");
     dbf_print_num(score);
     dbf_print("\n");
-    return 0;
 }

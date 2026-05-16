@@ -62,6 +62,7 @@ class Program:
     def __init__(self, instrs, memory):
         self.kiloblock, self.entry_point_block = split_program_into_blocks(instrs)
         self.memory = memory
+        # print(self.memory)
 
     def preload_memory(self):
         first_mem_cell = memory_scraps[-1].cell_rel(1)
@@ -142,10 +143,14 @@ def parse_arg(arg: str, expected_type: type):
     elif expected_type == Immediate:
         return Immediate.from_str(arg)
     elif expected_type == OffsetRegister:
-        imm, reg = arg.split("(")
-        imm = Immediate.from_str(imm)
-        assert reg.endswith(")")
-        reg = reg[:-1]
+        if "(" in arg:
+            imm, reg = arg.split("(")
+            imm = Immediate.from_str(imm)
+            assert reg.endswith(")")
+            reg = reg[:-1]
+        else:
+            reg = arg
+            imm = 0
         if reg in regs:
             reg = regs[reg]
         else:
@@ -193,8 +198,11 @@ def parse_elf(path: str):
     md = Cs(CS_ARCH_RISCV, CS_MODE_RISCV32)
     instrs = []
     entry_point_found = False
+    prev_addr = None
     for instr in md.disasm(code, base):
         # print(f"0x{instr.address:x}:\t{instr.mnemonic}\t{instr.op_str}")
+        assert prev_addr is None or instr.address - prev_addr == 4
+        prev_addr = instr.address
         mnemonic = MNEMONICS[instr.mnemonic]
         args = instr.op_str
         if args == "":
@@ -205,6 +213,8 @@ def parse_elf(path: str):
 
         # Remove prettify from some instructions
         if instr.mnemonic == "jal" and len(args) == 1:
+            args.insert(0, "ra")
+        if instr.mnemonic == "jalr" and len(args) == 1:
             args.insert(0, "ra")
 
         if len(args) != len(types_):
