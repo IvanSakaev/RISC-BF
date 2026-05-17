@@ -67,8 +67,6 @@ class Program:
     def preload_memory(self):
         first_mem_cell = memory_scraps[-1].cell_rel(1)
         for addr, value in self.memory.items():
-            if value == 0:
-                continue
             first_mem_cell.cell_rel(addr).change(value)
 
     def program_prologue(self):
