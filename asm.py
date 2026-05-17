@@ -68,7 +68,7 @@ class Program:
         first_mem_cell = memory_scraps[-1].cell_rel(1)
         for addr, value in self.memory.items():
             if value == 0:
-                pass
+                continue
             first_mem_cell.cell_rel(addr).change(value)
 
     def program_prologue(self):
@@ -186,7 +186,11 @@ def parse_elf(path: str):
             data = segment.data()
             # segment['p_memsz']
 
+            if vaddr >= (16 ** 6):
+                continue
             for i, b in enumerate(data):
+                if (vaddr + i) >= (16 ** 6):
+                    continue
                 memory[vaddr + i] = b
 
         text = elf.get_section_by_name(".text")
