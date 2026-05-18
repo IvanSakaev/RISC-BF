@@ -161,13 +161,7 @@ def parse_arg(arg: str, expected_type: type):
 def get_instruction_types(op: type[Instruction]):
     hints = get_type_hints(op)
     op_args = list(hints.values())
-    arg_types = []
-    for op_arg in op_args:
-        if get_origin(op_arg) in (Union, types.UnionType):
-            arg_types.append(get_args(op_arg))
-        else:
-            arg_types.append(op_arg, )
-    return arg_types
+    return op_args
 
 
 def parse_elf(path: str):

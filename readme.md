@@ -8,15 +8,22 @@ It compiles RISCV32IM architecture to brainfuck esoteric language
 
 You can find example programs in `examples` folder.
 
-1. Compile your C program to risc-v .elf file:
-   Move your program to `tests/test.c` and run `compile.bash`
-2. Compile .elf file to brainfuck
+1. Install python3.8+ and install dependencies
+    ```bash
+    pip install -r requirements.txt
+    ```
+2. Install `riscv64-elf-gcc` or `riscv64-unknown-elf-gcc`
+3. Compile your C program to brainfuck:
    ```bash
-   python asm.py test.elf out.b
+   ./compile examples/snake.c
    ```
-3. Run brainfuck file. I recommend to use ibf interpretator,
+   Or if you have .elf riscv32 file, you can compile it with
+   ```bash
+   python asm.py file.elf out.b
+   ```
+4. Run brainfuck file. I recommend to use ibf interpretator,
    because it's fast and optimized for running this project.
-   Also, some functions (like breakpoints and asserts)
+   Also, some features (like breakpoints and asserts)
    won't work with other interpretators. If you don't use ibf,
    you should disable all debug and asserts options in config.py
 
@@ -40,22 +47,23 @@ use ibf interpretator
 
 ### What's ready now
 
+- Script for compiling C to .elf file (using gcc)
 - Reading RISC-V .elf file
 - Preloading global variables (.data section) to brainfuck memory
 - RISC-V instructions, mentioned at the bottom of instructions/mnemonics file
 - Ecall
-    - Read ecall (63)
-    - Write ecall (64)
+   - Read ecall (63)
+   - Write ecall (64)
 
 ### Future plans
 
 - Test instructions:
-    - JALR
-    - AUIPC
+   - JALR
 - Add new risc-v instructions (I think, all remaining):
-    - SRA, SRAI
-    - MULH, MULHSU
-    - DIV, REM (signed)
+   - AUIPC
+   - SRA, SRAI
+   - MULH, MULHSU
+   - DIV, REM (signed)
 - Fix TODOs and NotImplementedErrors
 - Add more ECALLs
 - Add more asserts to python and brainfuck

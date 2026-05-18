@@ -1,15 +1,28 @@
 #!/bin/bash
 
+set -euo pipefail
+
+if command -v riscv64-elf-gcc > /dev/null 2>&1; then
+    RISCV_GCC=riscv64-elf-gcc
+elif command -v riscv64-unknown-elf-gcc > /dev/null 2>&1; then
+    RISCV_GCC=riscv64-unknown-elf-gcc
+else
+    echo "RISC-V GCC toolchain not found" >&2
+    exit 1
+fi
+
+#echo "Using compiler: $RISCV_GCC"
+
 mkdir -p dst
 
-riscv64-elf-gcc \
+$RISCV_GCC \
     -O3 \
     -march=rv32i \
     -mabi=ilp32 \
     -ffreestanding \
     -nostdlib \
     -T link.ld \
-    $1 \
+    "$1" \
     -lgcc \
     -o dst/file.elf
 
