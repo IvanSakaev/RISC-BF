@@ -38,28 +38,12 @@ ecall
         )
 
     subprocess.run([
-            "riscv32-elf-as",
+            "./compile",
             "tests/t.s",
-            "-o",
-            "test.o",
         ])
-    subprocess.run([
-            "riscv32-elf-ld",
-            "test.o",
-            "-o",
-            "test.elf",
-        ])
-    subprocess.run(
-        [
-            "python",
-            "asm.py",
-            "test.elf",
-            "out.b",
-        ]
-    )
     predict_byte = subprocess.run(
         [
-            "./tmp/ibf",
+            "./bin/ibf",
             "-a",
             "out.b",
         ],

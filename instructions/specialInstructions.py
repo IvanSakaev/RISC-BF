@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from contextlib import contextmanager
 
 from config import MAX_OUTPUT_LENGTH_HALFBYTES, MEMORY_ADDRESS_HALFBYTES
@@ -68,9 +70,9 @@ class Output(Instruction):
         output = scraps[3]
         # scrap 4 is used too
 
-        mod.change(10)  # Line feed
-        mod.raw(".")
-        mod.clear()
+        # mod.change(10)  # Line feed
+        # mod.raw(".")
+        # mod.clear()
 
         for small in reversed(self.reg.get_cells()):
             small.div_imm(10)

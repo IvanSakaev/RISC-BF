@@ -79,8 +79,9 @@ class Cell:
             multiplier = [multiplier] * len(dsts)
         dsts2 = list(dsts)
         assert self not in dsts2
+        assert len(dsts2) == len(multiplier)
         with self.loop():
-            for dst, mult in zip(dsts2, multiplier, strict=True):
+            for dst, mult in zip(dsts2, multiplier):
                 dst.change(mult)
             self.change(-1)
 

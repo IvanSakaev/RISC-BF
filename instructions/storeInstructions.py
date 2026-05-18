@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from config import MEMORY_ADDRESS_HALFBYTES
 from instructions.arithmeticInstructions import AddI
 from instructions.baseInstructions import *

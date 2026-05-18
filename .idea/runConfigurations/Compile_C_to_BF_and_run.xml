@@ -1,11 +1,11 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Compile riscV to BF and debug" type="ShConfigurationType">
-    <option name="SCRIPT_TEXT" value="./ibf -ad ../out.b" />
+  <configuration default="false" name="Compile C to BF and run" type="ShConfigurationType">
+    <option name="SCRIPT_TEXT" value="./ibf -a ../out.b" />
     <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
     <option name="SCRIPT_PATH" value="" />
     <option name="SCRIPT_OPTIONS" value="" />
     <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
-    <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$/tmp" />
+    <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$/bin" />
     <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
     <option name="INTERPRETER_PATH" value="/bin/bash" />
     <option name="INTERPRETER_OPTIONS" value="" />
@@ -13,7 +13,7 @@
     <option name="EXECUTE_SCRIPT_FILE" value="false" />
     <envs />
     <method v="2">
-      <option name="RunConfigurationTask" enabled="true" run_configuration_name="Compile riscV to BF" run_configuration_type="PythonConfigurationType" />
+      <option name="RunConfigurationTask" enabled="true" run_configuration_name="Compile C to BF" run_configuration_type="ShConfigurationType" />
     </method>
   </configuration>
 </component>

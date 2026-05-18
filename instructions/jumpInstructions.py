@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 from instructions.arithmeticInstructions import AddI
 from instructions.baseInstructions import *
 from dataclasses import dataclass
 
-from instructions.specialInstructions import Output
 from registers import regs
 
 
