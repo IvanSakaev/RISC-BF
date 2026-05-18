@@ -1,12 +1,10 @@
 __pycache__
 .mypy_cache
-tmp
 bin
+dst
+tmp
 out.b
 out.b.addr
 ibf
 tests/test.c
-examples/test.s
-
-test.elf
-test.o
+tests/t.s

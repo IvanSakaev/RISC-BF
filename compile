@@ -1,5 +1,7 @@
 #!/bin/bash
 
+mkdir -p dst
+
 riscv64-elf-gcc \
     -O3 \
     -march=rv32i \
@@ -7,11 +9,8 @@ riscv64-elf-gcc \
     -ffreestanding \
     -nostdlib \
     -T link.ld \
-    tests/test.c \
+    $1 \
     -lgcc \
-    -o test.elf
+    -o dst/file.elf
 
-
-# Adding this may fix some bugs:
-#    -fno-jump-tables \
-#    -fno-tree-switch-conversion \
+python3 asm.py dst/file.elf out.b
