@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from instructions.baseInstructions import *
 from dataclasses import dataclass
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from contextlib import contextmanager
 
 from config import MAX_OUTPUT_LENGTH_HALFBYTES, MEMORY_ADDRESS_HALFBYTES
