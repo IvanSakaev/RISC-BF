@@ -77,7 +77,7 @@ class JumpAndLink(Instruction):
 
 
 @dataclass
-class JumpAndLinkRegister(Instruction):  # TODO:
+class JumpAndLinkRegister(Instruction):
     src: Register
     reg: OffsetRegister
 
@@ -111,7 +111,7 @@ class AddUpperImmToPC(Instruction):
         concater.rem(f"auipc {self.dst} {self.value}", comments)
         if self.dst == ZERO:
             return
-        raise NotImplementedError
+        raise NotImplementedError  # TODO
 
 
 @dataclass

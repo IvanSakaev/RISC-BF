@@ -37,6 +37,7 @@ MNEMONICS["sll"] = ShiftLeft
 MNEMONICS["slli"] = ShiftLeftI
 MNEMONICS["srl"] = ShiftRight
 MNEMONICS["srli"] = ShiftRightI
+MNEMONICS["srai"] = ShiftRightArithmeticI
 MNEMONICS["or"] = Or
 MNEMONICS["and"] = And
 MNEMONICS["xor"] = Xor
