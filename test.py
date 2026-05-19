@@ -10,9 +10,9 @@ for i in range(1, 101):
     # num2 = random.randrange(-127, 128)
     # num1 = random.randrange(256)
     # num2 = random.randrange(256)
-    # num1 = random.randint(-2**31, 2**31)
+    num1 = random.randint(-2**31, 2**31)
     # num2 = random.randint(-2**31, 2**31)
-    num1 = random.randrange(2 ** 32)
+    # num1 = random.randrange(2 ** 32)
     # num2 = random.randrange(2 ** 32)
 
     # if random.randint(0, 1) == 0:
@@ -31,7 +31,7 @@ _start:
 li a0, 0x123
 li x1, 0x{num1text:x}
 li x2, 0x{num2text:x}
-srli a0, x1, 0x{num2text:x}
+srai a0, x1, 0x{num2text:x}
 li a7, 1
 ecall
 """.lstrip()

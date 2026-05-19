@@ -238,10 +238,74 @@ class ShiftRightI(Instruction):
                 else:
                     mod.move(translator)
 
-        # set small digits to zero
+        # set big digits to zero
         for i in range(8 - big_shift, 8):
             small_dst = self.dst.get_cell(i)
             small_dst.clear()
+
+
+@dataclass
+class ShiftRightArithmeticI(Instruction):
+    dst: Register
+    src: Register
+    shift: Immediate
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"srai {self.dst} {self.src} {self.shift}", comments)
+        if self.dst == ZERO:
+            return
+
+        if self.src == ZERO:
+            self.dst.clear_big()
+            return
+
+        small_shift = self.shift % 4
+        big_shift = (self.shift // 4) % 8
+
+        for i in range(big_shift, 8):
+            small_src = self.src.get_cell(i)
+            small_dst = self.dst.get_cell(i - big_shift)
+            if small_src != small_dst:
+                small_dst.clear()
+                if self.src == self.dst:
+                    small_src.move(small_dst)
+                else:
+                    small_src.copy(small_dst)
+        
+        sign_cell = self.dst.get_cell(7 - big_shift)
+        out = scraps[0]
+        mod = scraps[5]
+        sign_cell.div_imm(8, mod, out)
+        mod.move(sign_cell)
+        out.move(mod, sign_cell, multiplier=(1, 8))
+        sign = mod
+
+        if small_shift != 0:
+            mod = scraps[0]  # 2 scraps after MOD are used too in div_imm()
+            output = scraps[3]
+            translator = scraps[4]
+            for i in range(7 - big_shift, -1, -1):
+                small = self.dst.get_cell(i)
+                small.div_imm(2 ** small_shift, mod, output)
+                output.move(small)
+                translator.move(small, multiplier=16 // (2 ** small_shift))
+                if i == 0:
+                    mod.clear()
+                else:
+                    mod.move(translator)
+
+        # set big digits to zero
+        for i in range(8 - big_shift, 8):
+            small_dst = self.dst.get_cell(i)
+            small_dst.clear()
+        with sign.loop():
+            for i in range(8 - big_shift, 8):
+                small_dst = self.dst.get_cell(i)
+                small_dst.change(15)
+            cell = self.dst.get_cell(7 - big_shift)
+            mask = [0, 0b1000, 0b1100, 0b1110][small_shift]
+            cell.change(mask)
+            sign.change(-1)
 
 
 @dataclass
@@ -251,7 +315,7 @@ class Or(Instruction):
     src2: Register
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        concater.rem(f"or {self.dst}, {self.src1}, {self.src2}", comments)
+        concater.rem(f"or {self.dst} {self.src1} {self.src2}", comments)
         if self.dst == ZERO:
             return
         if self.src1 == ZERO and self.src2 == ZERO:
@@ -335,7 +399,7 @@ class And(Instruction):
     src2: Register
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        concater.rem(f"and {self.dst}, {self.src1}, {self.src2}", comments)
+        concater.rem(f"and {self.dst} {self.src1} {self.src2}", comments)
         if self.dst == ZERO:
             return
         if self.src1 == ZERO or self.src2 == ZERO:
@@ -410,7 +474,7 @@ class Xor(Instruction):
     src2: Register
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        concater.rem(f"xor {self.dst}, {self.src1}, {self.src2}", comments)
+        concater.rem(f"xor {self.dst} {self.src1} {self.src2}", comments)
         if self.dst == ZERO:
             return
         if self.src1 == self.src2:
@@ -519,7 +583,7 @@ class OrI(Instruction):
     src2: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        concater.rem(f"ori {self.dst}, {self.src1}, {self.src2}", comments)
+        concater.rem(f"ori {self.dst} {self.src1} {self.src2}", comments)
         if self.dst == ZERO:
             return
         if self.src1 == ZERO:
@@ -597,7 +661,7 @@ class AndI(Instruction):
     src2: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        concater.rem(f"andi {self.dst}, {self.src1}, {self.src2}", comments)
+        concater.rem(f"andi {self.dst} {self.src1} {self.src2}", comments)
         if self.dst == ZERO:
             return
         if self.src1 == ZERO:
@@ -669,7 +733,7 @@ class XorI(Instruction):
     src2: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        concater.rem(f"xori {self.dst}, {self.src1}, {self.src2}", comments)
+        concater.rem(f"xori {self.dst} {self.src1} {self.src2}", comments)
         if self.dst == ZERO:
             return
         if self.src1 == ZERO:
