@@ -61,7 +61,7 @@ use ibf interpretator
    - JALR
 - Add new risc-v instructions (I think, all remaining):
    - AUIPC
-   - SRA, SRAI
+   - SRA
    - MULH, MULHSU
    - DIV, REM (signed)
 - Fix TODOs and NotImplementedErrors
