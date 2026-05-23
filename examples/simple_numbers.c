@@ -1,4 +1,4 @@
-#define NUM_COUNT 25
+#define NUM_COUNT 200
 
 static long sys_write(const char *buf, long len) {
     long ret;

@@ -33,6 +33,10 @@ You can find example programs in `examples` folder.
    *-a option enables asserts*
 
    *-d option enables debug*
+   
+   *-c option enables compression* - enable it if you enabled COMPRESSED
+   option in this project
+
 
    [ibf repository](https://github.com/sit-itmo/DoomBF/tree/master/bf/industrial-bf)
 

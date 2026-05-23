@@ -14,7 +14,8 @@ MAX_OUTPUT_LENGTH_HALFBYTES = 4  # Max output length will be 16^MAX_OUTPUT_LENGT
 # Preload .data section
 PRELOAD_MEMORY = True
 
-# Next constants are useful for ibf brainfuck interpretator. For other interpretators it's recommended to disable them.
+# Next constants are useful only for ibf brainfuck interpretator.
+# For other interpretators it's recommended to disable them.
 # ibf interpretator: https://github.com/sit-itmo/DoomBF/tree/master/bf/industrial-bf
 
 # Using # symbol for breakpoints.
@@ -29,6 +30,9 @@ WATCH_REGISTERS = ["x1", "x2", "a0"]
 
 # Allow asserts in brainfuck by using @hex and !hex for location and value assert.
 ALLOW_ASSERTS = True
+
+# Save program in compressed format (for ibf with -c option)
+COMPRESSED = True
 
 
 # Don't change!
