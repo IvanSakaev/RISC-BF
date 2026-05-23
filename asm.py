@@ -4,20 +4,29 @@ from __future__ import annotations
 import types
 from typing import Union, get_args, get_origin, get_type_hints
 
+from capstone import *
+from elftools.elf.elffile import ELFFile
+
 import config
 import instructions.mnemonics
-from cell import concater, nexts, currents, memory_scraps, scraps
-from config import REGISTER_COUNT, MEMORY_SCRAPS_COUNT, BLOCK_SIZE, MEMORY_ADDRESS_HALFBYTES, PRELOAD_MEMORY, \
-    WATCH_REGISTERS
+from cell import concater, currents, memory_scraps, nexts, scraps
+from config import (
+    BLOCK_SIZE,
+    COMPRESSED,
+    MEMORY_ADDRESS_HALFBYTES,
+    MEMORY_SCRAPS_COUNT,
+    PRELOAD_MEMORY,
+    REGISTER_COUNT,
+    WATCH_REGISTERS,
+)
 from instructions.baseInstructions import Instruction
 from instructions.mnemonics import (
     MNEMONICS,
+    Block,
+    LoadI,
     is_jump_instruction,
-    Block, LoadI,
 )
-from registers import SCRAP_COUNT, Immediate, Register, regs, OffsetRegister
-from elftools.elf.elffile import ELFFile
-from capstone import *
+from registers import SCRAP_COUNT, Immediate, OffsetRegister, Register, regs
 
 
 def split_program_into_blocks(instrs: list[Instruction]):
@@ -239,7 +248,10 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) != 3:
-        print("usage: asm in.cbf out.b", file=sys.stderr)
+        if COMPRESSED:
+            print("Usage: asm.py in.elf out.ibf", file=sys.stderr)
+        else:
+            print("Usage: asm.py in.elf out.b", file=sys.stderr)
         exit(1)
 
     instrs, memory = parse_elf(sys.argv[1])

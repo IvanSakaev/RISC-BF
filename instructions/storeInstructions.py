@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from config import MEMORY_ADDRESS_HALFBYTES
 from instructions.arithmeticInstructions import AddI
 from instructions.baseInstructions import *
-from dataclasses import dataclass
 
 
 @dataclass

@@ -3,7 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 
 from concater import _Concater
-from config import SCRAP_COUNT, REGISTER_COUNT, MEMORY_SCRAPS_COUNT
+from config import MEMORY_SCRAPS_COUNT, REGISTER_COUNT, SCRAP_COUNT
 
 _default = object()
 
@@ -17,14 +17,18 @@ class Cell:
         Move pointer to this cell.
         """
         if self.addr > concater.current_pos.addr:
-            concater.raw(">" * (self.addr - concater.current_pos.addr))
+            concater.raw_char(">", self.addr - concater.current_pos.addr)
         elif self.addr < concater.current_pos.addr:
-            concater.raw("<" * (concater.current_pos.addr - self.addr))
+            concater.raw_char("<", concater.current_pos.addr - self.addr)
         concater.current_pos = self
 
     def raw(self, text: str, pos_offset: int = 0):
         self.to()
         concater.raw(text, pos_offset)
+
+    def raw_char(self, text: str, count: int):
+        self.to()
+        concater.raw_char(text, count)
 
     def debug(self):
         self.to()
@@ -59,9 +63,9 @@ class Cell:
             b = a
             a = 0
         if a > b:
-            self.raw("-" * (a - b))
+            self.raw_char("-", (a - b))
         elif a < b:
-            self.raw("+" * (b - a))
+            self.raw_char("+", (b - a))
 
     def clear(self):
         """
