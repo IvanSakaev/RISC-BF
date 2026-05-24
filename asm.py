@@ -249,7 +249,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) != 3:
         if COMPRESSED:
-            print("Usage: asm.py in.elf out.ibf", file=sys.stderr)
+            print("Usage: asm.py in.elf out.pbk", file=sys.stderr)
         else:
             print("Usage: asm.py in.elf out.b", file=sys.stderr)
         exit(1)

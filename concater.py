@@ -45,7 +45,7 @@ class _Concater:
             if self.last_char_count == 1:
                 self.current_program.append(f"{self.last_char}")
             elif self.last_char_count > 1:
-                self.current_program.append(f"{self.last_char}{self.last_char_count}")
+                self.current_program.append(f"{self.last_char}{{{self.last_char_count:x}}}")
             self.last_char = None
             self.last_char_count = 0
 

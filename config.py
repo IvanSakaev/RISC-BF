@@ -6,7 +6,7 @@ SCRAP_COUNT = 32  # TODO: reduce scrap count
 # TODO: Make 3-bytes addressing, not 2.5-bytes
 # Big values (> 3) may not work properly with most interpretators
 # You should change DMEM size in link.ld script if you change this value
-MEMORY_ADDRESS_HALFBYTES = 5  # Memory cell count will be 16^MEMORY_ADDRESS_HALFBYTES
+MEMORY_ADDRESS_HALFBYTES = 6  # Memory cell count will be 16^MEMORY_ADDRESS_HALFBYTES
 
 # Input/output ecall max length value
 MAX_OUTPUT_LENGTH_HALFBYTES = 4  # Max output length will be 16^MAX_OUTPUT_LENGTH_HALFBYTES

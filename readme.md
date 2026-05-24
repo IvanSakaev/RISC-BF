@@ -19,7 +19,7 @@ You can find example programs in `examples` folder.
    ```
    Or if you have .elf riscv32 file, you can compile it with
    ```bash
-   python asm.py file.elf out.b
+   python asm.py file.elf out.bpk
    ```
 4. Run brainfuck file. I recommend to use ibf interpretator,
    because it's fast and optimized for running this project.
@@ -28,17 +28,16 @@ You can find example programs in `examples` folder.
    you should disable all debug and asserts options in config.py
 
    ```bash
-   ./ibf -a -d out.b
+   ./ibf -a -d -c out.bpk
    ```
    *-a option enables asserts*
 
    *-d option enables debug*
-   
-   *-c option enables compression* - enable it if you enabled COMPRESSED
-   option in this project
 
+   *-c option enables compression* - you must enable it if you
+   enabled COMPRESSED option in this project
 
-   [ibf repository](https://github.com/sit-itmo/DoomBF/tree/master/bf/industrial-bf)
+[ibf repository](https://github.com/sit-itmo/DoomBF/tree/master/bf/industrial-bf)
 
 ## Configuration
 
