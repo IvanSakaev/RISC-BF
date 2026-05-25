@@ -25,7 +25,7 @@ class StoreWord(Instruction):
                 for i in range(byte_count * 2):
                     small_src = self.src.get_cell(i)
                     small_dst = dst.cell_rel(i // 2)
-                    small_src.copy(small_dst, scrap=memory_scraps[0], multiplier=(16 if i % 2 == 0 else 1))
+                    small_src.copy(small_dst, scrap=memory_scraps[0], multiplier=(1 if i % 2 == 0 else 16))
             return
 
         mem_scraps = memory_scraps[len(memory_scraps) - 6 - MEMORY_ADDRESS_HALFBYTES:]
@@ -106,9 +106,9 @@ class LoadWord(Instruction):
                 small_src1 = self.src.get_cell(i * 2)
                 small_src2 = self.src.get_cell(i * 2 + 1)
                 small_dst = dst.cell_rel(i)
-                small_dst.div_imm(16, memory_scraps[0], small_src2)
-                small_src2.move(small_src1, small_dst, multiplier=[1, 16])
-                memory_scraps[0].move(small_src2, small_dst)
+                small_dst.div_imm(16, memory_scraps[0], small_src1)
+                small_src1.move(small_src2, small_dst, multiplier=[1, 16])
+                memory_scraps[0].move(small_src1, small_dst)
             return
 
         mem_scraps = memory_scraps[len(memory_scraps) - 6 - MEMORY_ADDRESS_HALFBYTES:]
