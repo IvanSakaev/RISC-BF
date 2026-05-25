@@ -13,13 +13,18 @@ You can find example programs in `examples` folder.
     pip install -r requirements.txt
     ```
 2. Install `riscv64-elf-gcc` or `riscv64-unknown-elf-gcc`
-3. Compile your C program to brainfuck:
+3. Compile your C program to compressed brainfuck:
    ```bash
-   ./compile examples/snake.c
+   ./compile -c examples/snake.c out.bpk
+   ```
+   If you don't use ibf or you want to get normal (not compressed) brainfuck,
+   you should run this:
+   ```bash
+   ./compile examples/snake.c out.b
    ```
    Or if you have .elf riscv32 file, you can compile it with
    ```bash
-   python asm.py file.elf out.bpk
+   python asm.py [-c] file.elf out.bpk
    ```
 4. Run brainfuck file. I recommend to use ibf interpretator,
    because it's fast and optimized for running this project.
@@ -28,14 +33,21 @@ You can find example programs in `examples` folder.
    you should disable all debug and asserts options in config.py
 
    ```bash
-   ./ibf -a -d -c out.bpk
+   ./ibf -ac out.bpk
    ```
+   
+   or you can run not compressed brainfuck if you compiled without compression
+   
+   ```bash
+   ./ibf -a out.b
+   ```
+
    *-a option enables asserts*
 
    *-d option enables debug*
 
    *-c option enables compression* - you must enable it if you
-   enabled COMPRESSED option in this project
+   enabled compressing in this project on step 3
 
 [ibf repository](https://github.com/sit-itmo/DoomBF/tree/master/bf/industrial-bf)
 
@@ -45,6 +57,13 @@ Configuration is done by modifying config.py file.
 
 It's recommended to disable all assert and debug options if you don't
 use ibf interpretator
+
+### Options
+
+-c Enable compressed brainfuck output. You can run it with ibf.
+Compiling a program with MEMORY_ADDRESS_HALFBYTES > 5 (in config.py) will take up
+a very large amount of your disk and RAM without compression (>20GB).
+Otherwise, it will only take up a few megabytes.
 
 ## Project status
 

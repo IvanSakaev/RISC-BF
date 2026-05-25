@@ -1,6 +1,7 @@
 #! /bin/python
 from __future__ import annotations
 
+import argparse
 from typing import get_type_hints
 
 from capstone import *
@@ -11,7 +12,6 @@ import instructions.mnemonics
 from cell import concater, currents, memory_scraps, nexts, scraps
 from config import (
     BLOCK_SIZE,
-    COMPRESSED,
     MEMORY_ADDRESS_HALFBYTES,
     MEMORY_SCRAPS_COUNT,
     PRELOAD_MEMORY,
@@ -246,25 +246,25 @@ def parse_elf(path: str):
 
 
 if __name__ == "__main__":
-    import sys
+    parser = argparse.ArgumentParser(add_help=False)
+    
+    parser.add_argument("-c", action="store_true")
+    parser.add_argument("input")
+    parser.add_argument("output")
+    
+    args = parser.parse_args()
+    concater.set_compressing_enabled(args.c)
 
-    if len(sys.argv) != 3:
-        if COMPRESSED:
-            print("Usage: asm.py in.elf out.pbk", file=sys.stderr)
-        else:
-            print("Usage: asm.py in.elf out.b", file=sys.stderr)
-        exit(1)
-
-    instrs, memory = parse_elf(sys.argv[1])
+    instrs, memory = parse_elf(args.input)
     prog = Program(instrs, memory)
     out_contents = prog.assemble_program()
 
-    with open(sys.argv[2], "w") as f:
+    with open(args.output, "w") as f:
         f.write(out_contents)
         f.write("\n")
 
     # Generate addrmap
-    with open(sys.argv[2] + ".addr", "w") as f:
+    with open(args.output + ".addr", "w") as f:
         f.write(f"a{nexts[0].addr:x}[{len(nexts)}] next\n")
         f.write(f"a{currents[0].addr:x}[{len(currents)}] current\n")
         f.write(f"a{scraps[0].addr:x}[{SCRAP_COUNT - MEMORY_SCRAPS_COUNT:x}] scraps\n")

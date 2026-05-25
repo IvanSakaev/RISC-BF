@@ -72,6 +72,10 @@ void dbf_read_ecall(char *buf, const int len) {
 #endif
 }
 
+void dbf_putchar(const char ch) {
+    dbf_write_ecall(&ch, 1);
+}
+
 unsigned long dbf_print(const char *str) {
     return dbf_write_ecall(str, dbf_strlen(str));
 }
