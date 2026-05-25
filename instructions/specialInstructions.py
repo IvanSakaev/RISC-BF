@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 
-from config import MAX_OUTPUT_LENGTH_HALFBYTES, MEMORY_ADDRESS_HALFBYTES
+from config import MAX_OUTPUT_LENGTH_HALFBYTES, MEMORY_ADDRESS_HALFBYTES, MEMORY_ADDRESS_LAST_HALFBYTE_AS_BYTE
 from instructions.arithmeticInstructions import AddI
 from instructions.baseInstructions import *
 from dataclasses import dataclass
@@ -117,8 +117,14 @@ class Ecall(Instruction):
             MEMORY_ADDRESS_HALFBYTES + 2: MEMORY_ADDRESS_HALFBYTES + 2 + MAX_OUTPUT_LENGTH_HALFBYTES]
         length_copy = mem_scraps[MEMORY_ADDRESS_HALFBYTES + 2 + MAX_OUTPUT_LENGTH_HALFBYTES:]
 
-        for i in range(MEMORY_ADDRESS_HALFBYTES):
-            addr_reg.get_cell(i).copy(addr_cells[i], scrap=zero_scrap)
+        for i in range(8):
+            if i < MEMORY_ADDRESS_HALFBYTES:
+                addr_reg.get_cell(i).copy(addr_cells[i], scrap=zero_scrap)
+            elif i == MEMORY_ADDRESS_HALFBYTES and MEMORY_ADDRESS_LAST_HALFBYTE_AS_BYTE:
+                addr_reg.get_cell(i).copy(addr_cells[-1], scrap=zero_scrap, multiplier=16)
+            else:
+                continue
+                addr_reg.get_cell(i).assert_val(0)
         for i in range(MAX_OUTPUT_LENGTH_HALFBYTES):
             if i < MAX_OUTPUT_LENGTH_HALFBYTES:
                 length_reg.get_cell(i).copy(length_to[i], scrap=zero_scrap)

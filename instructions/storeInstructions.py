@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from config import MEMORY_ADDRESS_HALFBYTES
+from config import MEMORY_ADDRESS_HALFBYTES, MEMORY_ADDRESS_LAST_HALFBYTE_AS_BYTE
 from instructions.arithmeticInstructions import AddI
 from instructions.baseInstructions import *
 
@@ -47,6 +47,8 @@ class StoreWord(Instruction):
         for i in range(8):
             if i < MEMORY_ADDRESS_HALFBYTES:
                 self.addr.register.get_cell(i).copy(addr_cells[i], scrap=zero_scrap)
+            elif i == MEMORY_ADDRESS_HALFBYTES and MEMORY_ADDRESS_LAST_HALFBYTE_AS_BYTE:
+                self.addr.register.get_cell(i).copy(addr_cells[-1], scrap=zero_scrap, multiplier=16)
             else:
                 continue
                 self.addr.register.get_cell(i).assert_val(0)
@@ -127,6 +129,8 @@ class LoadWord(Instruction):
         for i in range(8):
             if i < MEMORY_ADDRESS_HALFBYTES:
                 self.addr.register.get_cell(i).copy(addr_cells[i], scrap=zero_scrap)
+            elif i == MEMORY_ADDRESS_HALFBYTES and MEMORY_ADDRESS_LAST_HALFBYTE_AS_BYTE:
+                self.addr.register.get_cell(i).copy(addr_cells[-1], scrap=zero_scrap, multiplier=16)
             else:
                 continue
                 self.addr.register.get_cell(i).assert_val(0)

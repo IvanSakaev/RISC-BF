@@ -3,7 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 
 from concater import _Concater
-from config import MEMORY_SCRAPS_COUNT, REGISTER_COUNT, SCRAP_COUNT
+from config import MEMORY_SCRAPS_COUNT, SCRAP_COUNT
 
 _default = object()
 
@@ -172,6 +172,6 @@ ROOT = Cell(8)  # Every block starts and ends here
 
 # Safe to modify in blocks, equal zero in blocks, after modifying must stay zero
 scraps = [Cell(i + 4) for i in range(SCRAP_COUNT - MEMORY_SCRAPS_COUNT)]
-memory_scraps = [Cell(i + REGISTER_COUNT * 8 + SCRAP_COUNT - MEMORY_SCRAPS_COUNT + 4)
+memory_scraps = [Cell(i + 32 * 8 + SCRAP_COUNT - MEMORY_SCRAPS_COUNT + 4)
                  for i in range(MEMORY_SCRAPS_COUNT)]
 scraps.extend(memory_scraps)

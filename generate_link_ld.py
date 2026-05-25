@@ -1,10 +1,13 @@
 #! /bin/python
-from config import PROGRAM_START_ADDRESS, MEMORY_ADDRESS_HALFBYTES
+from config import PROGRAM_START_ADDRESS, MEMORY_ADDRESS_HALFBYTES, MEMORY_ADDRESS_LAST_HALFBYTE_AS_BYTE
 
 imem_start = PROGRAM_START_ADDRESS * 0x01000000
 imem_length = 0xffffffff - imem_start
 
-dmem_length = min(16 ** MEMORY_ADDRESS_HALFBYTES, imem_start)
+dmem_length = 16 ** MEMORY_ADDRESS_HALFBYTES
+if MEMORY_ADDRESS_LAST_HALFBYTE_AS_BYTE:
+    dmem_length *= 16
+dmem_length = min(dmem_length, imem_start)
 
 output = "ENTRY(_start)"
 
