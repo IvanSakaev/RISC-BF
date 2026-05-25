@@ -3,7 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 
 from concater import _Concater
-from config import SCRAP_COUNT, REGISTER_COUNT, MEMORY_SCRAPS_COUNT
+from config import MEMORY_SCRAPS_COUNT, SCRAP_COUNT
 
 _default = object()
 
@@ -17,14 +17,18 @@ class Cell:
         Move pointer to this cell.
         """
         if self.addr > concater.current_pos.addr:
-            concater.raw(">" * (self.addr - concater.current_pos.addr))
+            concater.raw_char(">", self.addr - concater.current_pos.addr)
         elif self.addr < concater.current_pos.addr:
-            concater.raw("<" * (concater.current_pos.addr - self.addr))
+            concater.raw_char("<", concater.current_pos.addr - self.addr)
         concater.current_pos = self
 
     def raw(self, text: str, pos_offset: int = 0):
         self.to()
         concater.raw(text, pos_offset)
+
+    def raw_char(self, text: str, count: int):
+        self.to()
+        concater.raw_char(text, count)
 
     def debug(self):
         self.to()
@@ -59,9 +63,9 @@ class Cell:
             b = a
             a = 0
         if a > b:
-            self.raw("-" * (a - b))
+            self.raw_char("-", (a - b))
         elif a < b:
-            self.raw("+" * (b - a))
+            self.raw_char("+", (b - a))
 
     def clear(self):
         """
@@ -155,6 +159,9 @@ class Cell:
             return NotImplemented
         return self.addr == other.addr
 
+    def __repr__(self):
+        return f"CELL{self.addr}"
+
 
 concater = _Concater(Cell(0))
 
@@ -165,6 +172,6 @@ ROOT = Cell(8)  # Every block starts and ends here
 
 # Safe to modify in blocks, equal zero in blocks, after modifying must stay zero
 scraps = [Cell(i + 4) for i in range(SCRAP_COUNT - MEMORY_SCRAPS_COUNT)]
-memory_scraps = [Cell(i + REGISTER_COUNT * 8 + SCRAP_COUNT - MEMORY_SCRAPS_COUNT + 4)
+memory_scraps = [Cell(i + 32 * 8 + SCRAP_COUNT - MEMORY_SCRAPS_COUNT + 4)
                  for i in range(MEMORY_SCRAPS_COUNT)]
 scraps.extend(memory_scraps)

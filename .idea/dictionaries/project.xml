@@ -16,6 +16,7 @@
       <w>divu</w>
       <w>ebreak</w>
       <w>ecall</w>
+      <w>halfbyte</w>
       <w>halfbytes</w>
       <w>ifnot</w>
       <w>jalr</w>

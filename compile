@@ -15,13 +15,15 @@ fi
 
 mkdir -p dst
 
+python generate_link_ld.py
+
 $RISCV_GCC \
     -O3 \
     -march=rv32i \
     -mabi=ilp32 \
     -ffreestanding \
     -nostdlib \
-    -T link.ld \
+    -T dst/link.ld \
     "$1" \
     -lgcc \
     -o dst/file.elf

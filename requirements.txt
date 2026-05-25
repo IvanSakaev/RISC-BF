@@ -1,2 +1,2 @@
 pyelftools
-capstone
+capstone>=5.0.2

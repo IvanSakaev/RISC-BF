@@ -4,6 +4,7 @@ bin
 dst
 tmp
 out.b
+out.bpk
 out.b.addr
 ibf
 tests/test.c
