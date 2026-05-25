@@ -2,6 +2,37 @@
 
 set -euo pipefail
 
+usage() {
+    echo "Usage: $0 [-c] <input.c> <output>" >&2
+    exit 1
+}
+
+PARSED=$(getopt -o c -- "$@") || usage
+eval set -- "$PARSED"
+
+PY_ARGS=()
+
+while true; do
+    case "$1" in
+        -c)
+            PY_ARGS+=("-c")
+            shift
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+
+if [ $# -lt 2 ]; then
+    echo "Error: missing arguments" >&2
+    usage
+fi
+
 if command -v riscv64-elf-gcc > /dev/null 2>&1; then
     RISCV_GCC=riscv64-elf-gcc
 elif command -v riscv64-unknown-elf-gcc > /dev/null 2>&1; then
@@ -28,4 +59,4 @@ $RISCV_GCC \
     -lgcc \
     -o dst/file.elf
 
-python3 asm.py dst/file.elf out.b
+python3 asm.py "${PY_ARGS[@]}" dst/file.elf "$2"
