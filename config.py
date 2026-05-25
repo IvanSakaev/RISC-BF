@@ -3,6 +3,8 @@ BLOCK_SIZE = 256  # 256 for production
 REGISTER_COUNT = 32
 SCRAP_COUNT = 32  # TODO: reduce scrap count
 
+PROGRAM_START_ADDRESS = 1  # program (not data) addresses start from PROGRAM_START_ADDRESS * 0x01000000
+
 # TODO: Make 3-bytes addressing, not 2.5-bytes
 # Big values (> 3) may not work properly with most interpretators
 # You should change DMEM size in link.ld script if you change this value
@@ -37,5 +39,7 @@ COMPRESSED = True
 
 # Don't change!
 MEMORY_SCRAPS_COUNT = 2 + MEMORY_ADDRESS_HALFBYTES + max(4, MAX_OUTPUT_LENGTH_HALFBYTES * 2)
+assert PROGRAM_START_ADDRESS >= 1
+assert PROGRAM_START_ADDRESS <= 0xff
 assert BLOCK_SIZE <= 256
 assert BLOCK_SIZE % 4 == 0

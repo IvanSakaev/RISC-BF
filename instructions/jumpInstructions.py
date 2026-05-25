@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from instructions.arithmeticInstructions import AddI
-from instructions.baseInstructions import *
 from dataclasses import dataclass
 
+from config import PROGRAM_START_ADDRESS
+from instructions.arithmeticInstructions import AddI
+from instructions.baseInstructions import *
 from registers import regs
 
 
@@ -36,7 +37,7 @@ class JumpRegister(Instruction):
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"jr {self.reg}", comments)
         if self.reg == ZERO:
-            new_nexts = [0, 0, 0, 1]
+            new_nexts = [0, 0, 0, PROGRAM_START_ADDRESS]
             for next_, new_next in zip(nexts, new_nexts):
                 next_.change(new_next)
             return
@@ -91,7 +92,7 @@ class JumpAndLinkRegister(Instruction):
                 new_next_num += new_next * (BLOCK_SIZE ** i)
             self.src.change_big(new_next_num, clear=True)
         if self.reg.register == ZERO:
-            new_nexts = [0, 0, 0, 1]
+            new_nexts = [0, 0, 0, PROGRAM_START_ADDRESS]
             offset_ = self.reg.offset
             for next_, new_next in zip(nexts, new_nexts):
                 next_.change(new_next + (offset_ % 256))

@@ -159,6 +159,9 @@ class Cell:
             return NotImplemented
         return self.addr == other.addr
 
+    def __repr__(self):
+        return f"CELL{self.addr}"
+
 
 concater = _Concater(Cell(0))
 

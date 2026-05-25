@@ -1,8 +1,7 @@
 #! /bin/python
 from __future__ import annotations
 
-import types
-from typing import Union, get_args, get_origin, get_type_hints
+from typing import get_type_hints
 
 from capstone import *
 from elftools.elf.elffile import ELFFile
@@ -16,8 +15,7 @@ from config import (
     MEMORY_ADDRESS_HALFBYTES,
     MEMORY_SCRAPS_COUNT,
     PRELOAD_MEMORY,
-    REGISTER_COUNT,
-    WATCH_REGISTERS,
+    WATCH_REGISTERS, PROGRAM_START_ADDRESS,
 )
 from instructions.baseInstructions import Instruction
 from instructions.mnemonics import (
@@ -44,7 +42,7 @@ def split_program_into_blocks(instrs: list[Instruction]):
 
             idx = val
             if i == 3:
-                idx += 1
+                idx += PROGRAM_START_ADDRESS
             elif i == 0:
                 idx *= 4
             if len(mother_block.daughter_blocks) <= val:
@@ -72,6 +70,7 @@ class Program:
         self.kiloblock, self.entry_point_block = split_program_into_blocks(instrs)
         self.memory = memory
         # print(self.memory)
+        # print(self.entry_point_block.get_full_id())
 
     def preload_memory(self):
         first_mem_cell = memory_scraps[-1].cell_rel(1)
@@ -102,7 +101,9 @@ class Program:
         name_line = f"{concater.sanitize(name)}:"
         concater.raw("\n")
         concater.raw(f"{name_line}\n")
-        if block.myid != 0:
+        if deep == 0:
+            currents[-1].change(-PROGRAM_START_ADDRESS)
+        elif block.myid != 0:
             currents[-1].change(-4 if deep == 3 else -1)
         currents[-1].raw(">+<[>-]>[-", pos_offset=1)
         if deep != 3:
