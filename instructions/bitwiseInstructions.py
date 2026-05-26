@@ -245,6 +245,81 @@ class ShiftRightI(Instruction):
 
 
 @dataclass
+class ShiftRightArithmetic(Instruction):
+    dst: Register
+    src: Register
+    shift: Register
+
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.rem(f"srl {self.dst} {self.src} {self.shift}", comments)
+        if self.dst == ZERO:
+            return
+
+        if self.src == ZERO:
+            self.dst.clear_big()
+            return
+
+        if self.shift == ZERO:
+            if self.src != self.dst:
+                self.dst.clear_big()
+                self.src.copy_big(self.dst)
+                return
+
+        if self.src == self.shift:
+            raise NotImplementedError  # TODO
+
+        shift_big = scraps[0]  # shift / 4
+        shift_small = scraps[1]  # shift % 4
+        scrap1 = scraps[2]
+        scrap2 = scraps[3]
+        shift_verybig_unused = scrap3 = scraps[4]
+        # scraps 3 and 4 are used for div_imm()
+        sign_bit = scraps[5]
+        sign_scrap = scraps[6]
+
+        if self.src != self.dst:
+            self.dst.clear_big()
+            self.src.copy_big(self.dst, scrap=scrap1)
+
+        sign_digit = self.dst.get_cell(7)
+        sign_digit.div_imm(8, scrap1, sign_bit)
+        scrap1.move(sign_digit)
+        sign_bit.copy(sign_digit, scrap=sign_scrap, multiplier=8)
+
+        self.shift.get_cell(0).div_imm(4, shift_small, shift_big)
+        shift_big.copy(self.shift.get_cell(0), multiplier=4, scrap=scrap1)
+        self.shift.get_cell(1).div_imm(2, scrap2, shift_verybig_unused)
+        shift_verybig_unused.move(self.shift.get_cell(1), multiplier=2)
+        scrap2.move(shift_big, self.shift.get_cell(1), multiplier=(4, 1))
+
+        with shift_big.loop():
+            self.dst.get_cell(0).clear()
+            for i in range(1, 8):
+                small_src = self.dst.get_cell(i)
+                small_dst = self.dst.get_cell(i - 1)
+                small_src.move(small_dst)
+            sign_bit.copy(sign_digit, scrap=sign_scrap, multiplier=0xf)
+            shift_big.change(-1)
+
+        with shift_small.loop():
+            for i in range(7, -1, -1):
+                small_dst = self.dst.get_cell(i)
+                small_dst.div_imm(2, scrap3, scrap2)
+                scrap2.move(small_dst)
+                if i != 0:
+                    scrap3.move(small_dst.cell_rel(-1), multiplier=16)
+                else:
+                    scrap3.clear()
+            sign_bit.copy(sign_digit, scrap=sign_scrap, multiplier=8)
+            if self.dst != self.shift:
+                scrap1.change(1)
+            shift_small.change(-1)
+
+        if self.dst != self.shift:
+            scrap1.move(self.shift.get_cell(0))
+
+
+@dataclass
 class ShiftRightArithmeticI(Instruction):
     dst: Register
     src: Register
