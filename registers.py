@@ -53,6 +53,8 @@ class Register:
             cell.clear()
 
     def change_big(self, a: int, clear=False):
+        if a < 0:
+            a += 2 ** 32
         assert 0 <= a < (2 ** 32)
         if a < 0:
             a = 2 ** 32 - a
@@ -121,7 +123,7 @@ class Register:
 
     def __repr__(self):
         for key, value in regs.items():
-            if key.startswith("x"):
+            if not key.startswith("x"):
                 if self == value:
                     return key
         for key, value in regs.items():
@@ -162,7 +164,7 @@ class OffsetRegister:
     def __init__(self, register, offset):
         self.register = Register(register)
         self.offset = Immediate(offset)
-    
+
     def __repr__(self):
         return f"{self.offset}({self.register})"
 
