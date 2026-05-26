@@ -31,7 +31,7 @@ _start:
 li a0, 0x123
 li x1, 0x{num1text:x}
 li x2, 0x{num2text:x}
-srai a0, x1, 0x{num2text:x}
+sra a0, x1, x2
 li a7, 1
 ecall
 """.lstrip()
