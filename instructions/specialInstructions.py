@@ -101,6 +101,34 @@ class Ecall(Instruction):
             self.ecall63_64(",")
         with self.if_number(regs["a7"], Immediate(64)):
             self.ecall63_64(".")
+        with self.if_number(regs["a7"], Immediate(86)):
+            self.ecall_write_fast()
+    
+    def ecall_write_fast(self):
+        addr_reg = regs["a1"]
+
+        mem_scraps = memory_scraps[len(memory_scraps) - 2 - MEMORY_ADDRESS_HALFBYTES :]
+        zero_scrap = mem_scraps[0]
+        addr_cells = mem_scraps[1: MEMORY_ADDRESS_HALFBYTES + 1]
+        addr_scrap = mem_scraps[MEMORY_ADDRESS_HALFBYTES + 1]
+
+        for i in range(8):
+            if i < MEMORY_ADDRESS_HALFBYTES:
+                addr_reg.get_cell(i).copy(addr_cells[i], scrap=zero_scrap)
+            elif i == MEMORY_ADDRESS_HALFBYTES and MEMORY_ADDRESS_LAST_HALFBYTE_AS_BYTE:
+                addr_reg.get_cell(i).copy(addr_cells[-1], scrap=zero_scrap, multiplier=16)
+            else:
+                continue
+                addr_reg.get_cell(i).assert_val(0)
+
+        _go_to_addr(mem_scraps, zero_scrap, addr_cells, addr_scrap)
+        
+        first_mem_cell = mem_scraps[-1].cell_rel(1)
+        first_mem_cell.clear()
+        first_mem_cell.raw(">[.>]<[<]")
+        
+        _go_from_addr(mem_scraps, zero_scrap, addr_cells)
+        
 
     def ecall63_64(self, command):
         # Maybe not ignore a0?
@@ -125,7 +153,7 @@ class Ecall(Instruction):
             else:
                 continue
                 addr_reg.get_cell(i).assert_val(0)
-        for i in range(MAX_OUTPUT_LENGTH_HALFBYTES):
+        for i in range(8):
             if i < MAX_OUTPUT_LENGTH_HALFBYTES:
                 length_reg.get_cell(i).copy(length_to[i], scrap=zero_scrap)
             else:
