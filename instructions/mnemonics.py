@@ -37,6 +37,7 @@ MNEMONICS["sll"] = ShiftLeft
 MNEMONICS["slli"] = ShiftLeftI
 MNEMONICS["srl"] = ShiftRight
 MNEMONICS["srli"] = ShiftRightI
+MNEMONICS["sra"] = ShiftRightArithmetic
 MNEMONICS["srai"] = ShiftRightArithmeticI
 MNEMONICS["or"] = Or
 MNEMONICS["and"] = And
@@ -67,7 +68,7 @@ MNEMONICS["lb"] = LoadByte
 MNEMONICS["lbu"] = LoadByteUnsigned
 
 # jump
-MNEMONICS["auipc"] = AddUpperImmToPC
+# MNEMONICS["auipc"] = AddUpperImmToPC
 MNEMONICS["j"] = Jump
 MNEMONICS["jr"] = JumpRegister
 MNEMONICS["jal"] = JumpAndLink

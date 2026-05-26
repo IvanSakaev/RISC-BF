@@ -10,7 +10,7 @@ for i in range(1, 101):
     # num2 = random.randrange(-127, 128)
     # num1 = random.randrange(256)
     # num2 = random.randrange(256)
-    num1 = random.randint(-2**31, 2**31)
+    num1 = random.randint(-2 ** 31, 2 ** 31)
     # num2 = random.randint(-2**31, 2**31)
     # num1 = random.randrange(2 ** 32)
     # num2 = random.randrange(2 ** 32)
@@ -31,21 +31,23 @@ _start:
 li a0, 0x123
 li x1, 0x{num1text:x}
 li x2, 0x{num2text:x}
-srai a0, x1, 0x{num2text:x}
+sra a0, x1, x2
 li a7, 1
 ecall
 """.lstrip()
         )
 
     subprocess.run([
-            "./compile",
-            "tests/t.s",
-        ])
+        "./compile",
+        "tests/t.s",
+        "out.bpk",
+        "-c",
+    ])
     predict_byte = subprocess.run(
         [
             "./bin/ibf",
-            "-a",
-            "out.b",
+            "-ac",
+            "out.bpk",
         ],
         stdout=subprocess.PIPE,
         timeout=1,
