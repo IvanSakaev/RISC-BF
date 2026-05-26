@@ -110,16 +110,16 @@ class SetLessThanUnsigned(Instruction):
         else:
             self.dst = ZERO
         if self.src1 == self.src2:
-            if output_cell is None:
+            if self.dst != ZERO:
                 self.dst.clear_big()
             return
         if self.src1 == ZERO:
-            if output_cell is not None:
+            if self.dst == ZERO:
                 raise NotImplementedError
             SetNotEqualToZero(self.dst, self.src2).evaluate(program, cur_block)
             return
         if self.src2 == ZERO:
-            if output_cell is None:
+            if self.dst != ZERO:
                 self.dst.clear_big()
             return
 
@@ -131,7 +131,7 @@ class SetLessThanUnsigned(Instruction):
 
         running = scraps[0]
         running.change(1)
-        output_value = scraps[1] if output_cell is None else output_cell
+        output_value = scraps[1] if self.dst != ZERO else output_cell
         if invert:
             output_value.change(1)
         for i in range(7, -1, -1):
@@ -172,7 +172,7 @@ class SetLessThanUnsigned(Instruction):
             running.raw("[")
         running.change(-1)
         running.raw("]]]]]]]]")
-        if output_cell is None:
+        if self.dst != ZERO:
             self.dst.clear_big()
             output_value.move(self.dst.get_cell(0))
 
