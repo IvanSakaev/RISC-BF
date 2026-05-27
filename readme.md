@@ -83,7 +83,6 @@ Otherwise, it will only take up a few megabytes.
    - JALR
 - Add new risc-v instructions (I think, all remaining):
    - AUIPC
-   - SRA
    - MULH, MULHSU
    - DIV, REM (signed)
 - Fix TODOs and NotImplementedErrors
