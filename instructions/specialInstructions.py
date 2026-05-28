@@ -103,6 +103,9 @@ class Ecall(Instruction):
             self.ecall63_64(".")
         with self.if_number(regs["a7"], Immediate(86)):
             self.ecall_write_fast()
+        with self.if_number(regs["a7"], Immediate(87)):  # crash
+            concater.debug()
+            scraps[0].assert_val(1)
     
     def ecall_write_fast(self):
         addr_reg = regs["a1"]

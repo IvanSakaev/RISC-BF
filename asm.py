@@ -71,6 +71,7 @@ class Program:
         self.memory = memory
         # print(self.memory)
         # print(self.entry_point_block.get_full_id())
+        # print(list(MNEMONICS.values()))
 
     def preload_memory(self):
         first_mem_cell = memory_scraps[-1].cell_rel(1)
@@ -123,7 +124,12 @@ class Program:
         if isinstance(block.daughter_blocks[-1], Instruction):
             for inst in block.daughter_blocks:
                 inst.evaluate(self, block, True)
-                concater.assert_pos()
+                for i, val in enumerate(MNEMONICS.values()):
+                    if val == type(inst):
+                        concater.assert_pos(comment=i)
+                        break
+                for scrap in scraps:
+                    scrap.assert_val(0)
             if config.BREAKPOINT_AFTER_EVERY_INSTRUCTION:
                 concater.raw("#")
         else:
