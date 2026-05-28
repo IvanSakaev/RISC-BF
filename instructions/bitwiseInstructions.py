@@ -153,13 +153,15 @@ class ShiftRight(Instruction):
 
         shift_big = scraps[0]  # shift / 4
         shift_small = scraps[1]  # shift % 4
-        scrap1 = scraps[2]
+        shift_verybig_unused = scrap1 = scraps[2]
         scrap2 = scraps[3]
-        shift_verybig_unused = scrap3 = scraps[4]
-        # scraps 3 and 4 are used for div_imm()
+        scrap3 = scraps[4]
+        # scraps 3, 4, 5 are used for div_imm()
 
         self.shift.get_cell(0).div_imm(4, shift_small, shift_big)
+        shift_small.copy(self.shift.get_cell(0), scrap=scrap1)
         shift_big.copy(self.shift.get_cell(0), multiplier=4, scrap=scrap1)
+
         self.shift.get_cell(1).div_imm(2, scrap2, shift_verybig_unused)
         shift_verybig_unused.move(self.shift.get_cell(1), multiplier=2)
         scrap2.move(shift_big, self.shift.get_cell(1), multiplier=(4, 1))
@@ -264,15 +266,18 @@ class ShiftRightArithmetic(Instruction):
 
         shift_big = scraps[0]  # shift / 4
         shift_small = scraps[1]  # shift % 4
-        scrap1 = scraps[2]
+        shift_verybig_unused = scrap1 = scraps[2]
         scrap2 = scraps[3]
-        shift_verybig_unused = scrap3 = scraps[4]
+        scrap3 = scraps[4]
         # scraps 3, 4, 5, 6 are used for div_imm()
+
         sign_bit = scraps[7]
         sign_scrap = scraps[8]
 
         self.shift.get_cell(0).div_imm(4, shift_small, shift_big)
+        shift_small.copy(self.shift.get_cell(0), scrap=scrap1)
         shift_big.copy(self.shift.get_cell(0), multiplier=4, scrap=scrap1)
+
         self.shift.get_cell(1).div_imm(2, scrap2, shift_verybig_unused)
         shift_verybig_unused.move(self.shift.get_cell(1), multiplier=2)
         scrap2.move(shift_big, self.shift.get_cell(1), multiplier=(4, 1))
