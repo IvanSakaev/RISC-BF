@@ -18,7 +18,7 @@ class _Concater:
         self.compressing_enabled = False
         self.last_char = None
         self.last_char_count = 0
-    
+
     def set_compressing_enabled(self, compressing_enabled: bool):
         self.compressing_enabled = compressing_enabled
         if not self.compressing_enabled and config.MEMORY_ADDRESS_HALFBYTES > 5:
@@ -91,15 +91,22 @@ If you know what you are doing, remove this code line.""")
             self._apply_char()
             self.raw("#")
 
-    def assert_pos(self):
+    def assert_pos(self, comment: int | None = None):
         if ALLOW_ASSERTS:
             self._apply_char()
-            self.raw(f"@{self.current_pos.addr:x}")
+            if comment is None:
+                self.raw(f"@{self.current_pos.addr:x}")
+            else:
+                self.raw(f"@{self.current_pos.addr:x}/{comment:x}")
 
-    def assert_val(self, value: int):
+    def assert_val(self, value: int, comment: int | None = None):
         if ALLOW_ASSERTS:
             self._apply_char()
             self.raw(f"!{value:x}")
+            if comment is None:
+                self.raw(f"!{value:x}")
+            else:
+                self.raw(f"!{value:x}/{comment:x}")
 
     def get_code(self):
         self._apply_char()
