@@ -163,6 +163,8 @@ class LoadHalfword(Instruction):
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"lh {self.src} {self.addr.offset}({self.addr.register})", comments)
+        if self.src == ZERO:
+            return
         LoadWord(self.src, self.addr).evaluate(program, cur_block, byte_count=2)
         mod = scraps[0]
         out = scraps[3]
@@ -189,6 +191,8 @@ class LoadByte(Instruction):
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"lb {self.src} {self.addr.offset}({self.addr.register})", comments)
+        if self.src == ZERO:
+            return
         LoadWord(self.src, self.addr).evaluate(program, cur_block, byte_count=1)
         mod = scraps[0]
         out = scraps[3]
