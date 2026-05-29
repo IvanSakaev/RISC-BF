@@ -132,8 +132,6 @@ class SetLessThanUnsigned(Instruction):
         running = scraps[0]
         running.change(1)
         output_value = scraps[1] if self.dst != ZERO else output_cell
-        if invert:
-            output_value.change(1)
         for i in range(7, -1, -1):
             small_src1 = self.src1.get_cell(i)
             small_src2 = self.src2.get_cell(i)
@@ -150,6 +148,8 @@ class SetLessThanUnsigned(Instruction):
             with scrap_src1.loop():
                 with scrap_src2.ifnot():  # >
                     running.change(-1)
+                    if invert:
+                        output_value.change(1)
                     if self.src1 == self.dst:
                         scrap_src1.clear()
                     else:
@@ -166,7 +166,8 @@ class SetLessThanUnsigned(Instruction):
                 scrap_src1.change(-1)
             with scrap_src2.loop():  # <
                 running.change(-1)
-                output_value.change(-1 if invert else 1)
+                if not invert:
+                    output_value.change(1)
                 scrap_src2.move(small_src2)
 
             running.raw("[")

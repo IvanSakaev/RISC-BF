@@ -25,32 +25,30 @@ class ShiftLeft(Instruction):
                 self.src.copy_big(self.dst)
                 return
 
-        if self.src == self.shift:
-            raise NotImplementedError  # TODO
-
         shift_big = scraps[0]  # shift / 4
         shift_small = scraps[1]  # shift % 4
-        shift_big_scrap = scraps[2]
+        shift_verybig_unused = shift_big_scrap = scraps[2]
         shift_scrap = scraps[3]
-        shift_verybig_unused = mul_scrap = scraps[4]
+        mul_scrap = scraps[4]
         # scraps 3 and 4 are used for div_imm()
 
         self.shift.get_cell(0).div_imm(4, shift_small, shift_big)
+        shift_small.copy(self.shift.get_cell(0), scrap=shift_big_scrap)
         shift_big.copy(self.shift.get_cell(0), multiplier=4, scrap=shift_big_scrap)
         self.shift.get_cell(1).div_imm(2, shift_scrap, shift_verybig_unused)
         shift_verybig_unused.move(self.shift.get_cell(1), multiplier=2)
         shift_scrap.move(shift_big, self.shift.get_cell(1), multiplier=(4, 1))
         shift_big.copy(shift_big_scrap, scrap=shift_scrap)
 
+        if self.src != self.dst:
+            self.dst.clear_big()
+            self.src.copy_big(self.dst, scrap=mul_scrap)
+
         for i in range(7, -1, -1):
             # custom ifnot
             shift_big_scrap.raw(">+<[->-]>[-", pos_offset=1)
             #                        ^
             small_dst = self.dst.get_cell(i)
-            if self.src != self.dst:
-                small_src = self.src.get_cell(i)
-                small_dst.clear()
-                small_src.copy(small_dst, scrap=mul_scrap)
 
             with shift_small.loop():
                 small_dst.move(mul_scrap, multiplier=2)

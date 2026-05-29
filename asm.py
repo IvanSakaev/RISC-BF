@@ -228,6 +228,9 @@ def parse_elf(path: str):
             args.insert(0, "ra")
         if instr.mnemonic == "jalr" and len(args) == 1:
             args.insert(0, "ra")
+        if instr.mnemonic == "jalr" and len(args) == 3:
+            rd, rs1, offset = (a.strip() for a in args)
+            args = [rd, f"{offset}({rs1})"]
 
         if len(args) != len(types_):
             raise ValueError(
