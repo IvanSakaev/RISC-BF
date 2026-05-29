@@ -54,6 +54,7 @@ $RISCV_GCC \
     -mabi=ilp32 \
     -ffreestanding \
     -nostdlib \
+    -fsigned-char \
     -T dst/link.ld \
     "$1" \
     -lgcc \

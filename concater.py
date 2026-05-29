@@ -102,7 +102,6 @@ If you know what you are doing, remove this code line.""")
     def assert_val(self, value: int, comment: int | None = None):
         if ALLOW_ASSERTS:
             self._apply_char()
-            self.raw(f"!{value:x}")
             if comment is None:
                 self.raw(f"!{value:x}")
             else:
