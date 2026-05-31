@@ -224,11 +224,10 @@ def _go_to_addr(mem_scraps: list[Cell], zero_scrap: Cell, addr_cells: list[Cell]
             else:
                 first_swap_cell = zero_scrap.cell_rel(16 ** i)
                 first_swap_cell.move(zero_scrap)
-                zero_swap_cell = first_swap_cell
                 for j in range(1, len(mem_scraps)):
-                    mem_scraps[j].move(zero_swap_cell)
+                    mem_scraps[j].move(first_swap_cell)
                     first_swap_cell.cell_rel(j).move(mem_scraps[j])
-                    zero_swap_cell.move(first_swap_cell.cell_rel(j))
+                    first_swap_cell.move(first_swap_cell.cell_rel(j))
                 concater.raw("", pos_offset=-(16 ** i))
             addr_scrap.change(1)
             addr_cells[i].change(-1)
