@@ -19,6 +19,7 @@ class _Concater:
         self.compressing_enabled = False
         self.last_char = None
         self.last_char_count = 0
+        self.assert_comment = 0
 
     def set_compressing_enabled(self, compressing_enabled: bool):
         self.compressing_enabled = compressing_enabled
@@ -94,15 +95,13 @@ If you know what you are doing, remove this code line.""")
 
     def assert_pos(self):
         if ALLOW_ASSERTS:
-            self._apply_char()
-            comment = random.randrange(0, 2**32)
-            self.raw(f"@{self.current_pos.addr:x}/{comment:x}")
+            self.raw(f"@{self.current_pos.addr:x}/{self.assert_comment:8x}")
+            self.assert_comment += 1
 
     def assert_val(self, value: int):
         if ALLOW_ASSERTS:
-            self._apply_char()
-            comment = random.randrange(0, 2**32)
-            self.raw(f"!{value:x}/{comment:x}")
+            self.raw(f"!{value:x}/{self.assert_comment:8x}")
+            self.assert_comment += 1
 
     def get_code(self):
         self._apply_char()
