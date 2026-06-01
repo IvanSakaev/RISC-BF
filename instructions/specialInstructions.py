@@ -121,7 +121,6 @@ class Ecall(Instruction):
             elif i == MEMORY_ADDRESS_HALFBYTES and MEMORY_ADDRESS_LAST_HALFBYTE_AS_BYTE:
                 addr_reg.get_cell(i).copy(addr_cells[-1], scrap=zero_scrap, multiplier=16)
             else:
-                continue
                 addr_reg.get_cell(i).assert_val(0)
 
         _go_to_addr(mem_scraps, zero_scrap, addr_cells, addr_scrap)

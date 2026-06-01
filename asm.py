@@ -16,6 +16,7 @@ from config import (
     MEMORY_SCRAPS_COUNT,
     PRELOAD_MEMORY,
     WATCH_REGISTERS, PROGRAM_START_ADDRESS,
+    MEMORY_ADDRESS_LAST_HALFBYTE_AS_BYTE
 )
 from instructions.baseInstructions import Instruction
 from instructions.mnemonics import (
@@ -79,7 +80,10 @@ class Program:
             first_mem_cell.cell_rel(addr).change(value)
 
     def program_prologue(self):
-        LoadI(regs["sp"], Immediate(16 ** MEMORY_ADDRESS_HALFBYTES - 1))
+        LoadI(
+            regs["sp"],
+            Immediate(16 ** (MEMORY_ADDRESS_HALFBYTES + (1 if MEMORY_ADDRESS_LAST_HALFBYTE_AS_BYTE else 0)) - 1)
+        ).evaluate(self, None)
         if PRELOAD_MEMORY:
             self.preload_memory()
 
@@ -256,11 +260,11 @@ def parse_elf(path: str):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(add_help=False)
-    
+
     parser.add_argument("-c", action="store_true")
     parser.add_argument("input")
     parser.add_argument("output")
-    
+
     args = parser.parse_args()
     concater.set_compressing_enabled(args.c)
 
