@@ -26,7 +26,7 @@ class Add(Instruction):
         if self.src1 == ZERO and self.src2 == ZERO:
             self.dst.clear_big()
         elif self.src1 == ZERO and self.src2 == self.dst:
-            pass
+            return
         elif self.src1 == self.dst and self.src2 == self.dst:
             self.dst.move_big(scraps[0])
             Register(scraps[0]).move_big(self.dst, multiplier=2)
