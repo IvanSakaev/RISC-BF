@@ -95,12 +95,12 @@ If you know what you are doing, remove this code line.""")
 
     def assert_pos(self):
         if ALLOW_ASSERTS:
-            self.raw(f"@{self.current_pos.addr:x}/{self.assert_comment:8x}")
+            self.raw(f"@{self.current_pos.addr:x}/{self.assert_comment:08x}")
             self.assert_comment += 1
 
     def assert_val(self, value: int):
         if ALLOW_ASSERTS:
-            self.raw(f"!{value:x}/{self.assert_comment:8x}")
+            self.raw(f"!{value:x}/{self.assert_comment:08x}")
             self.assert_comment += 1
 
     def get_code(self):
