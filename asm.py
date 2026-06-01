@@ -128,10 +128,7 @@ class Program:
         if isinstance(block.daughter_blocks[-1], Instruction):
             for inst in block.daughter_blocks:
                 inst.evaluate(self, block, True)
-                for i, val in enumerate(MNEMONICS.values()):
-                    if val == type(inst):
-                        concater.assert_pos(comment=i)
-                        break
+                concater.assert_pos()
                 for scrap in scraps:
                     scrap.assert_val(0)
             if config.BREAKPOINT_AFTER_EVERY_INSTRUCTION:
@@ -216,7 +213,7 @@ def parse_elf(path: str):
     entry_point_found = False
     prev_addr = None
     for instr in md.disasm(code, base):
-        # print(f"0x{instr.address:x}:\t{instr.mnemonic}\t{instr.op_str}")
+        print(f"0x{instr.address:x}:\t{instr.mnemonic}\t{instr.op_str}")
         assert prev_addr is None or instr.address - prev_addr == 4
         prev_addr = instr.address
         mnemonic = MNEMONICS[instr.mnemonic]
