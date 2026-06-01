@@ -131,7 +131,6 @@ class LoadWord(Instruction):
             elif i == MEMORY_ADDRESS_HALFBYTES and MEMORY_ADDRESS_LAST_HALFBYTE_AS_BYTE:
                 self.addr.register.get_cell(i).copy(addr_cells[-1], scrap=zero_scrap, multiplier=16)
             else:
-                concater.debug()
                 self.addr.register.get_cell(i).assert_val(0)
 
         if self.addr.offset < 0:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from typing import TYPE_CHECKING
 
 import config
@@ -91,21 +92,17 @@ If you know what you are doing, remove this code line.""")
             self._apply_char()
             self.raw("#")
 
-    def assert_pos(self, comment: int | None = None):
+    def assert_pos(self):
         if ALLOW_ASSERTS:
             self._apply_char()
-            if comment is None:
-                self.raw(f"@{self.current_pos.addr:x}")
-            else:
-                self.raw(f"@{self.current_pos.addr:x}/{comment:x}")
+            comment = random.randrange(0, 2**32)
+            self.raw(f"@{self.current_pos.addr:x}/{comment:x}")
 
-    def assert_val(self, value: int, comment: int | None = None):
+    def assert_val(self, value: int):
         if ALLOW_ASSERTS:
             self._apply_char()
-            if comment is None:
-                self.raw(f"!{value:x}")
-            else:
-                self.raw(f"!{value:x}/{comment:x}")
+            comment = random.randrange(0, 2**32)
+            self.raw(f"!{value:x}/{comment:x}")
 
     def get_code(self):
         self._apply_char()
