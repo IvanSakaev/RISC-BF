@@ -194,11 +194,14 @@ def parse_elf(path: str):
             vaddr = segment['p_vaddr']
             data = segment.data()
             # segment['p_memsz']
-
-            if vaddr >= (16 ** 6):
+            
+            memsize = (16 ** 6)
+            if MEMORY_ADDRESS_LAST_HALFBYTE_AS_BYTE:
+                memsize *= 16
+            if vaddr >= memsize:
                 continue
             for i, b in enumerate(data):
-                if (vaddr + i) >= (16 ** 6):
+                if (vaddr + i) >= memsize:
                     continue
                 memory[vaddr + i] = b
 
