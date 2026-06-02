@@ -24,7 +24,7 @@ You can find example programs in `examples` folder.
    ```
    Or if you have .elf riscv32 file, you can compile it with
    ```bash
-   python asm.py [-c] file.elf out.bpk
+   python risc_bf.py [-c] file.elf out.bpk
    ```
 4. Run brainfuck file. I recommend to use ibf interpretator,
    because it's fast and optimized for running this project.
