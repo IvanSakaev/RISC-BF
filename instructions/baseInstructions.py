@@ -16,7 +16,7 @@ from registers import (
 
 if TYPE_CHECKING:
     from instructions.jumpInstructions import LabelDefine
-    from asm import Program
+    from risc_bf import Program
 
 
 class Instruction:

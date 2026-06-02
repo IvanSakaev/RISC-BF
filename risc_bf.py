@@ -216,7 +216,7 @@ def parse_elf(path: str):
     entry_point_found = False
     prev_addr = None
     for instr in md.disasm(code, base):
-        print(f"0x{instr.address:x}:\t{instr.mnemonic}\t{instr.op_str}")
+        # print(f"0x{instr.address:x}:\t{instr.mnemonic}\t{instr.op_str}")
         assert prev_addr is None or instr.address - prev_addr == 4
         prev_addr = instr.address
         mnemonic = MNEMONICS[instr.mnemonic]

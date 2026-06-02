@@ -9,7 +9,7 @@ from instructions.specialInstructions import *
 from instructions.baseInstructions import Instruction
 
 if TYPE_CHECKING:
-    from asm import Program
+    from risc_bf import Program
 
 
 
