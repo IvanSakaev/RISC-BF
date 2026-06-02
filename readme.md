@@ -60,7 +60,7 @@ use ibf interpretator
 
 ### Options
 
--c Enable compressed brainfuck output. You can run it with ibf.
+-c Enables compressed brainfuck output. You can run it with ibf.
 Compiling a program with MEMORY_ADDRESS_HALFBYTES > 5 (in config.py) will take up
 a very large amount of your disk and RAM without compression (>20GB).
 Otherwise, it will only take up a few megabytes.
@@ -79,10 +79,9 @@ Otherwise, it will only take up a few megabytes.
 
 ### Future plans
 
-- Test instructions:
-   - JALR
 - Add new risc-v instructions (I think, all remaining):
    - AUIPC
+- Add M (multiplication) risc-v extension
    - MULH, MULHSU
    - DIV, REM (signed)
 - Fix TODOs and NotImplementedErrors
@@ -92,7 +91,4 @@ Otherwise, it will only take up a few megabytes.
 
 ## Contribution
 
-The project is in an active stage of development, and
-contributions to the repository will be reviewed.
-
-If you find a bug, please create an issue or [contact me via telegram](https://t.me/sakaevx).
+Make pull requests or create issues here or [contact me via telegram](https://t.me/sakaevx).
