@@ -50,6 +50,7 @@ class JumpRegister(Instruction):
 @dataclass
 class Call(Instruction):
     target: Immediate
+
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"call {self.target}", comments)
         JumpAndLink(regs["ra"], self.target).evaluate(program, cur_block)
@@ -108,7 +109,7 @@ class JumpAndLinkRegister(Instruction):
 class AddUpperImmToPC(Instruction):
     dst: Register
     value: Immediate
-    
+
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"auipc {self.dst} {self.value}", comments)
         if self.dst == ZERO:
@@ -118,8 +119,8 @@ class AddUpperImmToPC(Instruction):
         id_num += id_list[1] * 256
         id_num += id_list[2] * (256 ** 2)
         id_num += id_list[3] * (256 ** 3)
-        id_num += self.value
-        print(f"{id_num:x}")
+        id_num += self.value * (2 ** 12)
+        id_num %= 2 ** 32
         LoadI(self.dst, id_num).evaluate(program, cur_block)
 
 
