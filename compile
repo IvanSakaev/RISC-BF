@@ -60,4 +60,4 @@ $RISCV_GCC \
     -lgcc \
     -o dst/file.elf
 
-python3 asm.py "${PY_ARGS[@]}" dst/file.elf "$2"
+python3 risc_bf.py "${PY_ARGS[@]}" dst/file.elf "$2"
