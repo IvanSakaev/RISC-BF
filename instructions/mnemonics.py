@@ -68,7 +68,7 @@ MNEMONICS["lb"] = LoadByte
 MNEMONICS["lbu"] = LoadByteUnsigned
 
 # jump
-# MNEMONICS["auipc"] = AddUpperImmToPC
+MNEMONICS["auipc"] = AddUpperImmToPC
 MNEMONICS["j"] = Jump
 MNEMONICS["jr"] = JumpRegister
 MNEMONICS["jal"] = JumpAndLink

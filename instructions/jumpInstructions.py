@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from config import PROGRAM_START_ADDRESS
 from instructions.arithmeticInstructions import AddI
 from instructions.baseInstructions import *
+from instructions.specialInstructions import LoadI
 from registers import regs
 
 
@@ -112,7 +113,14 @@ class AddUpperImmToPC(Instruction):
         concater.rem(f"auipc {self.dst} {self.value}", comments)
         if self.dst == ZERO:
             return
-        raise NotImplementedError  # TODO
+        id_list = cur_block.get_full_id()
+        id_num = id_list[0]
+        id_num += id_list[1] * 256
+        id_num += id_list[2] * (256 ** 2)
+        id_num += id_list[3] * (256 ** 3)
+        id_num += self.value
+        print(f"{id_num:x}")
+        LoadI(self.dst, id_num).evaluate(program, cur_block)
 
 
 @dataclass
