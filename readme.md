@@ -91,4 +91,6 @@ Otherwise, it will only take up a few megabytes.
 
 ## Contribution
 
-Make pull requests or create issues here or [contact me via telegram](https://t.me/sakaevx).
+Original RISC-BF repository: https://codeberg.org/IvanSakaev/RISC-BF.
+
+Make pull requests or create issues there or [contact me via telegram](https://t.me/sakaevx).

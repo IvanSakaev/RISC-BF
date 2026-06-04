@@ -15,7 +15,7 @@ output += f"""
 
 MEMORY
 {{
-    IMEM (rx)  : ORIGIN = 0x{imem_start:x}, LENGTH = 0x{imem_length:x}
+    IMEM (x)  : ORIGIN = 0x{imem_start:x}, LENGTH = 0x{imem_length:x}
     DMEM (rw)  : ORIGIN = 0x00000000, LENGTH = 0x{dmem_length:x}
 }}
 """

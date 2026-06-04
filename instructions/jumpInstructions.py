@@ -50,7 +50,6 @@ class JumpRegister(Instruction):
 @dataclass
 class Call(Instruction):
     target: Immediate
-
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"call {self.target}", comments)
         JumpAndLink(regs["ra"], self.target).evaluate(program, cur_block)
@@ -87,12 +86,6 @@ class JumpAndLinkRegister(Instruction):
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"jalr {self.src} {self.reg.offset}({self.reg.register})", comments)
 
-        if self.src != ZERO:
-            new_nexts = cur_block.find_block_rel(4)
-            new_next_num = 0
-            for i, new_next in enumerate(new_nexts):
-                new_next_num += new_next * (BLOCK_SIZE ** i)
-            self.src.change_big(new_next_num, clear=True)
         if self.reg.register == ZERO:
             new_nexts = [0, 0, 0, PROGRAM_START_ADDRESS]
             offset_ = self.reg.offset
@@ -103,13 +96,19 @@ class JumpAndLinkRegister(Instruction):
             AddI(self.reg.register, self.reg.register, self.reg.offset).evaluate(program, cur_block)
             JumpRegister(self.reg.register).evaluate(program, cur_block)
             AddI(self.reg.register, self.reg.register, -self.reg.offset).evaluate(program, cur_block)
+        if self.src != ZERO:
+            new_nexts = cur_block.find_block_rel(4)
+            new_next_num = 0
+            for i, new_next in enumerate(new_nexts):
+                new_next_num += new_next * (BLOCK_SIZE ** i)
+            self.src.change_big(new_next_num, clear=True)
 
 
 @dataclass
 class AddUpperImmToPC(Instruction):
     dst: Register
     value: Immediate
-
+    
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"auipc {self.dst} {self.value}", comments)
         if self.dst == ZERO:
