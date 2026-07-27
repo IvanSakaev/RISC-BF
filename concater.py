@@ -42,6 +42,7 @@ If you know what you are doing, remove this code line.""")
             .replace(".", "_")
             .replace(",", "_")
             .replace("#", "_")
+            .replace("*", "_")
             .replace("@", "_")
             .replace("!", "_")
         )
@@ -85,7 +86,7 @@ If you know what you are doing, remove this code line.""")
     def rem(self, text: str, comments: bool):
         if comments:
             self._apply_char()
-            bp = " #" if config.BREAKPOINT_EVERY_INSTRUCTION else ""
+            bp = " *" if config.BREAKPOINT_EVERY_INSTRUCTION else ""
             self.raw("\n        " + self.sanitize(text) + bp + "\n          ")
 
     def debug(self):

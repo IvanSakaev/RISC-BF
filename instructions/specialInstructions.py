@@ -27,7 +27,7 @@ class LoadUpperI(Instruction):
     src: Immediate
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
-        concater.rem(f"li {self.dst} {self.src}", comments)
+        concater.rem(f"lui {self.dst} {self.src}", comments)
         inst = LoadI(self.dst, Immediate(self.src * (2 ** 12)))
         inst.evaluate(program, cur_block)
 
@@ -52,7 +52,6 @@ class Nop(Instruction):
 class Debug(Instruction):
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem("ebreak", comments)
-        concater.debug()
 
 
 @dataclass
@@ -89,6 +88,13 @@ class Output(Instruction):
         mod.change(10)  # Line feed
         mod.raw(".")
         mod.clear()
+
+
+@dataclass
+class Unimp(Instruction):
+    def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
+        concater.debug()
+        scraps[0].assert_val(1)
 
 
 @dataclass

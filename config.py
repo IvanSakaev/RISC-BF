@@ -25,13 +25,14 @@ PRELOAD_MEMORY = True
 
 # Using # symbol for breakpoints.
 ALLOW_DEBUG = True  # Allow breakpoints in concater.debug()
+# Using * symbol for weak breakpoints.
 BREAKPOINT_EVERY_CYCLE = False
 BREAKPOINT_EVERY_INSTRUCTION = False
-BREAKPOINT_AFTER_EVERY_INSTRUCTION = False
+BREAKPOINT_AFTER_EVERY_INSTRUCTION = True  # except ebreak, because it already has breakpoint
 
 # Generate .b.addr file with cells in "watch".
 GENERATE_ADDRMAP = True
-WATCH_REGISTERS = ["x1", "x2", "a0"]
+WATCH_REGISTERS = [f"x{i}" for i in range(1, 32)]
 
 # Allow asserts in brainfuck by using @hex and !hex for location and value assert.
 ALLOW_ASSERTS = True

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from instructions.baseInstructions import *
 from dataclasses import dataclass
+
+from instructions.baseInstructions import *
 
 
 @dataclass
@@ -67,10 +68,7 @@ class ShiftLeft(Instruction):
                 small_src.move(small_dst)
             shift_big.change(-1)
 
-        if self.dst != self.shift:
-            shift_small.move(self.shift.get_cell(0))
-        else:
-            shift_small.clear()
+        shift_small.clear()
         shift_big.clear()
         self.dst.normalize_big()
 
@@ -185,12 +183,7 @@ class ShiftRight(Instruction):
                     scrap3.move(small_dst.cell_rel(-1), multiplier=16)
                 else:
                     scrap3.clear()
-            if self.dst != self.shift:
-                scrap1.change(1)
             shift_small.change(-1)
-
-        if self.dst != self.shift:
-            scrap1.move(self.shift.get_cell(0))
 
 
 @dataclass
@@ -308,13 +301,9 @@ class ShiftRightArithmetic(Instruction):
                 else:
                     scrap3.clear()
             sign_bit.copy(sign_digit, scrap=sign_scrap, multiplier=8)
-            if self.dst != self.shift:
-                scrap1.change(1)
             shift_small.change(-1)
 
         sign_bit.clear()
-        if self.dst != self.shift:
-            scrap1.move(self.shift.get_cell(0))
 
 
 @dataclass
@@ -405,8 +394,9 @@ class Or(Instruction):
                 self.src1.copy_big(self.dst)
             return
         if self.src1 == self.src2:
-            self.dst.clear_big()
-            self.src1.copy_big(self.dst)
+            if self.dst != self.src1 and self.dst != self.src2:
+                self.dst.clear_big()
+                self.src1.copy_big(self.dst)
             return
 
         if self.src2 == self.dst:
@@ -479,8 +469,9 @@ class And(Instruction):
             self.dst.clear_big()
             return
         if self.src1 == self.src2:
-            self.dst.clear_big()
-            self.src1.copy_big(self.dst)
+            if self.dst != self.src1 and self.dst != self.src2:
+                self.dst.clear_big()
+                self.src1.copy_big(self.dst)
             return
 
         if self.src2 == self.dst:
@@ -807,6 +798,7 @@ class XorI(Instruction):
 
     def evaluate(self, program: Program, cur_block: Block, comments: bool = False):
         concater.rem(f"xori {self.dst} {self.src1} {self.src2}", comments)
+        self.src2 = Immediate(self.src2 & 0xffffffff)
         if self.dst == ZERO:
             return
         if self.src1 == ZERO:
@@ -828,10 +820,9 @@ class XorI(Instruction):
             if src2_small == 0:
                 if self.src1 != self.dst:
                     src1_small.copy(dst_small, scrap=src1_scrap)
-            elif src2_small == 15:
+            elif src2_small == 15 and self.src1 != self.dst:
                 dst_small.change(15)
-                if self.src1 != self.dst:
-                    src1_small.copy(dst_small, scrap=src1_scrap, multiplier=-1)
+                src1_small.copy(dst_small, scrap=src1_scrap, multiplier=-1)
             else:
                 for j in range(4):
                     invert = (src2_small & (2 ** j)) > 0
