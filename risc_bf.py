@@ -4,20 +4,20 @@ from __future__ import annotations
 import argparse
 from typing import get_type_hints
 
-from capstone import *
-from elftools.elf.elffile import ELFFile
-
 import config
 import instructions.mnemonics
+from capstone import *
 from cell import concater, currents, memory_scraps, nexts, scraps
 from config import (
     BLOCK_SIZE,
     MEMORY_ADDRESS_HALFBYTES,
+    MEMORY_ADDRESS_LAST_HALFBYTE_AS_BYTE,
     MEMORY_SCRAPS_COUNT,
     PRELOAD_MEMORY,
-    WATCH_REGISTERS, PROGRAM_START_ADDRESS,
-    MEMORY_ADDRESS_LAST_HALFBYTE_AS_BYTE
+    PROGRAM_START_ADDRESS,
+    WATCH_REGISTERS,
 )
+from elftools.elf.elffile import ELFFile
 from instructions.baseInstructions import Instruction
 from instructions.mnemonics import (
     MNEMONICS,
@@ -97,7 +97,7 @@ class Program:
     def program_epilogue(self):
         currents[-1].raw("-]")
         if config.BREAKPOINT_EVERY_CYCLE:
-            concater.raw("#")
+            concater.raw("*")
         nexts[-1].raw("]")
 
     def block_prologue(self, block: Block, deep: int):
@@ -131,8 +131,10 @@ class Program:
                 concater.assert_pos()
                 for scrap in scraps:
                     scrap.assert_val(0)
-            if config.BREAKPOINT_AFTER_EVERY_INSTRUCTION:
-                concater.raw("#")
+            if isinstance(block.daughter_blocks[0], instructions.mnemonics.Debug):
+                concater.debug()
+            elif config.BREAKPOINT_AFTER_EVERY_INSTRUCTION:
+                concater.raw("*")
         else:
             for bl in block.daughter_blocks:
                 self.assemble_block(bl, deep + 1)
